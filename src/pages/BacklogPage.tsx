@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { Search, ChevronDown, Plus } from 'lucide-react'
+import { Search, ChevronDown, Plus, ExternalLink } from 'lucide-react'
 import { useTasks, useUpdateTaskStatus } from '../hooks/useTasks'
 import { useClients } from '../hooks/useClients'
-import type { Area, Priority, TaskFilters } from '../types'
+import type { Area, Priority, Task, TaskFilters } from '../types'
 import { AREA_LABELS, PRIORITY_COLORS, PRIORITY_LABELS } from '../lib/constants'
 import { ClientBadge } from '../components/ui/ClientBadge'
 import { AreaBadge } from '../components/ui/AreaBadge'
@@ -10,15 +10,20 @@ import { AssigneeAvatar } from '../components/ui/AssigneeAvatar'
 import { PriorityDot } from '../components/ui/PriorityDot'
 import { StatusSelect } from '../components/ui/StatusSelect'
 import { useOutletContext } from 'react-router-dom'
+import { getSprintDateRange } from '../lib/dates'
 
 const ASSIGNEES = ['Alejandro', 'Alec', 'Paula', 'Jose Luis', 'Editor 1', 'Editor 2', 'Editor 3']
 
-const SPRINT_LABELS: Record<number, { label: string; color: string }> = {
-  1: { label: 'S1 — Copy & Briefs', color: '#8b5cf6' },
-  2: { label: 'S2 — Producción & Diseño', color: '#ec4899' },
-  3: { label: 'S3 — Dev & Setup', color: '#3b82f6' },
-  4: { label: 'S4 — Launch & Optimización', color: '#4ade80' },
+const SPRINT_META: Record<number, { label: string; sub: string; color: string }> = {
+  1: { label: 'Sprint 1', sub: 'Copy & Briefs',      color: '#8b5cf6' },
+  2: { label: 'Sprint 2', sub: 'Producción & Diseño', color: '#ec4899' },
+  3: { label: 'Sprint 3', sub: 'Dev & Setup',          color: '#3b82f6' },
+  4: { label: 'Sprint 4', sub: 'Launch & Optim.',      color: '#22c55e' },
 }
+// backward compat alias
+const SPRINT_LABELS = Object.fromEntries(
+  Object.entries(SPRINT_META).map(([k, v]) => [k, { label: `${v.label} — ${v.sub}`, color: v.color }])
+)
 
 function FilterSelect({
   label,
@@ -63,7 +68,7 @@ export function BacklogPage() {
   const [search, setSearch] = useState('')
   const [groupBySprint, setGroupBySprint] = useState(true)
   const [showSprintGuide, setShowSprintGuide] = useState(false)
-  const ctx = useOutletContext<{ openNewTask?: () => void }>()
+  const ctx = useOutletContext<{ openNewTask?: () => void; openTaskDetail?: (t: Task) => void }>()
 
   const filteredTasks = search
     ? tasks.filter(t => t.title.toLowerCase().includes(search.toLowerCase()))
@@ -91,19 +96,20 @@ export function BacklogPage() {
   const getDeliverableChips = (task: (typeof filteredTasks)[0]) => {
     const d = task.deliverables
     if (!d) return []
-    const chips: string[] = []
-    if (d.hooks) chips.push(`${d.hooks} hooks`)
-    if (d.cta) chips.push(`${d.cta} CTA`)
-    if (d.body_copy) chips.push(`${d.body_copy} body`)
-    if (d.scripts_video) chips.push(`${d.scripts_video} scripts`)
-    if (d.lead_magnet_pdf) chips.push(`${d.lead_magnet_pdf} PDFs`)
-    if (d.vsl_script) chips.push(`${d.vsl_script} VSL`)
-    if (d.thank_you_page_copy) chips.push(`${d.thank_you_page_copy} TYP`)
-    if (d.carousel_slides) chips.push(`${d.carousel_slides} carousel`)
-    if (d.quiz_preguntas) chips.push(`${d.quiz_preguntas} preguntas`)
-    if (d.quiz_resultados) chips.push(`${d.quiz_resultados} resultados`)
-    if (d.headline_options) chips.push(`${d.headline_options} headlines`)
-    if (d.retargeting_scripts) chips.push(`${d.retargeting_scripts} retarget`)
+    const chips: { label: string; count: number; color: string }[] = []
+    if (d.hooks)              chips.push({ label: 'hooks',    count: d.hooks,              color: '#8b5cf6' })
+    if (d.scripts_video)      chips.push({ label: 'scripts',  count: d.scripts_video,      color: '#ec4899' })
+    if (d.body_copy)          chips.push({ label: 'body',     count: d.body_copy,           color: '#3b82f6' })
+    if (d.cta)                chips.push({ label: 'CTA',      count: d.cta,                 color: '#f5a623' })
+    if (d.lead_magnet_pdf)    chips.push({ label: 'LM',       count: d.lead_magnet_pdf,     color: '#22c55e' })
+    if (d.vsl_script)         chips.push({ label: 'VSL',      count: d.vsl_script,          color: '#06b6d4' })
+    if (d.landing_copy)       chips.push({ label: 'landing',  count: d.landing_copy,        color: '#f97316' })
+    if (d.thank_you_page_copy)chips.push({ label: 'TYP',      count: d.thank_you_page_copy, color: '#fbbf24' })
+    if (d.carousel_slides)    chips.push({ label: 'slides',   count: d.carousel_slides,     color: '#a78bfa' })
+    if (d.quiz_preguntas)     chips.push({ label: 'quiz-Q',   count: d.quiz_preguntas,      color: '#818cf8' })
+    if (d.quiz_resultados)    chips.push({ label: 'quiz-R',   count: d.quiz_resultados,     color: '#6ee7b7' })
+    if (d.headline_options)   chips.push({ label: 'hdl',      count: d.headline_options,    color: '#f472b6' })
+    if (d.retargeting_scripts)chips.push({ label: 'retarg',   count: d.retargeting_scripts, color: '#34d399' })
     return chips
   }
 
@@ -342,51 +348,38 @@ export function BacklogPage() {
             <tbody>
               {grouped.map(({ week, tasks: groupTasks }) => (
                 <>
-                  {groupBySprint && week > 0 && (
-                    <tr key={`header-${week}`}>
-                      <td
-                        colSpan={8}
-                        className="px-4 py-2 sticky"
-                        style={{
-                          backgroundColor: '#0c0e1a',
-                          top: 37,
-                          zIndex: 5,
-                        }}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div
-                            className="h-px flex-1"
-                            style={{
-                              background: `linear-gradient(90deg, ${SPRINT_LABELS[week]?.color || '#3d4268'}, transparent)`,
-                            }}
-                          />
-                          <span
-                            className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full"
-                            style={{
-                              color: SPRINT_LABELS[week]?.color || '#3d4268',
-                              backgroundColor: `${SPRINT_LABELS[week]?.color || '#3d4268'}15`,
-                              border: `1px solid ${SPRINT_LABELS[week]?.color || '#3d4268'}30`,
-                            }}
-                          >
-                            {SPRINT_LABELS[week]?.label || `Sprint ${week}`}
-                          </span>
-                          <span
-                            className="text-[10px] font-bold tabular-nums"
-                            style={{ color: '#3d4268' }}
-                          >
-                            {groupTasks.length} tareas
-                          </span>
-                          <div
-                            className="h-px flex-1"
-                            style={{
-                              background: `linear-gradient(270deg, transparent, transparent)`,
-                              backgroundColor: 'rgba(255,255,255,0.04)',
-                            }}
-                          />
-                        </div>
-                      </td>
-                    </tr>
-                  )}
+                  {groupBySprint && week > 0 && (() => {
+                    const meta = SPRINT_META[week]
+                    const dates = getSprintDateRange(week)
+                    return (
+                      <tr key={`header-${week}`}>
+                        <td
+                          colSpan={8}
+                          className="px-4 py-2 sticky"
+                          style={{ backgroundColor: '#0c0e1a', top: 37, zIndex: 5 }}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="h-px flex-1" style={{ background: `linear-gradient(90deg, ${meta.color}, transparent)` }} />
+                            <div className="flex items-center gap-2">
+                              <span
+                                className="text-[11px] font-bold px-2.5 py-1 rounded-full"
+                                style={{ color: meta.color, backgroundColor: `${meta.color}15`, border: `1px solid ${meta.color}30` }}
+                              >
+                                {meta.label} · {meta.sub}
+                              </span>
+                              <span className="text-[10px] font-medium" style={{ color: '#6b7099' }}>
+                                {dates.label}
+                              </span>
+                              <span className="text-[10px] font-bold tabular-nums" style={{ color: '#3d4268' }}>
+                                {groupTasks.length} tareas
+                              </span>
+                            </div>
+                            <div className="h-px flex-1" style={{ backgroundColor: 'rgba(255,255,255,0.04)' }} />
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })()}
                   {groupTasks.map((task, idx) => {
                     const deliverableChips = getDeliverableChips(task)
                     const clientColor = task.client?.color || '#6b7280'
@@ -394,7 +387,8 @@ export function BacklogPage() {
                     return (
                       <tr
                         key={task.id}
-                        className="group"
+                        className="group cursor-pointer"
+                        onClick={() => ctx?.openTaskDetail?.(task)}
                         style={{
                           borderLeft: task.tipo === 'urgente'
                             ? '2px solid #ef4444'
@@ -467,17 +461,17 @@ export function BacklogPage() {
                         >
                           <div className="flex flex-wrap gap-1">
                             {deliverableChips.length > 0 ? (
-                              deliverableChips.map((chip, i) => (
+                              deliverableChips.map(({ label, count, color }, i) => (
                                 <span
                                   key={i}
-                                  className="inline-block px-1.5 py-0.5 rounded text-[9px] font-semibold whitespace-nowrap"
+                                  className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold whitespace-nowrap"
                                   style={{
-                                    backgroundColor: 'rgba(139,92,246,0.12)',
-                                    color: '#a78bfa',
-                                    border: '1px solid rgba(139,92,246,0.2)',
+                                    backgroundColor: `${color}15`,
+                                    color,
+                                    border: `1px solid ${color}30`,
                                   }}
                                 >
-                                  {chip}
+                                  <span style={{ fontWeight: 900 }}>{count}</span>&nbsp;{label}
                                 </span>
                               ))
                             ) : (

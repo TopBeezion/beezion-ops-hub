@@ -11,7 +11,8 @@ import { STATUS_LABELS, AREA_COLORS, AREA_LABELS } from '../lib/constants'
 import { ClientBadge } from '../components/ui/ClientBadge'
 import { AssigneeAvatar } from '../components/ui/AssigneeAvatar'
 import { PriorityDot } from '../components/ui/PriorityDot'
-import { X } from 'lucide-react'
+import { X, ExternalLink } from 'lucide-react'
+import { useOutletContext } from 'react-router-dom'
 
 const COLUMNS: TaskStatus[] = ['pendiente', 'en_progreso', 'revision', 'completado']
 
@@ -26,7 +27,9 @@ const AREA_LIST = ['copy', 'trafico', 'tech', 'admin'] as const
 const ASSIGNEES = ['Alejandro', 'Alec', 'Paula', 'Jose Luis', 'Editor 1', 'Editor 2', 'Editor 3']
 
 // ── Task Card ─────────────────────────────────────────────────────
-function TaskCard({ task, isDragging }: { task: Task; isDragging?: boolean }) {
+function TaskCard({
+  task, isDragging, onOpen,
+}: { task: Task; isDragging?: boolean; onOpen?: (t: Task) => void }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: task.id })
 
   const style = {
@@ -36,13 +39,18 @@ function TaskCard({ task, isDragging }: { task: Task; isDragging?: boolean }) {
   }
 
   const deliverables = task.deliverables
-  const chips: string[] = []
-  if (deliverables?.hooks)         chips.push(`${deliverables.hooks} hooks`)
-  if (deliverables?.cta)           chips.push(`${deliverables.cta} CTA`)
-  if (deliverables?.body_copy)     chips.push(`${deliverables.body_copy} body`)
-  if (deliverables?.scripts_video) chips.push(`${deliverables.scripts_video} scripts`)
-  if (deliverables?.lead_magnet_pdf) chips.push(`${deliverables.lead_magnet_pdf} PDFs`)
-  if (deliverables?.vsl_script)    chips.push(`${deliverables.vsl_script} VSL`)
+  const chips: { label: string; count: number; color: string }[] = []
+  if (deliverables?.hooks)             chips.push({ label: 'hooks',   count: deliverables.hooks,             color: '#8b5cf6' })
+  if (deliverables?.scripts_video)     chips.push({ label: 'scripts', count: deliverables.scripts_video,     color: '#ec4899' })
+  if (deliverables?.body_copy)         chips.push({ label: 'body',    count: deliverables.body_copy,          color: '#3b82f6' })
+  if (deliverables?.cta)               chips.push({ label: 'CTA',     count: deliverables.cta,                color: '#f5a623' })
+  if (deliverables?.lead_magnet_pdf)   chips.push({ label: 'LM',      count: deliverables.lead_magnet_pdf,    color: '#22c55e' })
+  if (deliverables?.vsl_script)        chips.push({ label: 'VSL',     count: deliverables.vsl_script,         color: '#06b6d4' })
+  if (deliverables?.landing_copy)      chips.push({ label: 'landing', count: deliverables.landing_copy,       color: '#f97316' })
+  if (deliverables?.carousel_slides)   chips.push({ label: 'slides',  count: deliverables.carousel_slides,    color: '#a78bfa' })
+  if (deliverables?.headline_options)  chips.push({ label: 'hdl',     count: deliverables.headline_options,   color: '#f472b6' })
+  if (deliverables?.retargeting_scripts) chips.push({ label: 'retarg',count: deliverables.retargeting_scripts, color: '#34d399' })
+  if (deliverables?.thank_you_page_copy) chips.push({ label: 'TYP',   count: deliverables.thank_you_page_copy, color: '#fbbf24' })
 
   const clientColor = task.client?.color || '#6b7280'
   const isUrgent   = task.tipo === 'urgente'
@@ -51,7 +59,7 @@ function TaskCard({ task, isDragging }: { task: Task; isDragging?: boolean }) {
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
       <div
-        className="rounded-xl p-3 cursor-grab active:cursor-grabbing select-none relative overflow-hidden card-hover"
+        className="rounded-xl p-3 cursor-grab active:cursor-grabbing select-none relative overflow-hidden card-hover group"
         style={{
           backgroundColor: '#13152a',
           border: isUrgent
@@ -65,9 +73,19 @@ function TaskCard({ task, isDragging }: { task: Task; isDragging?: boolean }) {
         {/* Client color stripe */}
         <div className="absolute top-0 left-0 right-0 h-[2px] rounded-t-xl" style={{ backgroundColor: clientColor }} />
 
+        {/* Open detail button */}
+        <button
+          onClick={e => { e.stopPropagation(); onOpen?.(task) }}
+          className="absolute top-2.5 right-2.5 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded"
+          style={{ backgroundColor: 'rgba(255,255,255,0.08)', color: '#a0a6cc' }}
+          title="Ver detalle"
+        >
+          <ExternalLink size={9} />
+        </button>
+
         {/* Urgency badge */}
         {(isUrgent || isPrevious) && (
-          <div className="absolute top-3 right-3">
+          <div className="absolute top-3 right-8">
             <span
               className="text-[8px] font-bold px-1.5 py-0.5 rounded-md"
               style={{
@@ -85,7 +103,7 @@ function TaskCard({ task, isDragging }: { task: Task; isDragging?: boolean }) {
         </div>
 
         {/* Title */}
-        <p className="text-[12px] leading-relaxed font-medium pr-10 mb-1" style={{ color: '#e8eaff' }}>
+        <p className="text-[12px] leading-relaxed font-medium pr-2 mb-1" style={{ color: '#e8eaff' }}>
           {task.title}
         </p>
 
@@ -97,27 +115,19 @@ function TaskCard({ task, isDragging }: { task: Task; isDragging?: boolean }) {
 
         {chips.length > 0 && (
           <div className="flex flex-wrap gap-1 mb-2">
-            {chips.slice(0, 2).map((chip, i) => (
+            {chips.map(({ label, count, color }, i) => (
               <span
                 key={i}
-                className="inline-block px-1.5 py-0.5 rounded-md text-[9px] font-semibold"
+                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-bold leading-none"
                 style={{
-                  backgroundColor: 'rgba(139,92,246,0.14)',
-                  color: '#c4b5fd',
-                  border: '1px solid rgba(139,92,246,0.22)',
+                  backgroundColor: `${color}15`,
+                  color,
+                  border: `1px solid ${color}30`,
                 }}
               >
-                {chip}
+                <span style={{ fontWeight: 900 }}>{count}</span>&nbsp;{label}
               </span>
             ))}
-            {chips.length > 2 && (
-              <span
-                className="inline-block px-1.5 py-0.5 rounded-md text-[9px]"
-                style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: '#565a7a' }}
-              >
-                +{chips.length - 2}
-              </span>
-            )}
           </div>
         )}
 
@@ -146,28 +156,28 @@ function TaskCard({ task, isDragging }: { task: Task; isDragging?: boolean }) {
 }
 
 // ── Kanban Column ─────────────────────────────────────────────────
-function KanbanColumn({ status, tasks }: { status: TaskStatus; tasks: Task[] }) {
+function KanbanColumn({ status, tasks, onOpen }: { status: TaskStatus; tasks: Task[]; onOpen: (t: Task) => void }) {
   const accent = COLUMN_ACCENT[status]
 
   return (
-    <div className="flex flex-col min-h-0 w-[288px] shrink-0">
+    <div className="flex flex-col min-h-0 w-[300px] shrink-0">
       {/* Header */}
       <div
         className="rounded-xl mb-3 px-3 py-2.5 flex items-center justify-between"
         style={{
-          backgroundColor: `${accent}10`,
-          border: `1px solid ${accent}22`,
+          backgroundColor: `${accent}12`,
+          border: `1px solid ${accent}28`,
         }}
       >
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: accent, boxShadow: `0 0 7px ${accent}` }} />
-          <span className="text-[12px] font-semibold" style={{ color: '#e8eaff' }}>
+          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: accent, boxShadow: `0 0 8px ${accent}` }} />
+          <span className="text-[13px] font-semibold" style={{ color: '#e8eaff' }}>
             {STATUS_LABELS[status]}
           </span>
         </div>
         <span
-          className="text-[10px] font-bold px-2 py-0.5 rounded-full tabular-nums"
-          style={{ backgroundColor: `${accent}18`, color: accent, border: `1px solid ${accent}28` }}
+          className="text-[11px] font-bold px-2.5 py-0.5 rounded-full tabular-nums"
+          style={{ backgroundColor: `${accent}18`, color: accent, border: `1px solid ${accent}35` }}
         >
           {tasks.length}
         </span>
@@ -175,21 +185,21 @@ function KanbanColumn({ status, tasks }: { status: TaskStatus; tasks: Task[] }) 
 
       {/* Drop zone */}
       <div
-        className="flex-1 rounded-xl p-2 space-y-2.5 min-h-[120px]"
+        className="flex-1 rounded-xl p-2.5 space-y-2.5 min-h-[120px]"
         style={{
-          backgroundColor: 'rgba(19,21,42,0.4)',
+          backgroundColor: 'rgba(19,21,42,0.35)',
           border: '1px solid rgba(255,255,255,0.05)',
         }}
       >
         <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-          {tasks.map(task => <TaskCard key={task.id} task={task} />)}
+          {tasks.map(task => <TaskCard key={task.id} task={task} onOpen={onOpen} />)}
         </SortableContext>
         {tasks.length === 0 && (
           <div
             className="flex items-center justify-center h-24 rounded-lg border border-dashed"
             style={{ borderColor: 'rgba(255,255,255,0.06)' }}
           >
-            <span className="text-[11px]" style={{ color: '#3d4268' }}>Sin tareas</span>
+            <span className="text-[11px]" style={{ color: '#2d3050' }}>Sin tareas</span>
           </div>
         )}
       </div>
@@ -200,6 +210,7 @@ function KanbanColumn({ status, tasks }: { status: TaskStatus; tasks: Task[] }) 
 // ── Main Page ─────────────────────────────────────────────────────
 export function KanbanPage() {
   const { data: clients = [] } = useClients()
+  const { openTaskDetail } = useOutletContext<{ openTaskDetail?: (t: Task) => void }>()
   const [clientFilter, setClientFilter] = useState('')
   const [areaFilter, setAreaFilter]     = useState('')
   const [assigneeFilter, setAssigneeFilter] = useState('')
@@ -294,9 +305,9 @@ export function KanbanPage() {
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <div className="flex gap-3 h-full">
+          <div className="flex gap-4 h-full pb-4">
             {COLUMNS.map(status => (
-              <KanbanColumn key={status} status={status} tasks={tasks.filter(t => t.status === status)} />
+              <KanbanColumn key={status} status={status} tasks={tasks.filter(t => t.status === status)} onOpen={t => openTaskDetail?.(t)} />
             ))}
           </div>
 

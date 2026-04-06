@@ -58,6 +58,22 @@ export function useCreateTask() {
   })
 }
 
+export function useUpdateTask() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({
+      id, ...fields
+    }: Partial<Omit<Task, 'created_at' | 'client'>> & { id: string }) => {
+      const { error } = await supabase
+        .from('tasks')
+        .update({ ...fields, updated_at: new Date().toISOString() })
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['tasks'] }) },
+  })
+}
+
 export function useDeleteTask() {
   const queryClient = useQueryClient()
 

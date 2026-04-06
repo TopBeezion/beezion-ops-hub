@@ -1,11 +1,13 @@
 import { Plus } from 'lucide-react'
+import { NotificationBell } from './NotificationBell'
 
 interface HeaderProps {
   title: string
   onNewTask?: () => void
+  onOpenTaskById?: (id: string) => void
 }
 
-export function Header({ title, onNewTask }: HeaderProps) {
+export function Header({ title, onNewTask, onOpenTaskById }: HeaderProps) {
   return (
     <header
       className="flex items-center justify-between px-5 shrink-0 relative"
@@ -25,14 +27,16 @@ export function Header({ title, onNewTask }: HeaderProps) {
         {title}
       </h1>
 
-      {/* Right: live + action */}
-      <div className="flex items-center gap-3">
-        <div className="flex items-center gap-1.5">
+      {/* Right: live + notifications + action */}
+      <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 mr-1">
           <div className="w-1.5 h-1.5 rounded-full pulse-dot" style={{ backgroundColor: '#22c55e' }} />
           <span className="text-[10px] font-semibold tracking-widest uppercase" style={{ color: '#22c55e' }}>
             LIVE
           </span>
         </div>
+
+        <NotificationBell onOpenTask={onOpenTaskById} />
 
         {onNewTask && (
           <button
