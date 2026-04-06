@@ -1,0 +1,226 @@
+@import "tailwindcss";
+
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body, #root { height: 100%; margin: 0; padding: 0; }
+
+  body {
+    background-color: #0c0e1a;
+    color: #f0f2ff;
+    font-family: Inter, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  #root {
+    width: 100%;
+    text-align: left;
+    border-inline: none;
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #1e2240; border-radius: 10px; }
+  ::-webkit-scrollbar-thumb:hover { background: #2a2f55; }
+
+  * {
+    transition-property: color, background-color, border-color, box-shadow, opacity, transform;
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+/* ─── Token palette ──────────────────────────────────────────────
+   Surface hierarchy (lightest readable, not pure black)
+   bg       #0c0e1a   page background
+   surf-1   #13152a   card default
+   surf-2   #191c35   card hover / elevated
+   surf-3   #1f2240   borders high visibility
+   border   rgba(255,255,255,0.09)  standard border
+   border-s rgba(255,255,255,0.05)  subtle border
+
+   Text hierarchy
+   t1   #f0f2ff   primary   – titles, values, key content
+   t2   #a0a6cc   secondary – labels, descriptions
+   t3   #6b7099   muted     – timestamps, hints
+   t4   #3d4268   ghost     – section separators, placeholders
+   ──────────────────────────────────────────────────────────────── */
+
+/* ─── Gradient border ─────────────────────────────────────────── */
+.gradient-border { position: relative; }
+.gradient-border::before {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(245,166,35,0.5), rgba(139,92,246,0.35), transparent);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* ─── Glows ───────────────────────────────────────────────────── */
+.glow-orange { box-shadow: 0 0 24px rgba(245,166,35,0.2), 0 0 48px rgba(245,166,35,0.07); }
+.glow-purple { box-shadow: 0 0 24px rgba(139,92,246,0.2), 0 0 48px rgba(139,92,246,0.07); }
+
+/* ─── Glass card ──────────────────────────────────────────────── */
+.glass-card {
+  background: rgba(19,21,42,0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255,255,255,0.09);
+}
+
+/* ─── Card hover ──────────────────────────────────────────────── */
+.card-hover { transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease; }
+.card-hover:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.55);
+}
+
+/* ─── Shimmer ─────────────────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+.shimmer {
+  background: linear-gradient(90deg, #13152a 25%, #1e2242 50%, #13152a 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* ─── Pulse dot ───────────────────────────────────────────────── */
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.7); }
+}
+.pulse-dot { animation: pulseDot 2s ease-in-out infinite; }
+
+/* ─── Count-up ────────────────────────────────────────────────── */
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.count-up { animation: countUp 0.45s ease forwards; }
+
+/* ─── Sprint bar ──────────────────────────────────────────────── */
+.sprint-bar {
+  height: 3px; border-radius: 2px;
+  position: relative; overflow: hidden;
+}
+.sprint-bar::after {
+  content: '';
+  position: absolute; top: 0; left: -100%;
+  width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  animation: shimmer 2.5s infinite;
+}
+
+/* ─── Animated gradient bg ────────────────────────────────────── */
+@keyframes gradientShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.animated-gradient {
+  background: linear-gradient(-45deg, #f5a623, #ff6b6b, #8b5cf6, #3b82f6);
+  background-size: 400% 400%;
+  animation: gradientShift 8s ease infinite;
+}
+
+/* ─── FILTER TOOLBAR ──────────────────────────────────────────── */
+.filter-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  background: #0c0e1a;
+  flex-wrap: wrap;
+}
+
+/* Styled native select — looks like a premium filter dropdown */
+.filter-select {
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 28px 5px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+  background-color: rgba(255,255,255,0.04);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b7099'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+  border: 1px solid rgba(255,255,255,0.09);
+  color: #a0a6cc;
+  transition: all 140ms ease;
+  white-space: nowrap;
+}
+.filter-select:hover {
+  background-color: rgba(255,255,255,0.07);
+  border-color: rgba(255,255,255,0.16);
+  color: #f0f2ff;
+}
+.filter-select:focus {
+  border-color: rgba(245,166,35,0.5);
+  box-shadow: 0 0 0 3px rgba(245,166,35,0.1);
+  color: #f0f2ff;
+}
+.filter-select.has-value {
+  background-color: rgba(245,166,35,0.1);
+  border-color: rgba(245,166,35,0.35);
+  color: #f5a623;
+}
+.filter-select option {
+  background-color: #13152a;
+  color: #f0f2ff;
+}
+
+/* Divider between filter groups */
+.filter-sep {
+  width: 1px;
+  height: 18px;
+  background: rgba(255,255,255,0.07);
+  flex-shrink: 0;
+  margin: 0 2px;
+}
+
+/* Task count badge */
+.filter-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: #3d4268;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* Clear filters button */
+.filter-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid rgba(245,166,35,0.25);
+  background: rgba(245,166,35,0.08);
+  color: #f5a623;
+  transition: all 140ms ease;
+  flex-shrink: 0;
+}
+.filter-clear:hover {
+  background: rgba(245,166,35,0.15);
+  border-color: rgba(245,166,35,0.4);
+}
