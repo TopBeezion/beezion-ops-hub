@@ -19,7 +19,7 @@ function CopyButton({ text }: { text: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="p-1.5 rounded transition-colors hover:bg-[#1f2240]"
+      className="p-1.5 rounded transition-colors hover:bg-[#262626]"
       style={{ color: copied ? '#4ade80' : '#6b7280' }}
       title="Copiar"
     >
@@ -36,17 +36,17 @@ export function SettingsPage() {
     <div className="p-6 space-y-6 max-w-3xl">
       <div>
         <h1 className="text-base font-semibold" style={{ color: '#e8e9ef' }}>Configuración</h1>
-        <p className="text-xs mt-0.5" style={{ color: '#a0a6cc' }}>Gestiona clientes, equipo y conectores</p>
+        <p className="text-xs mt-0.5" style={{ color: '#a1a1a1' }}>Gestiona clientes, equipo y conectores</p>
       </div>
 
       {/* Clients */}
       <section>
-        <h2 className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: '#a0a6cc' }}>
+        <h2 className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: '#a1a1a1' }}>
           Clientes activos
         </h2>
         <div
           className="rounded-lg overflow-hidden"
-          style={{ border: '1px solid #1f2240' }}
+          style={{ border: '1px solid #262626' }}
         >
           {clientsLoading ? (
             <div className="flex items-center justify-center py-8">
@@ -58,8 +58,8 @@ export function SettingsPage() {
                 key={client.id}
                 className="flex items-center gap-3 px-4 py-3"
                 style={{
-                  borderBottom: idx < clients.length - 1 ? '1px solid #1f2240' : undefined,
-                  backgroundColor: '#13152a',
+                  borderBottom: idx < clients.length - 1 ? '1px solid #262626' : undefined,
+                  backgroundColor: '#1c1c1c',
                 }}
               >
                 <div
@@ -67,7 +67,7 @@ export function SettingsPage() {
                   style={{ backgroundColor: client.color }}
                 />
                 <span className="text-sm flex-1" style={{ color: '#e8e9ef' }}>{client.name}</span>
-                <span className="text-xs" style={{ color: '#a0a6cc' }}>{client.color}</span>
+                <span className="text-xs" style={{ color: '#a1a1a1' }}>{client.color}</span>
                 <span
                   className="text-xs px-2 py-0.5 rounded"
                   style={{
@@ -85,12 +85,12 @@ export function SettingsPage() {
 
       {/* Team */}
       <section>
-        <h2 className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: '#a0a6cc' }}>
+        <h2 className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: '#a1a1a1' }}>
           Equipo
         </h2>
         <div
           className="rounded-lg overflow-hidden"
-          style={{ border: '1px solid #1f2240' }}
+          style={{ border: '1px solid #262626' }}
         >
           {teamLoading ? (
             <div className="flex items-center justify-center py-8">
@@ -102,8 +102,8 @@ export function SettingsPage() {
                 key={member.id}
                 className="flex items-center gap-3 px-4 py-3"
                 style={{
-                  borderBottom: idx < team.length - 1 ? '1px solid #1f2240' : undefined,
-                  backgroundColor: '#13152a',
+                  borderBottom: idx < team.length - 1 ? '1px solid #262626' : undefined,
+                  backgroundColor: '#1c1c1c',
                 }}
               >
                 <div
@@ -119,15 +119,15 @@ export function SettingsPage() {
                 <div className="flex-1">
                   <p className="text-sm" style={{ color: '#e8e9ef' }}>{member.name}</p>
                   {member.email && (
-                    <p className="text-xs" style={{ color: '#a0a6cc' }}>{member.email}</p>
+                    <p className="text-xs" style={{ color: '#a1a1a1' }}>{member.email}</p>
                   )}
                 </div>
                 <span
                   className="text-xs px-2 py-0.5 rounded capitalize"
                   style={{
-                    backgroundColor: '#191c35',
-                    color: '#a0a6cc',
-                    border: '1px solid #1f2240',
+                    backgroundColor: '#222222',
+                    color: '#a1a1a1',
+                    border: '1px solid #262626',
                   }}
                 >
                   {member.role}
@@ -140,19 +140,19 @@ export function SettingsPage() {
 
       {/* Webhook n8n */}
       <section>
-        <h2 className="text-xs font-medium uppercase tracking-wider mb-1" style={{ color: '#a0a6cc' }}>
+        <h2 className="text-xs font-medium uppercase tracking-wider mb-1" style={{ color: '#a1a1a1' }}>
           Webhook n8n
         </h2>
-        <p className="text-xs mb-3" style={{ color: '#a0a6cc' }}>
+        <p className="text-xs mb-3" style={{ color: '#a1a1a1' }}>
           Configura este endpoint en n8n para procesar transcripciones de reuniones y crear tareas automáticamente.
         </p>
         <div
           className="rounded-lg p-4"
-          style={{ backgroundColor: '#13152a', border: '1px solid #1f2240' }}
+          style={{ backgroundColor: '#1c1c1c', border: '1px solid #262626' }}
         >
           <div className="flex items-center justify-between gap-3 mb-4">
             <div>
-              <p className="text-xs font-medium mb-1" style={{ color: '#a0a6cc' }}>Endpoint URL</p>
+              <p className="text-xs font-medium mb-1" style={{ color: '#a1a1a1' }}>Endpoint URL</p>
               <code
                 className="text-xs break-all"
                 style={{ color: '#f5a623', fontFamily: 'monospace' }}
@@ -165,28 +165,28 @@ export function SettingsPage() {
 
           <div className="space-y-3">
             <div>
-              <p className="text-xs font-medium mb-1.5" style={{ color: '#a0a6cc' }}>Método</p>
+              <p className="text-xs font-medium mb-1.5" style={{ color: '#a1a1a1' }}>Método</p>
               <span
                 className="text-xs px-2 py-1 rounded font-mono"
-                style={{ backgroundColor: '#191c35', color: '#4ade80' }}
+                style={{ backgroundColor: '#222222', color: '#4ade80' }}
               >
                 POST
               </span>
             </div>
 
             <div>
-              <p className="text-xs font-medium mb-1.5" style={{ color: '#a0a6cc' }}>Headers</p>
-              <div className="rounded p-2 text-xs font-mono" style={{ backgroundColor: '#191c35', color: '#818cf8' }}>
+              <p className="text-xs font-medium mb-1.5" style={{ color: '#a1a1a1' }}>Headers</p>
+              <div className="rounded p-2 text-xs font-mono" style={{ backgroundColor: '#222222', color: '#818cf8' }}>
                 <p>{'Authorization: Bearer <SUPABASE_SERVICE_KEY>'}</p>
                 <p>{'Content-Type: application/json'}</p>
               </div>
             </div>
 
             <div>
-              <p className="text-xs font-medium mb-1.5" style={{ color: '#a0a6cc' }}>Body JSON</p>
+              <p className="text-xs font-medium mb-1.5" style={{ color: '#a1a1a1' }}>Body JSON</p>
               <pre
                 className="text-xs rounded p-3 overflow-auto"
-                style={{ backgroundColor: '#191c35', color: '#e8e9ef', fontFamily: 'monospace' }}
+                style={{ backgroundColor: '#222222', color: '#e8e9ef', fontFamily: 'monospace' }}
               >
 {`{
   "meeting_title": "Reunión semanal equipo",
@@ -213,7 +213,7 @@ export function SettingsPage() {
 
       {/* Area colors reference */}
       <section>
-        <h2 className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: '#a0a6cc' }}>
+        <h2 className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: '#a1a1a1' }}>
           Colores por área (referencia)
         </h2>
         <div className="flex gap-3 flex-wrap">
@@ -221,11 +221,11 @@ export function SettingsPage() {
             <div
               key={area}
               className="flex items-center gap-2 px-3 py-2 rounded-lg"
-              style={{ backgroundColor: '#13152a', border: '1px solid #1f2240' }}
+              style={{ backgroundColor: '#1c1c1c', border: '1px solid #262626' }}
             >
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: AREA_COLORS[area] }} />
               <span className="text-xs capitalize" style={{ color: '#e8e9ef' }}>{area}</span>
-              <span className="text-xs font-mono" style={{ color: '#a0a6cc' }}>{AREA_COLORS[area]}</span>
+              <span className="text-xs font-mono" style={{ color: '#a1a1a1' }}>{AREA_COLORS[area]}</span>
             </div>
           ))}
         </div>

@@ -61,7 +61,7 @@ function TaskCard({
       <div
         className="rounded-xl p-3 cursor-grab active:cursor-grabbing select-none relative overflow-hidden card-hover group"
         style={{
-          backgroundColor: '#13152a',
+          backgroundColor: '#1c1c1c',
           border: isUrgent
             ? '1px solid rgba(239,68,68,0.45)'
             : isPrevious
@@ -77,7 +77,7 @@ function TaskCard({
         <button
           onClick={e => { e.stopPropagation(); onOpen?.(task) }}
           className="absolute top-2.5 right-2.5 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded"
-          style={{ backgroundColor: 'rgba(255,255,255,0.08)', color: '#a0a6cc' }}
+          style={{ backgroundColor: 'rgba(255,255,255,0.08)', color: '#a1a1a1' }}
           title="Ver detalle"
         >
           <ExternalLink size={9} />
@@ -103,12 +103,12 @@ function TaskCard({
         </div>
 
         {/* Title */}
-        <p className="text-[12px] leading-relaxed font-medium pr-2 mb-1" style={{ color: '#e8eaff' }}>
+        <p className="text-[12px] leading-relaxed font-medium pr-2 mb-1" style={{ color: '#efefef' }}>
           {task.title}
         </p>
 
         {task.problema && (
-          <p className="text-[10px] mb-2 line-clamp-1" style={{ color: '#565a7a' }}>
+          <p className="text-[10px] mb-2 line-clamp-1" style={{ color: '#5a5a5a' }}>
             {task.problema}
           </p>
         )}
@@ -171,7 +171,7 @@ function KanbanColumn({ status, tasks, onOpen }: { status: TaskStatus; tasks: Ta
       >
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: accent, boxShadow: `0 0 8px ${accent}` }} />
-          <span className="text-[13px] font-semibold" style={{ color: '#e8eaff' }}>
+          <span className="text-[13px] font-semibold" style={{ color: '#efefef' }}>
             {STATUS_LABELS[status]}
           </span>
         </div>
@@ -187,7 +187,7 @@ function KanbanColumn({ status, tasks, onOpen }: { status: TaskStatus; tasks: Ta
       <div
         className="flex-1 rounded-xl p-2.5 space-y-2.5 min-h-[120px]"
         style={{
-          backgroundColor: 'rgba(19,21,42,0.35)',
+          backgroundColor: 'rgba(26,26,26,0.35)',
           border: '1px solid rgba(255,255,255,0.05)',
         }}
       >
@@ -199,7 +199,7 @@ function KanbanColumn({ status, tasks, onOpen }: { status: TaskStatus; tasks: Ta
             className="flex items-center justify-center h-24 rounded-lg border border-dashed"
             style={{ borderColor: 'rgba(255,255,255,0.06)' }}
           >
-            <span className="text-[11px]" style={{ color: '#2d3050' }}>Sin tareas</span>
+            <span className="text-[11px]" style={{ color: '#303030' }}>Sin tareas</span>
           </div>
         )}
       </div>
@@ -316,13 +316,13 @@ export function KanbanPage() {
               <div
                 className="rounded-xl p-3 rotate-2"
                 style={{
-                  backgroundColor: '#1f2240',
+                  backgroundColor: '#262626',
                   border: '1px solid rgba(245,166,35,0.4)',
                   width: 284,
                   boxShadow: '0 24px 48px rgba(0,0,0,0.7), 0 0 24px rgba(245,166,35,0.12)',
                 }}
               >
-                <p className="text-xs font-medium" style={{ color: '#f0f2ff' }}>{activeTask.title}</p>
+                <p className="text-xs font-medium" style={{ color: '#f5f5f5' }}>{activeTask.title}</p>
               </div>
             )}
           </DragOverlay>

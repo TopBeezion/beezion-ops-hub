@@ -37,13 +37,13 @@ export function NotificationBell({ onOpenTask }: { onOpenTask?: (taskId: string)
         className="relative p-2 rounded-lg hover:bg-white/5 transition-colors"
         title="Notificaciones"
       >
-        <Bell size={15} style={{ color: unreadCount > 0 ? '#f5a623' : '#6b7099' }} />
+        <Bell size={15} style={{ color: unreadCount > 0 ? '#f5a623' : '#6b6b6b' }} />
         {unreadCount > 0 && (
           <span
             className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold"
             style={{
               background: 'linear-gradient(135deg, #f5a623, #ff7c1a)',
-              color: '#0c0e1a',
+              color: '#0f0f0f',
               boxShadow: '0 0 8px rgba(245,166,35,0.5)',
             }}
           >
@@ -57,7 +57,7 @@ export function NotificationBell({ onOpenTask }: { onOpenTask?: (taskId: string)
           className="absolute right-0 top-full mt-2 rounded-xl overflow-hidden z-50"
           style={{
             width: 360,
-            backgroundColor: '#0d0f1c',
+            backgroundColor: '#111111',
             border: '1px solid rgba(255,255,255,0.1)',
             boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
           }}
@@ -67,7 +67,7 @@ export function NotificationBell({ onOpenTask }: { onOpenTask?: (taskId: string)
             className="flex items-center justify-between px-4 py-3"
             style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}
           >
-            <span className="text-xs font-bold" style={{ color: '#f0f2ff' }}>Notificaciones</span>
+            <span className="text-xs font-bold" style={{ color: '#f5f5f5' }}>Notificaciones</span>
             {notifications.length > 0 && (
               <button
                 onClick={markAllRead}
@@ -83,8 +83,8 @@ export function NotificationBell({ onOpenTask }: { onOpenTask?: (taskId: string)
           <div className="overflow-auto" style={{ maxHeight: 420 }}>
             {notifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10">
-                <Bell size={20} style={{ color: '#2d3050' }} />
-                <p className="text-xs mt-2" style={{ color: '#3d4268' }}>Sin notificaciones</p>
+                <Bell size={20} style={{ color: '#303030' }} />
+                <p className="text-xs mt-2" style={{ color: '#585858' }}>Sin notificaciones</p>
               </div>
             ) : (
               notifications.map(n => (
@@ -96,10 +96,10 @@ export function NotificationBell({ onOpenTask }: { onOpenTask?: (taskId: string)
                   {/* Notification header */}
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div>
-                      <p className="text-[12px] font-semibold" style={{ color: '#f0f2ff' }}>{n.title}</p>
-                      <p className="text-[10px] mt-0.5" style={{ color: '#a0a6cc' }}>{n.body}</p>
+                      <p className="text-[12px] font-semibold" style={{ color: '#f5f5f5' }}>{n.title}</p>
+                      <p className="text-[10px] mt-0.5" style={{ color: '#a1a1a1' }}>{n.body}</p>
                     </div>
-                    <span className="text-[9px] shrink-0" style={{ color: '#3d4268' }}>
+                    <span className="text-[9px] shrink-0" style={{ color: '#585858' }}>
                       {new Date(n.timestamp).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
@@ -137,7 +137,7 @@ export function NotificationBell({ onOpenTask }: { onOpenTask?: (taskId: string)
                       </button>
                     ))}
                     {n.tasks.length > 5 && (
-                      <p className="text-[10px] text-center py-1" style={{ color: '#3d4268' }}>
+                      <p className="text-[10px] text-center py-1" style={{ color: '#585858' }}>
                         +{n.tasks.length - 5} tareas más en el backlog
                       </p>
                     )}

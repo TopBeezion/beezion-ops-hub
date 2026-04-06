@@ -45,16 +45,16 @@ interface Props {
 }
 
 const inputBase: React.CSSProperties = {
-  backgroundColor: '#13152a',
+  backgroundColor: '#1c1c1c',
   border: '1px solid rgba(255,255,255,0.09)',
-  color: '#f0f2ff',
+  color: '#f5f5f5',
   outline: 'none',
   width: '100%',
   borderRadius: 8,
 }
 
 const sectionLabel: React.CSSProperties = {
-  color: '#3d4268',
+  color: '#585858',
   fontSize: 10,
   fontWeight: 700,
   textTransform: 'uppercase',
@@ -154,7 +154,7 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
         className="relative flex flex-col h-full w-full overflow-hidden"
         style={{
           maxWidth: 520,
-          backgroundColor: '#0d0f1c',
+          backgroundColor: '#111111',
           borderLeft: '1px solid rgba(255,255,255,0.08)',
           boxShadow: '-32px 0 80px rgba(0,0,0,0.7)',
         }}
@@ -190,7 +190,7 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
               className="text-[9px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider"
               style={{
                 backgroundColor: task.source === 'meeting_auto' ? 'rgba(245,166,35,0.1)' : 'rgba(255,255,255,0.05)',
-                color: task.source === 'meeting_auto' ? '#f5a623' : '#3d4268',
+                color: task.source === 'meeting_auto' ? '#f5a623' : '#585858',
                 border: task.source === 'meeting_auto' ? '1px solid rgba(245,166,35,0.2)' : '1px solid rgba(255,255,255,0.06)',
               }}
             >
@@ -206,7 +206,7 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold disabled:opacity-60"
                 style={{
                   background: 'linear-gradient(135deg, #f5a623, #ff7c1a)',
-                  color: '#0c0e1a',
+                  color: '#0f0f0f',
                   boxShadow: '0 0 14px rgba(245,166,35,0.3)',
                 }}
               >
@@ -217,7 +217,7 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
             <button
               onClick={onClose}
               className="p-1.5 rounded-lg hover:bg-white/5 transition-colors"
-              style={{ color: '#6b7099' }}
+              style={{ color: '#6b6b6b' }}
             >
               <X size={15} />
             </button>
@@ -260,7 +260,7 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
                 }}
               >
                 {(Object.entries(STATUS_LABELS) as [TaskStatus, string][]).map(([v, l]) => (
-                  <option key={v} value={v} style={{ backgroundColor: '#13152a', color: STATUS_COLORS[v] }}>{l}</option>
+                  <option key={v} value={v} style={{ backgroundColor: '#1c1c1c', color: STATUS_COLORS[v] }}>{l}</option>
                 ))}
               </select>
             </div>
@@ -282,7 +282,7 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
                 }}
               >
                 {(Object.entries(PRIORITY_LABELS) as [Priority, string][]).map(([v, l]) => (
-                  <option key={v} value={v} style={{ backgroundColor: '#13152a', color: PRIORITY_COLORS[v] }}>{l}</option>
+                  <option key={v} value={v} style={{ backgroundColor: '#1c1c1c', color: PRIORITY_COLORS[v] }}>{l}</option>
                 ))}
               </select>
             </div>
@@ -304,7 +304,7 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
                 }}
               >
                 {(Object.entries(AREA_LABELS) as [Area, string][]).map(([v, l]) => (
-                  <option key={v} value={v} style={{ backgroundColor: '#13152a', color: AREA_COLORS[v] }}>{l}</option>
+                  <option key={v} value={v} style={{ backgroundColor: '#1c1c1c', color: AREA_COLORS[v] }}>{l}</option>
                 ))}
               </select>
             </div>
@@ -318,11 +318,11 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
                 value={tipo}
                 onChange={e => setTipo(e.target.value as TaskTipo)}
                 className="px-3 py-2 rounded-lg text-xs font-semibold w-full"
-                style={{ ...inputBase, color: tipo === 'urgente' ? '#ef4444' : tipo === 'pendiente_anterior' ? '#f97316' : '#a0a6cc' }}
+                style={{ ...inputBase, color: tipo === 'urgente' ? '#ef4444' : tipo === 'pendiente_anterior' ? '#f97316' : '#a1a1a1' }}
               >
-                <option value="nuevo" style={{ backgroundColor: '#13152a' }}>Nuevo</option>
-                <option value="pendiente_anterior" style={{ backgroundColor: '#13152a' }}>⏳ Pendiente anterior</option>
-                <option value="urgente" style={{ backgroundColor: '#13152a' }}>⚡ Urgente</option>
+                <option value="nuevo" style={{ backgroundColor: '#1c1c1c' }}>Nuevo</option>
+                <option value="pendiente_anterior" style={{ backgroundColor: '#1c1c1c' }}>⏳ Pendiente anterior</option>
+                <option value="urgente" style={{ backgroundColor: '#1c1c1c' }}>⚡ Urgente</option>
               </select>
             </div>
           </div>
@@ -355,8 +355,8 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
                     {a.name.slice(0, 2).toUpperCase()}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[11px] font-semibold leading-none" style={{ color: assignee === a.name ? '#f0f2ff' : '#a0a6cc' }}>{a.name}</p>
-                    <p className="text-[9px] mt-0.5 leading-tight truncate" style={{ color: '#3d4268' }}>{a.role}</p>
+                    <p className="text-[11px] font-semibold leading-none" style={{ color: assignee === a.name ? '#f5f5f5' : '#a1a1a1' }}>{a.name}</p>
+                    <p className="text-[9px] mt-0.5 leading-tight truncate" style={{ color: '#585858' }}>{a.role}</p>
                   </div>
                 </button>
               ))}
@@ -386,7 +386,7 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
             >
               <option value="">Sin cliente asignado</option>
               {clients.map(c => (
-                <option key={c.id} value={c.id} style={{ backgroundColor: '#13152a' }}>{c.name}</option>
+                <option key={c.id} value={c.id} style={{ backgroundColor: '#1c1c1c' }}>{c.name}</option>
               ))}
             </select>
           </div>
@@ -410,13 +410,13 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
                       border: week === w ? `1px solid ${sc}40` : '1px solid rgba(255,255,255,0.06)',
                     }}
                   >
-                    <p className="text-[11px] font-bold" style={{ color: week === w ? sc : '#6b7099' }}>
+                    <p className="text-[11px] font-bold" style={{ color: week === w ? sc : '#6b6b6b' }}>
                       S{w}
                     </p>
-                    <p className="text-[9px] mt-0.5 leading-tight" style={{ color: '#3d4268' }}>
+                    <p className="text-[9px] mt-0.5 leading-tight" style={{ color: '#585858' }}>
                       {s.startFmt}
                     </p>
-                    <p className="text-[9px] leading-tight" style={{ color: '#3d4268' }}>
+                    <p className="text-[9px] leading-tight" style={{ color: '#585858' }}>
                       — {s.endFmt}
                     </p>
                   </button>
@@ -431,7 +431,7 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: sprintColor }} />
                 <span className="text-xs font-semibold" style={{ color: sprintColor }}>Sprint {week}</span>
               </div>
-              <span className="text-[11px]" style={{ color: '#a0a6cc' }}>{sprint.label}</span>
+              <span className="text-[11px]" style={{ color: '#a1a1a1' }}>{sprint.label}</span>
             </div>
           </div>
 
@@ -445,7 +445,7 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
               onChange={e => setDescription(e.target.value)}
               rows={4}
               className="w-full px-3 py-2.5 rounded-lg text-xs leading-relaxed resize-none"
-              style={{ ...inputBase, color: '#c0c3e0' }}
+              style={{ ...inputBase, color: '#c8c8c8' }}
               placeholder="Describe qué exactamente hay que hacer, cómo hacerlo, referencias, links, observaciones..."
             />
           </div>
@@ -501,14 +501,14 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
                         className="w-5 h-5 rounded-md flex items-center justify-center text-xs font-bold transition-colors"
                         style={{
                           backgroundColor: val > 0 ? `${color}20` : 'rgba(255,255,255,0.04)',
-                          color: val > 0 ? color : '#3d4268',
+                          color: val > 0 ? color : '#585858',
                         }}
                       >
                         −
                       </button>
                       <span
                         className="w-7 text-center text-[12px] font-bold tabular-nums"
-                        style={{ color: val > 0 ? color : '#3d4268' }}
+                        style={{ color: val > 0 ? color : '#585858' }}
                       >
                         {val}
                       </span>
@@ -533,29 +533,29 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
           >
             <p style={sectionLabel}>Historial</p>
             <div className="flex items-center gap-2 mt-1.5">
-              <Clock size={10} style={{ color: '#3d4268' }} />
-              <span className="text-[10px]" style={{ color: '#6b7099' }}>
-                Creado: <span style={{ color: '#a0a6cc' }}>{formatFullDate(task.created_at)}</span>
+              <Clock size={10} style={{ color: '#585858' }} />
+              <span className="text-[10px]" style={{ color: '#6b6b6b' }}>
+                Creado: <span style={{ color: '#a1a1a1' }}>{formatFullDate(task.created_at)}</span>
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <Clock size={10} style={{ color: '#3d4268' }} />
-              <span className="text-[10px]" style={{ color: '#6b7099' }}>
-                Actualizado: <span style={{ color: '#a0a6cc' }}>{formatFullDate(task.updated_at)}</span>
+              <Clock size={10} style={{ color: '#585858' }} />
+              <span className="text-[10px]" style={{ color: '#6b6b6b' }}>
+                Actualizado: <span style={{ color: '#a1a1a1' }}>{formatFullDate(task.updated_at)}</span>
               </span>
             </div>
             {task.meeting_date && (
               <div className="flex items-center gap-2">
-                <Calendar size={10} style={{ color: '#3d4268' }} />
-                <span className="text-[10px]" style={{ color: '#6b7099' }}>
+                <Calendar size={10} style={{ color: '#585858' }} />
+                <span className="text-[10px]" style={{ color: '#6b6b6b' }}>
                   Reunión: <span style={{ color: '#f5a623' }}>{task.meeting_date}</span>
                 </span>
               </div>
             )}
             <div className="flex items-center gap-2">
-              <Tag size={10} style={{ color: '#3d4268' }} />
-              <span className="text-[10px]" style={{ color: '#6b7099' }}>
-                ID: <span className="font-mono" style={{ color: '#3d4268' }}>{task.id.slice(0, 8)}…</span>
+              <Tag size={10} style={{ color: '#585858' }} />
+              <span className="text-[10px]" style={{ color: '#6b6b6b' }}>
+                ID: <span className="font-mono" style={{ color: '#585858' }}>{task.id.slice(0, 8)}…</span>
               </span>
             </div>
           </div>
@@ -583,7 +583,7 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
                   setClientId(task.client_id ?? ''); setDeliverables(task.deliverables ?? {})
                 }}
                 className="px-3 py-1.5 rounded-lg text-[11px]"
-                style={{ color: '#6b7099', border: '1px solid rgba(255,255,255,0.07)' }}
+                style={{ color: '#6b6b6b', border: '1px solid rgba(255,255,255,0.07)' }}
               >
                 Descartar
               </button>
@@ -593,7 +593,7 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
                 className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[11px] font-semibold disabled:opacity-60"
                 style={{
                   background: 'linear-gradient(135deg, #f5a623, #ff7c1a)',
-                  color: '#0c0e1a',
+                  color: '#0f0f0f',
                 }}
               >
                 <Save size={10} />

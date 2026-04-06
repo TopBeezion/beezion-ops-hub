@@ -43,19 +43,19 @@ function FilterSelect({
         onChange={e => onChange(e.target.value)}
         className="appearance-none pl-2.5 pr-6 py-1.5 rounded-lg text-xs outline-none cursor-pointer font-medium"
         style={{
-          backgroundColor: value ? 'rgba(245,166,35,0.1)' : '#13152a',
+          backgroundColor: value ? 'rgba(245,166,35,0.1)' : '#1c1c1c',
           border: `1px solid ${value ? 'rgba(245,166,35,0.3)' : 'rgba(255,255,255,0.07)'}`,
-          color: value ? '#f5a623' : '#6a6d82',
+          color: value ? '#f5a623' : '#6b6b6b',
         }}
       >
         <option value="">{label}</option>
         {options.map(o => (
-          <option key={o.value} value={o.value} style={{ backgroundColor: '#13152a', color: '#f0f2ff' }}>
+          <option key={o.value} value={o.value} style={{ backgroundColor: '#1c1c1c', color: '#f5f5f5' }}>
             {o.label}
           </option>
         ))}
       </select>
-      <ChevronDown size={10} className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: '#a0a6cc' }} />
+      <ChevronDown size={10} className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: '#a1a1a1' }} />
     </div>
   )
 }
@@ -114,28 +114,28 @@ export function BacklogPage() {
   }
 
   return (
-    <div className="flex flex-col h-full" style={{ backgroundColor: '#0c0e1a' }}>
+    <div className="flex flex-col h-full" style={{ backgroundColor: '#0f0f0f' }}>
       {/* Filters bar */}
       <div
         className="flex items-center gap-2 px-4 py-2.5 flex-wrap shrink-0"
         style={{
           borderBottom: '1px solid rgba(255,255,255,0.05)',
-          backgroundColor: 'rgba(12,14,26,0.9)',
+          backgroundColor: 'rgba(15,15,15,0.9)',
           backdropFilter: 'blur(8px)',
         }}
       >
         {/* Search */}
         <div className="relative">
-          <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: '#6b7099' }} />
+          <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: '#6b6b6b' }} />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Buscar tareas..."
             className="pl-7 pr-3 py-1.5 rounded-lg text-xs outline-none w-48 font-medium placeholder:font-normal"
             style={{
-              backgroundColor: '#13152a',
+              backgroundColor: '#1c1c1c',
               border: '1px solid rgba(255,255,255,0.07)',
-              color: '#f0f2ff',
+              color: '#f5f5f5',
             }}
           />
         </div>
@@ -197,7 +197,7 @@ export function BacklogPage() {
           onClick={() => setGroupBySprint(g => !g)}
           className="text-xs px-2.5 py-1.5 rounded-lg font-medium ml-1"
           style={{
-            color: groupBySprint ? '#f0f2ff' : '#6a6d82',
+            color: groupBySprint ? '#f5f5f5' : '#6b6b6b',
             backgroundColor: groupBySprint ? 'rgba(255,255,255,0.06)' : 'transparent',
             border: '1px solid rgba(255,255,255,0.06)',
           }}
@@ -210,7 +210,7 @@ export function BacklogPage() {
           onClick={() => setShowSprintGuide(s => !s)}
           className="text-xs px-2.5 py-1.5 rounded-lg font-medium"
           style={{
-            color: showSprintGuide ? '#f5a623' : '#6b7099',
+            color: showSprintGuide ? '#f5a623' : '#6b6b6b',
             backgroundColor: showSprintGuide ? 'rgba(245,166,35,0.08)' : 'transparent',
             border: `1px solid ${showSprintGuide ? 'rgba(245,166,35,0.25)' : 'rgba(255,255,255,0.06)'}`,
           }}
@@ -220,7 +220,7 @@ export function BacklogPage() {
         </button>
 
         <div className="ml-auto flex items-center gap-2">
-          <span className="text-xs font-medium" style={{ color: '#6b7099' }}>
+          <span className="text-xs font-medium" style={{ color: '#6b6b6b' }}>
             {filteredTasks.length} tareas
           </span>
           {ctx?.openNewTask && (
@@ -229,7 +229,7 @@ export function BacklogPage() {
               className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg font-semibold"
               style={{
                 background: 'linear-gradient(135deg, #f5a623, #ff7c1a)',
-                color: '#0c0e1a',
+                color: '#0f0f0f',
               }}
             >
               <Plus size={11} strokeWidth={2.5} />
@@ -245,7 +245,7 @@ export function BacklogPage() {
           className="shrink-0 px-4 py-3"
           style={{
             borderBottom: '1px solid rgba(255,255,255,0.05)',
-            background: 'linear-gradient(135deg, rgba(245,166,35,0.04) 0%, rgba(12,14,26,0) 60%)',
+            background: 'linear-gradient(135deg, rgba(245,166,35,0.04) 0%, rgba(15,15,15,0) 60%)',
           }}
         >
           <p className="text-[10px] font-bold uppercase tracking-widest mb-2.5" style={{ color: '#f5a623' }}>
@@ -290,8 +290,8 @@ export function BacklogPage() {
                   <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
                   <span className="text-[10px] font-bold" style={{ color }}>{label}</span>
                 </div>
-                <p className="text-[10px] leading-relaxed mb-1.5" style={{ color: '#a0a6cc' }}>{desc}</p>
-                <p className="text-[9px] font-semibold" style={{ color: '#6b7099' }}>{who}</p>
+                <p className="text-[10px] leading-relaxed mb-1.5" style={{ color: '#a1a1a1' }}>{desc}</p>
+                <p className="text-[9px] font-semibold" style={{ color: '#6b6b6b' }}>{who}</p>
               </div>
             ))}
           </div>
@@ -310,37 +310,37 @@ export function BacklogPage() {
         <div className="overflow-auto flex-1">
           <table className="w-full text-sm border-separate border-spacing-0">
             <thead>
-              <tr className="sticky top-0 z-10" style={{ backgroundColor: '#0c0e1a' }}>
+              <tr className="sticky top-0 z-10" style={{ backgroundColor: '#0f0f0f' }}>
                 <th className="text-left px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider w-8"
-                  style={{ color: '#3d4268', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                  style={{ color: '#585858', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                   #
                 </th>
                 <th className="text-left px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider"
-                  style={{ color: '#3d4268', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                  style={{ color: '#585858', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                   Cliente
                 </th>
                 <th className="text-left px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider"
-                  style={{ color: '#3d4268', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                  style={{ color: '#585858', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                   Tarea
                 </th>
                 <th className="text-left px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider"
-                  style={{ color: '#3d4268', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                  style={{ color: '#585858', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                   Área
                 </th>
                 <th className="text-left px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider"
-                  style={{ color: '#3d4268', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                  style={{ color: '#585858', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                   Responsable
                 </th>
                 <th className="text-left px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider"
-                  style={{ color: '#3d4268', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                  style={{ color: '#585858', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                   Entregables
                 </th>
                 <th className="text-left px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider"
-                  style={{ color: '#3d4268', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                  style={{ color: '#585858', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                   Prior.
                 </th>
                 <th className="text-left px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider"
-                  style={{ color: '#3d4268', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                  style={{ color: '#585858', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                   Status
                 </th>
               </tr>
@@ -356,7 +356,7 @@ export function BacklogPage() {
                         <td
                           colSpan={8}
                           className="px-4 py-2 sticky"
-                          style={{ backgroundColor: '#0c0e1a', top: 37, zIndex: 5 }}
+                          style={{ backgroundColor: '#0f0f0f', top: 37, zIndex: 5 }}
                         >
                           <div className="flex items-center gap-3">
                             <div className="h-px flex-1" style={{ background: `linear-gradient(90deg, ${meta.color}, transparent)` }} />
@@ -367,10 +367,10 @@ export function BacklogPage() {
                               >
                                 {meta.label} · {meta.sub}
                               </span>
-                              <span className="text-[10px] font-medium" style={{ color: '#6b7099' }}>
+                              <span className="text-[10px] font-medium" style={{ color: '#6b6b6b' }}>
                                 {dates.label}
                               </span>
-                              <span className="text-[10px] font-bold tabular-nums" style={{ color: '#3d4268' }}>
+                              <span className="text-[10px] font-bold tabular-nums" style={{ color: '#585858' }}>
                                 {groupTasks.length} tareas
                               </span>
                             </div>
@@ -399,7 +399,7 @@ export function BacklogPage() {
                       >
                         <td
                           className="px-4 py-2 text-[10px] tabular-nums"
-                          style={{ color: '#3d4268', borderBottom: '1px solid rgba(255,255,255,0.025)' }}
+                          style={{ color: '#585858', borderBottom: '1px solid rgba(255,255,255,0.025)' }}
                         >
                           {idx + 1}
                         </td>
@@ -416,7 +416,7 @@ export function BacklogPage() {
                           <div>
                             <p
                               className="text-xs font-medium truncate group-hover:text-white transition-colors"
-                              style={{ color: '#c8cbec' }}
+                              style={{ color: '#d0d0d0' }}
                               title={task.title}
                             >
                               {task.tipo === 'urgente' && (
@@ -432,7 +432,7 @@ export function BacklogPage() {
                               {task.title}
                             </p>
                             {task.problema && (
-                              <p className="text-[10px] mt-0.5 truncate" style={{ color: '#3d4268' }}>
+                              <p className="text-[10px] mt-0.5 truncate" style={{ color: '#585858' }}>
                                 {task.problema}
                               </p>
                             )}
@@ -450,7 +450,7 @@ export function BacklogPage() {
                         >
                           <div className="flex items-center gap-1.5">
                             <AssigneeAvatar name={task.assignee} />
-                            <span className="text-[11px] font-medium" style={{ color: '#a0a6cc' }}>
+                            <span className="text-[11px] font-medium" style={{ color: '#a1a1a1' }}>
                               {task.assignee}
                             </span>
                           </div>
@@ -475,7 +475,7 @@ export function BacklogPage() {
                                 </span>
                               ))
                             ) : (
-                              <span className="text-[10px]" style={{ color: '#1f2240' }}>—</span>
+                              <span className="text-[10px]" style={{ color: '#262626' }}>—</span>
                             )}
                           </div>
                         </td>
@@ -509,7 +509,7 @@ export function BacklogPage() {
               ))}
               {filteredTasks.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="text-center py-16 text-sm" style={{ color: '#3d4268' }}>
+                  <td colSpan={8} className="text-center py-16 text-sm" style={{ color: '#585858' }}>
                     No hay tareas con los filtros seleccionados
                   </td>
                 </tr>

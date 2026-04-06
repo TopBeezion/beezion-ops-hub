@@ -143,7 +143,7 @@ export function ClientDetailPage() {
       <div
         className="relative overflow-hidden px-6 pt-6 pb-5"
         style={{
-          background: `linear-gradient(135deg, ${clientColor}12 0%, rgba(12,14,26,0) 60%)`,
+          background: `linear-gradient(135deg, ${clientColor}12 0%, rgba(15,15,15,0) 60%)`,
           borderBottom: `1px solid ${clientColor}20`,
         }}
       >
@@ -169,11 +169,11 @@ export function ClientDetailPage() {
               {client?.name[0]}
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight" style={{ color: '#f0f2ff' }}>
+              <h1 className="text-xl font-bold tracking-tight" style={{ color: '#f5f5f5' }}>
                 {client?.name}
               </h1>
               <div className="flex items-center gap-3 mt-1">
-                <span className="text-[11px] font-medium" style={{ color: '#6b7099' }}>
+                <span className="text-[11px] font-medium" style={{ color: '#6b6b6b' }}>
                   {tasks.length} tareas totales
                 </span>
                 <span
@@ -239,7 +239,7 @@ export function ClientDetailPage() {
             key={status}
             className="rounded-xl p-3"
             style={{
-              backgroundColor: '#13152a',
+              backgroundColor: '#1c1c1c',
               border: `1px solid ${STATUS_COLORS[status]}20`,
             }}
           >
@@ -248,13 +248,13 @@ export function ClientDetailPage() {
                 className="w-1.5 h-1.5 rounded-full"
                 style={{ backgroundColor: STATUS_COLORS[status], boxShadow: `0 0 4px ${STATUS_COLORS[status]}` }}
               />
-              <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#6b7099' }}>
+              <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#6b6b6b' }}>
                 {STATUS_LABELS[status]}
               </p>
             </div>
             <p
               className="text-2xl font-bold tabular-nums"
-              style={{ color: statusTasks.length > 0 ? STATUS_COLORS[status] : '#3d4268' }}
+              style={{ color: statusTasks.length > 0 ? STATUS_COLORS[status] : '#585858' }}
             >
               {statusTasks.length}
             </p>
@@ -270,9 +270,9 @@ export function ClientDetailPage() {
             <div
               className="rounded-xl p-4"
               style={{
-                backgroundColor: '#13152a',
+                backgroundColor: '#1c1c1c',
                 border: '1px solid rgba(248,113,113,0.2)',
-                background: 'linear-gradient(135deg, rgba(248,113,113,0.04) 0%, #13152a 50%)',
+                background: 'linear-gradient(135deg, rgba(248,113,113,0.04) 0%, #1c1c1c 50%)',
               }}
             >
               <div className="flex items-center gap-2 mb-3">
@@ -290,7 +290,7 @@ export function ClientDetailPage() {
                     >
                       {i + 1}
                     </span>
-                    <span className="text-xs leading-relaxed" style={{ color: '#c8cbec' }}>{p}</span>
+                    <span className="text-xs leading-relaxed" style={{ color: '#d0d0d0' }}>{p}</span>
                   </li>
                 ))}
               </ul>
@@ -300,9 +300,9 @@ export function ClientDetailPage() {
             <div
               className="rounded-xl p-4"
               style={{
-                backgroundColor: '#13152a',
+                backgroundColor: '#1c1c1c',
                 border: '1px solid rgba(96,165,250,0.2)',
-                background: 'linear-gradient(135deg, rgba(96,165,250,0.04) 0%, #13152a 50%)',
+                background: 'linear-gradient(135deg, rgba(96,165,250,0.04) 0%, #1c1c1c 50%)',
               }}
             >
               <div className="flex items-center gap-2 mb-3">
@@ -320,7 +320,7 @@ export function ClientDetailPage() {
                     >
                       ◎
                     </span>
-                    <span className="text-xs leading-relaxed font-medium" style={{ color: '#c8cbec' }}>{k}</span>
+                    <span className="text-xs leading-relaxed font-medium" style={{ color: '#d0d0d0' }}>{k}</span>
                   </li>
                 ))}
               </ul>
@@ -331,9 +331,9 @@ export function ClientDetailPage() {
           <div
             className="rounded-xl p-4"
             style={{
-              backgroundColor: '#13152a',
+              backgroundColor: '#1c1c1c',
               border: '1px solid rgba(74,222,128,0.2)',
-              background: 'linear-gradient(135deg, rgba(74,222,128,0.03) 0%, #13152a 50%)',
+              background: 'linear-gradient(135deg, rgba(74,222,128,0.03) 0%, #1c1c1c 50%)',
             }}
           >
             <div className="flex items-center gap-2 mb-3">
@@ -361,7 +361,7 @@ export function ClientDetailPage() {
                   >
                     {i + 1}
                   </span>
-                  <span className="text-xs leading-relaxed" style={{ color: '#c8cbec' }}>{s}</span>
+                  <span className="text-xs leading-relaxed" style={{ color: '#d0d0d0' }}>{s}</span>
                 </div>
               ))}
             </div>
@@ -372,7 +372,7 @@ export function ClientDetailPage() {
       {/* Tasks */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#3d4268' }}>
+          <h2 className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#585858' }}>
             Tareas del sprint
           </h2>
           <div className="flex items-center gap-1">
@@ -380,7 +380,7 @@ export function ClientDetailPage() {
               onClick={() => setAreaFilter('')}
               className="px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all"
               style={{
-                color: !areaFilter ? '#f0f2ff' : '#6b7099',
+                color: !areaFilter ? '#f5f5f5' : '#6b6b6b',
                 backgroundColor: !areaFilter ? 'rgba(255,255,255,0.07)' : 'transparent',
                 border: `1px solid ${!areaFilter ? 'rgba(255,255,255,0.1)' : 'transparent'}`,
               }}
@@ -393,7 +393,7 @@ export function ClientDetailPage() {
                 onClick={() => setAreaFilter(area)}
                 className="px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all"
                 style={{
-                  color: areaFilter === area ? '#f0f2ff' : '#6b7099',
+                  color: areaFilter === area ? '#f5f5f5' : '#6b6b6b',
                   backgroundColor: areaFilter === area ? 'rgba(255,255,255,0.07)' : 'transparent',
                   border: `1px solid ${areaFilter === area ? 'rgba(255,255,255,0.1)' : 'transparent'}`,
                 }}
@@ -415,7 +415,7 @@ export function ClientDetailPage() {
           <div
             className="rounded-xl overflow-hidden"
             style={{
-              backgroundColor: '#13152a',
+              backgroundColor: '#1c1c1c',
               border: '1px solid rgba(255,255,255,0.05)',
             }}
           >
@@ -432,7 +432,7 @@ export function ClientDetailPage() {
                 <span
                   className="flex-1 text-xs font-medium"
                   style={{
-                    color: task.status === 'completado' ? '#3d4268' : '#c8cbec',
+                    color: task.status === 'completado' ? '#585858' : '#d0d0d0',
                     textDecoration: task.status === 'completado' ? 'line-through' : 'none',
                   }}
                 >
@@ -442,7 +442,7 @@ export function ClientDetailPage() {
                 <AssigneeAvatar name={task.assignee} size="sm" />
                 <span
                   className="text-[10px] font-bold px-1.5 py-0.5 rounded"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.04)', color: '#6b7099' }}
+                  style={{ backgroundColor: 'rgba(255,255,255,0.04)', color: '#6b6b6b' }}
                   title={['', 'S1: Copy & Briefs', 'S2: Producción & Diseño', 'S3: Dev & Setup', 'S4: Launch & Optim.'][task.week]}
                 >
                   S{task.week}
@@ -454,7 +454,7 @@ export function ClientDetailPage() {
               </div>
             ))}
             {filteredTasks.length === 0 && (
-              <div className="text-center py-12 text-sm" style={{ color: '#3d4268' }}>
+              <div className="text-center py-12 text-sm" style={{ color: '#585858' }}>
                 No hay tareas para este filtro
               </div>
             )}

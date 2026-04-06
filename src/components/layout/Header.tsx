@@ -13,7 +13,7 @@ export function Header({ title, onNewTask, onOpenTaskById }: HeaderProps) {
       className="flex items-center justify-between px-5 shrink-0 relative"
       style={{
         height: 52,
-        backgroundColor: 'rgba(12,14,26,0.97)',
+        backgroundColor: 'rgba(15,15,15,0.97)',
         borderBottom: '1px solid rgba(255,255,255,0.07)',
         backdropFilter: 'blur(14px)',
         WebkitBackdropFilter: 'blur(14px)',
@@ -22,7 +22,7 @@ export function Header({ title, onNewTask, onOpenTaskById }: HeaderProps) {
       {/* Title */}
       <h1
         className="text-[13px] font-semibold tracking-tight"
-        style={{ color: '#f0f2ff' }}
+        style={{ color: '#f5f5f5' }}
       >
         {title}
       </h1>
@@ -44,7 +44,7 @@ export function Header({ title, onNewTask, onOpenTaskById }: HeaderProps) {
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[12px] font-semibold transition-all hover:scale-[1.02] active:scale-[0.98]"
             style={{
               background: 'linear-gradient(135deg, #f5a623 0%, #ff7c1a 100%)',
-              color: '#0c0e1a',
+              color: '#0f0f0f',
               boxShadow: '0 0 18px rgba(245,166,35,0.35), 0 2px 8px rgba(245,166,35,0.2)',
             }}
           >

@@ -35,7 +35,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       className="flex flex-col h-screen sticky top-0 shrink-0 relative"
       style={{
         width: collapsed ? 56 : 220,
-        backgroundColor: '#0d0f1c',
+        backgroundColor: '#111111',
         borderRight: '1px solid rgba(255,255,255,0.06)',
         transition: 'width 220ms cubic-bezier(0.4,0,0.2,1)',
       }}
@@ -67,7 +67,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         </div>
         {!collapsed && (
           <div>
-            <p className="text-sm font-bold leading-none tracking-tight" style={{ color: '#f0f2ff' }}>Beezion</p>
+            <p className="text-sm font-bold leading-none tracking-tight" style={{ color: '#f5f5f5' }}>Beezion</p>
             <p className="text-[9px] leading-none mt-0.5 font-semibold tracking-[0.12em] uppercase" style={{ color: '#f5a623' }}>OPS HUB</p>
           </div>
         )}
@@ -103,10 +103,10 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                 <Icon
                   size={15}
                   className="shrink-0"
-                  style={{ color: isActive ? '#f5a623' : '#6b7099' }}
+                  style={{ color: isActive ? '#f5a623' : '#6b6b6b' }}
                 />
                 {!collapsed && (
-                  <span className="text-sm" style={{ color: isActive ? '#f0f2ff' : '#a0a6cc' }}>
+                  <span className="text-sm" style={{ color: isActive ? '#f5f5f5' : '#a1a1a1' }}>
                     {label}
                   </span>
                 )}
@@ -124,14 +124,14 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             >
               <span
                 className="text-[10px] font-bold uppercase tracking-[0.12em] flex-1"
-                style={{ color: '#3d4268' }}
+                style={{ color: '#585858' }}
               >
                 Clientes
               </span>
               <ChevronDown
                 size={10}
                 style={{
-                  color: '#3d4268',
+                  color: '#585858',
                   transform: clientsOpen ? 'rotate(0deg)' : 'rotate(-90deg)',
                   transition: 'transform 150ms',
                 }}
@@ -148,7 +148,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                 collapsed ? 'justify-center px-0 py-2 w-full' : 'gap-2.5 px-3 py-1.5'
               }`}
               style={({ isActive }) => ({
-                color: isActive ? '#f0f2ff' : '#a0a6cc',
+                color: isActive ? '#f5f5f5' : '#a1a1a1',
                 backgroundColor: isActive ? 'rgba(255,255,255,0.05)' : 'transparent',
               })}
             >
@@ -164,7 +164,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                   {!collapsed && (
                     <span
                       className="truncate text-[12px] font-medium"
-                      style={{ color: isActive ? '#f0f2ff' : '#a0a6cc' }}
+                      style={{ color: isActive ? '#f5f5f5' : '#a1a1a1' }}
                     >
                       {client.name}
                     </span>
@@ -184,7 +184,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         <button
           onClick={onToggle}
           className="p-1.5 rounded-lg hover:bg-white/5 transition-colors"
-          style={{ color: '#3d4268' }}
+          style={{ color: '#585858' }}
           title={collapsed ? 'Expandir sidebar' : 'Colapsar sidebar'}
         >
           {collapsed ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}

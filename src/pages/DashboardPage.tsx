@@ -92,7 +92,7 @@ function KpiCard({
     <div
       className="rounded-xl p-4 relative overflow-hidden card-hover"
       style={{
-        backgroundColor: '#10121f',
+        backgroundColor: '#161616',
         border: '1px solid rgba(255,255,255,0.07)',
       }}
     >
@@ -102,7 +102,7 @@ function KpiCard({
       />
       <div className="relative">
         <div className="flex items-start justify-between mb-3">
-          <p className="text-xs font-medium leading-tight" style={{ color: '#a0a6cc' }}>{label}</p>
+          <p className="text-xs font-medium leading-tight" style={{ color: '#a1a1a1' }}>{label}</p>
           <div
             className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
             style={{ backgroundColor: `${accent}18`, border: `1px solid ${accent}28` }}
@@ -112,7 +112,7 @@ function KpiCard({
         </div>
         <p
           className="text-3xl font-bold tabular-nums count-up"
-          style={{ color: '#f0f2ff', letterSpacing: '-0.03em' }}
+          style={{ color: '#f5f5f5', letterSpacing: '-0.03em' }}
         >
           {value}
         </p>
@@ -132,14 +132,14 @@ function SectionHead({ title, count }: { title: string; count?: number }) {
     <div className="flex items-center gap-2 mb-3">
       <span
         className="text-[10px] font-bold uppercase tracking-[0.12em]"
-        style={{ color: '#3d4268' }}
+        style={{ color: '#585858' }}
       >
         {title}
       </span>
       {count !== undefined && (
         <span
           className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
-          style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: '#6b7099' }}
+          style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: '#6b6b6b' }}
         >
           {count}
         </span>
@@ -227,7 +227,7 @@ export function DashboardPage() {
         <div
           className="rounded-xl p-5 flex items-center gap-4 card-hover col-span-1"
           style={{
-            background: `linear-gradient(135deg, ${healthColor}0a 0%, #10121f 60%)`,
+            background: `linear-gradient(135deg, ${healthColor}0a 0%, #161616 60%)`,
             border: `1px solid ${healthColor}30`,
           }}
         >
@@ -240,7 +240,7 @@ export function DashboardPage() {
             </div>
           </div>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.1em] mb-0.5" style={{ color: '#6b7099' }}>
+            <p className="text-[10px] font-bold uppercase tracking-[0.1em] mb-0.5" style={{ color: '#6b6b6b' }}>
               Health Score
             </p>
             <p className="text-sm font-semibold leading-tight" style={{ color: healthColor }}>
@@ -291,7 +291,7 @@ export function DashboardPage() {
           <div
             className="rounded-xl overflow-hidden"
             style={{
-              background: 'linear-gradient(135deg, rgba(239,68,68,0.04) 0%, #10121f 55%)',
+              background: 'linear-gradient(135deg, rgba(239,68,68,0.04) 0%, #161616 55%)',
               border: '1px solid rgba(239,68,68,0.2)',
             }}
           >
@@ -320,7 +320,7 @@ export function DashboardPage() {
                   {task.tipo === 'urgente' ? '⚡ URG' : '⏳ PREV'}
                 </span>
                 <ClientBadge client={task.client} size="xs" />
-                <span className="flex-1 text-xs truncate font-medium" style={{ color: '#d8daf0' }}>
+                <span className="flex-1 text-xs truncate font-medium" style={{ color: '#e0e0e0' }}>
                   {task.title}
                 </span>
                 <AreaBadge area={task.area} size="xs" />
@@ -348,7 +348,7 @@ export function DashboardPage() {
                 onClick={() => navigate(`/clients/${client.id}`)}
                 className="rounded-xl p-4 text-left card-hover relative overflow-hidden group"
                 style={{
-                  backgroundColor: '#10121f',
+                  backgroundColor: '#161616',
                   border: atRisk ? `1px solid rgba(239,68,68,0.35)` : `1px solid ${client.color}20`,
                 }}
               >
@@ -369,8 +369,8 @@ export function DashboardPage() {
 
                 <div className="flex items-center justify-between mt-1 mb-3">
                   <div>
-                    <p className="text-xs font-bold" style={{ color: '#f0f2ff' }}>{client.name}</p>
-                    <p className="text-[10px] mt-0.5" style={{ color: '#6b7099' }}>
+                    <p className="text-xs font-bold" style={{ color: '#f5f5f5' }}>{client.name}</p>
+                    <p className="text-[10px] mt-0.5" style={{ color: '#6b6b6b' }}>
                       {done}/{ct} tareas
                     </p>
                   </div>
@@ -393,8 +393,8 @@ export function DashboardPage() {
                     { key: 'A', count: admin, color: AREA_COLORS.admin },
                   ].map(({ key, count, color }) => (
                     <div key={key} className="text-center">
-                      <div className="text-[9px] font-bold" style={{ color: count > 0 ? color : '#1f2240' }}>{count}</div>
-                      <div className="text-[8px]" style={{ color: '#3d4268' }}>{key}</div>
+                      <div className="text-[9px] font-bold" style={{ color: count > 0 ? color : '#262626' }}>{count}</div>
+                      <div className="text-[8px]" style={{ color: '#585858' }}>{key}</div>
                     </div>
                   ))}
                 </div>
@@ -417,7 +417,7 @@ export function DashboardPage() {
                   key={w}
                   className="rounded-xl p-3.5"
                   style={{
-                    backgroundColor: '#10121f',
+                    backgroundColor: '#161616',
                     border: '1px solid rgba(255,255,255,0.06)',
                   }}
                 >
@@ -427,7 +427,7 @@ export function DashboardPage() {
                         className="w-2 h-2 rounded-full"
                         style={{ backgroundColor: meta.color, boxShadow: `0 0 6px ${meta.color}` }}
                       />
-                      <span className="text-xs font-semibold" style={{ color: '#f0f2ff' }}>{meta.label}</span>
+                      <span className="text-xs font-semibold" style={{ color: '#f5f5f5' }}>{meta.label}</span>
                     </div>
                     <span className="text-[10px] font-bold tabular-nums" style={{ color: meta.color }}>
                       {wd}/{wt.length}
@@ -443,8 +443,8 @@ export function DashboardPage() {
                       }}
                     />
                   </div>
-                  <p className="text-[10px]" style={{ color: '#6b7099' }}>
-                    {meta.sub} · <span style={{ color: '#a0a6cc' }}>{meta.owner}</span>
+                  <p className="text-[10px]" style={{ color: '#6b6b6b' }}>
+                    {meta.sub} · <span style={{ color: '#a1a1a1' }}>{meta.owner}</span>
                   </p>
                 </div>
               )
@@ -469,7 +469,7 @@ export function DashboardPage() {
                   key={area}
                   className="rounded-xl p-3.5 flex items-center gap-3"
                   style={{
-                    backgroundColor: '#10121f',
+                    backgroundColor: '#161616',
                     border: '1px solid rgba(255,255,255,0.05)',
                   }}
                 >
@@ -488,7 +488,7 @@ export function DashboardPage() {
                       <span className="text-sm font-medium" style={{ color: '#d0d3ea' }}>
                         {AREA_LABELS[area]}
                       </span>
-                      <span className="text-[10px] font-medium" style={{ color: '#6b7099' }}>
+                      <span className="text-[10px] font-medium" style={{ color: '#6b6b6b' }}>
                         {done}/{at} · {Math.round(donePct)}%
                       </span>
                     </div>
@@ -520,7 +520,7 @@ export function DashboardPage() {
                   key={name}
                   className="rounded-xl p-3.5"
                   style={{
-                    backgroundColor: '#10121f',
+                    backgroundColor: '#161616',
                     border: `1px solid ${color}18`,
                   }}
                 >
@@ -536,12 +536,12 @@ export function DashboardPage() {
                       {name.slice(0, 2).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold leading-none" style={{ color: '#f0f2ff' }}>{name}</p>
-                      <p className="text-[10px] mt-0.5 truncate" style={{ color: '#a0a6cc' }}>
+                      <p className="text-sm font-semibold leading-none" style={{ color: '#f5f5f5' }}>{name}</p>
+                      <p className="text-[10px] mt-0.5 truncate" style={{ color: '#a1a1a1' }}>
                         {ASSIGNEE_ROLE[name] || ''}
                       </p>
                       <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                        <span className="text-[9px]" style={{ color: '#6b7099' }}>
+                        <span className="text-[9px]" style={{ color: '#6b6b6b' }}>
                           {nt} tareas · {utilizationPct}% activo
                         </span>
                         {(ASSIGNEE_AREAS[name] || []).map(a => (
@@ -563,7 +563,7 @@ export function DashboardPage() {
                       {completado > 0 && <span className="text-[10px] font-medium" style={{ color: '#22c55e' }}>✓{completado}</span>}
                       {ep > 0 && <span className="text-[10px] font-medium" style={{ color }}>◷{ep}</span>}
                       {revision > 0 && <span className="text-[10px] font-medium" style={{ color: '#f59e0b' }}>⟳{revision}</span>}
-                      {pendiente > 0 && <span className="text-[10px]" style={{ color: '#3d4268' }}>○{pendiente}</span>}
+                      {pendiente > 0 && <span className="text-[10px]" style={{ color: '#585858' }}>○{pendiente}</span>}
                     </div>
                   </div>
                   {/* Stacked bar */}
@@ -585,7 +585,7 @@ export function DashboardPage() {
         <div
           className="rounded-xl p-4"
           style={{
-            background: 'linear-gradient(135deg, rgba(239,68,68,0.05) 0%, #10121f 60%)',
+            background: 'linear-gradient(135deg, rgba(239,68,68,0.05) 0%, #161616 60%)',
             border: '1px solid rgba(239,68,68,0.2)',
           }}
         >
@@ -607,7 +607,7 @@ export function DashboardPage() {
                 }}
               >
                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: client.color }} />
-                <span className="text-xs font-semibold" style={{ color: '#f0f2ff' }}>{client.name}</span>
+                <span className="text-xs font-semibold" style={{ color: '#f5f5f5' }}>{client.name}</span>
                 <span className="text-[10px]" style={{ color: '#ef4444' }}>{pct}% · {ct} tareas</span>
               </button>
             ))}
@@ -621,7 +621,7 @@ export function DashboardPage() {
         <div
           className="rounded-xl overflow-hidden"
           style={{
-            backgroundColor: '#10121f',
+            backgroundColor: '#161616',
             border: '1px solid rgba(255,255,255,0.06)',
           }}
         >
@@ -634,7 +634,7 @@ export function DashboardPage() {
               }}
             >
               <ClientBadge client={task.client} size="xs" />
-              <span className="flex-1 text-xs truncate font-medium" style={{ color: '#d8daf0' }}>
+              <span className="flex-1 text-xs truncate font-medium" style={{ color: '#e0e0e0' }}>
                 {task.title}
               </span>
               <AreaBadge area={task.area} size="xs" />
@@ -643,7 +643,7 @@ export function DashboardPage() {
                 status={task.status}
                 onChange={status => updateStatus.mutate({ id: task.id, status })}
               />
-              <span className="text-[10px] shrink-0 hidden lg:block" style={{ color: '#3d4268' }}>
+              <span className="text-[10px] shrink-0 hidden lg:block" style={{ color: '#585858' }}>
                 {formatDistanceToNow(new Date(task.updated_at), { locale: es, addSuffix: true })}
               </span>
             </div>

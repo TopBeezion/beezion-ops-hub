@@ -23,7 +23,7 @@ export function StatusSelect({ status, onChange, disabled }: StatusSelectProps) 
       }}
     >
       {STATUS_OPTIONS.map(s => (
-        <option key={s} value={s} style={{ backgroundColor: '#13152a', color: '#f0f2ff' }}>
+        <option key={s} value={s} style={{ backgroundColor: '#1c1c1c', color: '#f5f5f5' }}>
           {STATUS_LABELS[s]}
         </option>
       ))}

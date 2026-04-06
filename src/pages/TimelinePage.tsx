@@ -73,18 +73,18 @@ function DeliverableChips({ task, isDone }: { task: Task; isDone: boolean }) {
           className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-bold leading-none"
           style={{
             backgroundColor: isDone ? 'rgba(255,255,255,0.03)' : `${color}15`,
-            color: isDone ? '#2d3050' : color,
+            color: isDone ? '#303030' : color,
             border: `1px solid ${isDone ? 'rgba(255,255,255,0.04)' : `${color}30`}`,
           }}
         >
-          <span style={{ color: isDone ? '#2d3050' : color, fontWeight: 900 }}>{count}</span>
+          <span style={{ color: isDone ? '#303030' : color, fontWeight: 900 }}>{count}</span>
           &nbsp;{label}
         </span>
       ))}
       {extra > 0 && (
         <span
           className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-bold leading-none"
-          style={{ backgroundColor: 'rgba(255,255,255,0.04)', color: '#3d4268' }}
+          style={{ backgroundColor: 'rgba(255,255,255,0.04)', color: '#585858' }}
         >
           +{extra}
         </span>
@@ -108,13 +108,13 @@ function TaskCard({ task, onOpen }: { task: Task; onOpen?: (t: Task) => void }) 
       onClick={() => onOpen?.(task)}
       className="group relative rounded-lg overflow-hidden text-left w-full"
       style={{
-        backgroundColor: isDone ? 'rgba(255,255,255,0.02)' : 'rgba(19,21,42,0.9)',
+        backgroundColor: isDone ? 'rgba(255,255,255,0.02)' : 'rgba(26,26,26,0.9)',
         border: isUrgent
           ? '1px solid rgba(239,68,68,0.4)'
           : isDone
           ? '1px solid rgba(255,255,255,0.04)'
           : '1px solid rgba(255,255,255,0.08)',
-        borderLeft: `3px solid ${isDone ? '#1e2240' : statusColor}`,
+        borderLeft: `3px solid ${isDone ? '#222222' : statusColor}`,
         transition: 'all 150ms ease',
         cursor: onOpen ? 'pointer' : 'default',
       }}
@@ -138,7 +138,7 @@ function TaskCard({ task, onOpen }: { task: Task; onOpen?: (t: Task) => void }) 
         <p
           className="text-[11px] font-medium leading-snug"
           style={{
-            color: isDone ? '#3d4268' : '#d8daf0',
+            color: isDone ? '#585858' : '#e0e0e0',
             textDecoration: isDone ? 'line-through' : 'none',
           }}
         >
@@ -154,7 +154,7 @@ function TaskCard({ task, onOpen }: { task: Task; onOpen?: (t: Task) => void }) 
             className="text-[9px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wide leading-none"
             style={{
               backgroundColor: isDone ? 'rgba(255,255,255,0.03)' : `${areaColor}15`,
-              color: isDone ? '#2d3050' : areaColor,
+              color: isDone ? '#303030' : areaColor,
               border: `1px solid ${isDone ? 'rgba(255,255,255,0.04)' : `${areaColor}28`}`,
             }}
           >
@@ -164,7 +164,7 @@ function TaskCard({ task, onOpen }: { task: Task; onOpen?: (t: Task) => void }) 
             className="w-4 h-4 rounded-full flex items-center justify-center text-[7px] font-bold shrink-0"
             style={{
               background: isDone ? 'rgba(255,255,255,0.04)' : `linear-gradient(135deg, ${avatarColor}40, ${avatarColor}20)`,
-              color: isDone ? '#2d3050' : avatarColor,
+              color: isDone ? '#303030' : avatarColor,
               border: `1px solid ${isDone ? 'rgba(255,255,255,0.05)' : `${avatarColor}40`}`,
             }}
           >
@@ -202,8 +202,8 @@ function SprintHeader({ week, tasks }: { week: number; tasks: Task[] }) {
             style={{ backgroundColor: meta.color, boxShadow: `0 0 8px ${meta.color}` }}
           />
           <div>
-            <p className="text-[13px] font-bold leading-none" style={{ color: '#f0f2ff' }}>{meta.label}</p>
-            <p className="text-[10px] mt-0.5 leading-none" style={{ color: '#6b7099' }}>{meta.sub}</p>
+            <p className="text-[13px] font-bold leading-none" style={{ color: '#f5f5f5' }}>{meta.label}</p>
+            <p className="text-[10px] mt-0.5 leading-none" style={{ color: '#6b6b6b' }}>{meta.sub}</p>
           </div>
         </div>
         <div className="relative shrink-0">
@@ -239,7 +239,7 @@ function SprintHeader({ week, tasks }: { week: number; tasks: Task[] }) {
             <span className="text-[9px] font-medium" style={{ color: '#f59e0b' }}>⟳{revision}</span>
           )}
         </div>
-        <span className="text-[9px]" style={{ color: '#3d4268' }}>{meta.owner}</span>
+        <span className="text-[9px]" style={{ color: '#585858' }}>{meta.owner}</span>
       </div>
     </div>
   )
@@ -256,7 +256,7 @@ function ClientLabel({ client, tasks }: { client: { id: string; name: string; co
       className="px-4 py-4 sticky left-0 flex flex-col justify-between"
       style={{
         borderRight: '1px solid rgba(255,255,255,0.05)',
-        backgroundColor: '#0c0e1a',
+        backgroundColor: '#0f0f0f',
         borderTop: `2px solid ${client.color}`,
         minHeight: '100%',
       }}
@@ -268,11 +268,11 @@ function ClientLabel({ client, tasks }: { client: { id: string; name: string; co
             className="w-2 h-2 rounded-full shrink-0"
             style={{ backgroundColor: client.color, boxShadow: `0 0 6px ${client.color}` }}
           />
-          <span className="text-[13px] font-bold leading-tight" style={{ color: '#f0f2ff' }}>
+          <span className="text-[13px] font-bold leading-tight" style={{ color: '#f5f5f5' }}>
             {client.name}
           </span>
         </div>
-        <p className="text-[10px] ml-4" style={{ color: '#6b7099' }}>
+        <p className="text-[10px] ml-4" style={{ color: '#6b6b6b' }}>
           {done}/{total} tareas
         </p>
       </div>
@@ -332,7 +332,7 @@ function SprintCell({
           minHeight: 100,
         }}
       >
-        <span className="text-[10px]" style={{ color: '#1a1e38' }}>—</span>
+        <span className="text-[10px]" style={{ color: '#1e1e1e' }}>—</span>
       </div>
     )
   }
@@ -383,7 +383,7 @@ function SprintCell({
           onClick={() => setExpanded(false)}
           className="flex items-center justify-center gap-1 py-1.5 rounded-lg text-[9px] font-bold w-full"
           style={{
-            color: '#6b7099',
+            color: '#6b6b6b',
             backgroundColor: 'rgba(255,255,255,0.03)',
             border: '1px solid rgba(255,255,255,0.07)',
           }}
@@ -430,7 +430,7 @@ export function TimelinePage() {
   }
 
   return (
-    <div className="flex flex-col h-full" style={{ backgroundColor: '#0c0e1a' }}>
+    <div className="flex flex-col h-full" style={{ backgroundColor: '#0f0f0f' }}>
 
       {/* ── Filter toolbar ────────────────────────────────────────── */}
       <div className="filter-toolbar">
@@ -487,7 +487,7 @@ export function TimelinePage() {
             className="grid sticky top-0 z-10"
             style={{
               gridTemplateColumns: '200px repeat(4, 1fr)',
-              backgroundColor: '#0c0e1a',
+              backgroundColor: '#0f0f0f',
               borderBottom: '1px solid rgba(255,255,255,0.07)',
             }}
           >
@@ -496,10 +496,10 @@ export function TimelinePage() {
               className="px-4 py-4 flex flex-col justify-end"
               style={{ borderRight: '1px solid rgba(255,255,255,0.05)' }}
             >
-              <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#3d4268' }}>
+              <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#585858' }}>
                 Cliente
               </span>
-              <p className="text-[9px] mt-0.5" style={{ color: '#1e2240' }}>
+              <p className="text-[9px] mt-0.5" style={{ color: '#222222' }}>
                 {activeClients.length} activos
               </p>
             </div>
@@ -543,7 +543,7 @@ export function TimelinePage() {
           {activeClients.length === 0 && (
             <div
               className="flex flex-col items-center justify-center py-20"
-              style={{ color: '#3d4268' }}
+              style={{ color: '#585858' }}
             >
               <p className="text-sm font-medium">Sin resultados</p>
               <p className="text-xs mt-1">Prueba ajustando los filtros</p>

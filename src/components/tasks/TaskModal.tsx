@@ -93,9 +93,9 @@ export function TaskModal({ onClose, defaultClientId }: TaskModalProps) {
   }
 
   const fieldStyle: React.CSSProperties = {
-    backgroundColor: '#191c35',
+    backgroundColor: '#222222',
     border: '1px solid rgba(255,255,255,0.08)',
-    color: '#f0f2ff',
+    color: '#f5f5f5',
     outline: 'none',
     width: '100%',
     borderRadius: 8,
@@ -107,7 +107,7 @@ export function TaskModal({ onClose, defaultClientId }: TaskModalProps) {
       <div
         className="relative h-full w-full max-w-md flex flex-col overflow-hidden"
         style={{
-          backgroundColor: '#0d0e17',
+          backgroundColor: '#111111',
           borderLeft: '1px solid rgba(255,255,255,0.08)',
           boxShadow: '-24px 0 64px rgba(0,0,0,0.65)',
         }}
@@ -121,11 +121,11 @@ export function TaskModal({ onClose, defaultClientId }: TaskModalProps) {
           }}
         >
           <div>
-            <h2 className="text-sm font-semibold" style={{ color: '#f0f2ff' }}>Nueva tarea</h2>
-            <p className="text-[10px] mt-0.5" style={{ color: '#6b7099' }}>Completa el detalle de la tarea</p>
+            <h2 className="text-sm font-semibold" style={{ color: '#f5f5f5' }}>Nueva tarea</h2>
+            <p className="text-[10px] mt-0.5" style={{ color: '#6b6b6b' }}>Completa el detalle de la tarea</p>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/5 transition-colors">
-            <X size={15} style={{ color: '#a0a6cc' }} />
+            <X size={15} style={{ color: '#a1a1a1' }} />
           </button>
         </div>
 
@@ -133,7 +133,7 @@ export function TaskModal({ onClose, defaultClientId }: TaskModalProps) {
 
           {/* Título */}
           <div>
-            <label className="block text-xs font-semibold mb-1.5" style={{ color: '#a0a6cc' }}>
+            <label className="block text-xs font-semibold mb-1.5" style={{ color: '#a1a1a1' }}>
               Título <span style={{ color: '#ef4444' }}>*</span>
             </label>
             <input
@@ -148,7 +148,7 @@ export function TaskModal({ onClose, defaultClientId }: TaskModalProps) {
 
           {/* Descripción */}
           <div>
-            <label className="block text-xs font-semibold mb-1.5" style={{ color: '#a0a6cc' }}>
+            <label className="block text-xs font-semibold mb-1.5" style={{ color: '#a1a1a1' }}>
               Descripción / Instrucciones
             </label>
             <textarea
@@ -156,7 +156,7 @@ export function TaskModal({ onClose, defaultClientId }: TaskModalProps) {
               onChange={e => setDescription(e.target.value)}
               rows={3}
               className="w-full px-3 py-2.5 rounded-lg text-xs leading-relaxed resize-none"
-              style={{ ...fieldStyle, color: '#c0c3e0' }}
+              style={{ ...fieldStyle, color: '#c8c8c8' }}
               placeholder="Detalla qué hay que hacer, cómo, referencias, observaciones..."
             />
           </div>
@@ -166,7 +166,7 @@ export function TaskModal({ onClose, defaultClientId }: TaskModalProps) {
 
             {/* Cliente */}
             <div>
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#a0a6cc' }}>Cliente</label>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#a1a1a1' }}>Cliente</label>
               <select value={clientId} onChange={e => setClientId(e.target.value)} className="px-3 py-2 rounded-lg text-sm" style={fieldStyle}>
                 <option value="">Sin cliente</option>
                 {clients?.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -175,7 +175,7 @@ export function TaskModal({ onClose, defaultClientId }: TaskModalProps) {
 
             {/* Área */}
             <div>
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#a0a6cc' }}>Área</label>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#a1a1a1' }}>Área</label>
               <select
                 value={area}
                 onChange={e => setArea(e.target.value as Area)}
@@ -188,14 +188,14 @@ export function TaskModal({ onClose, defaultClientId }: TaskModalProps) {
                 }}
               >
                 {(Object.entries(AREA_LABELS) as [Area, string][]).map(([v, l]) => (
-                  <option key={v} value={v} style={{ backgroundColor: '#13152a', color: AREA_COLORS[v] }}>{l}</option>
+                  <option key={v} value={v} style={{ backgroundColor: '#1c1c1c', color: AREA_COLORS[v] }}>{l}</option>
                 ))}
               </select>
             </div>
 
             {/* Prioridad */}
             <div>
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#a0a6cc' }}>Prioridad</label>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#a1a1a1' }}>Prioridad</label>
               <select
                 value={priority}
                 onChange={e => setPriority(e.target.value as Priority)}
@@ -210,7 +210,7 @@ export function TaskModal({ onClose, defaultClientId }: TaskModalProps) {
 
             {/* Status */}
             <div>
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#a0a6cc' }}>Status</label>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#a1a1a1' }}>Status</label>
               <select
                 value={status}
                 onChange={e => setStatus(e.target.value as TaskStatus)}
@@ -226,7 +226,7 @@ export function TaskModal({ onClose, defaultClientId }: TaskModalProps) {
 
             {/* Tipo */}
             <div>
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#a0a6cc' }}>Tipo</label>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#a1a1a1' }}>Tipo</label>
               <select
                 value={tipo}
                 onChange={e => setTipo(e.target.value as TaskTipo)}
@@ -242,7 +242,7 @@ export function TaskModal({ onClose, defaultClientId }: TaskModalProps) {
 
           {/* Sprint week — visual selector with dates */}
           <div>
-            <label className="block text-xs font-semibold mb-2" style={{ color: '#a0a6cc' }}>Sprint</label>
+            <label className="block text-xs font-semibold mb-2" style={{ color: '#a1a1a1' }}>Sprint</label>
             <div className="grid grid-cols-4 gap-1.5">
               {[1, 2, 3, 4].map(w => {
                 const sc = SPRINT_COLORS[w]
@@ -258,9 +258,9 @@ export function TaskModal({ onClose, defaultClientId }: TaskModalProps) {
                       border: week === w ? `1px solid ${sc}45` : '1px solid rgba(255,255,255,0.07)',
                     }}
                   >
-                    <p className="text-[12px] font-bold" style={{ color: week === w ? sc : '#6b7099' }}>S{w}</p>
-                    <p className="text-[9px] mt-0.5 leading-tight" style={{ color: '#3d4268' }}>{SPRINT_SUBS[w]}</p>
-                    <p className="text-[8px] mt-0.5 leading-tight" style={{ color: week === w ? `${sc}aa` : '#2d3050' }}>
+                    <p className="text-[12px] font-bold" style={{ color: week === w ? sc : '#6b6b6b' }}>S{w}</p>
+                    <p className="text-[9px] mt-0.5 leading-tight" style={{ color: '#585858' }}>{SPRINT_SUBS[w]}</p>
+                    <p className="text-[8px] mt-0.5 leading-tight" style={{ color: week === w ? `${sc}aa` : '#303030' }}>
                       {dates.startFmt}
                     </p>
                   </button>
@@ -271,7 +271,7 @@ export function TaskModal({ onClose, defaultClientId }: TaskModalProps) {
 
           {/* Responsable */}
           <div>
-            <label className="block text-xs font-semibold mb-2" style={{ color: '#a0a6cc' }}>Responsable</label>
+            <label className="block text-xs font-semibold mb-2" style={{ color: '#a1a1a1' }}>Responsable</label>
             <div className="grid grid-cols-2 gap-1.5">
               {ASSIGNEES.map(a => (
                 <button
@@ -291,8 +291,8 @@ export function TaskModal({ onClose, defaultClientId }: TaskModalProps) {
                     {a.name.slice(0, 2).toUpperCase()}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[11px] font-semibold" style={{ color: assignee === a.name ? '#f0f2ff' : '#a0a6cc' }}>{a.name}</p>
-                    <p className="text-[9px] truncate" style={{ color: '#3d4268' }}>{a.role}</p>
+                    <p className="text-[11px] font-semibold" style={{ color: assignee === a.name ? '#f5f5f5' : '#a1a1a1' }}>{a.name}</p>
+                    <p className="text-[9px] truncate" style={{ color: '#585858' }}>{a.role}</p>
                   </div>
                 </button>
               ))}
@@ -307,7 +307,7 @@ export function TaskModal({ onClose, defaultClientId }: TaskModalProps) {
 
           {/* Problema */}
           <div>
-            <label className="block text-xs font-semibold mb-1.5" style={{ color: '#a0a6cc' }}>Problema que resuelve</label>
+            <label className="block text-xs font-semibold mb-1.5" style={{ color: '#a1a1a1' }}>Problema que resuelve</label>
             <input
               value={problema}
               onChange={e => setProblema(e.target.value)}
@@ -328,7 +328,7 @@ export function TaskModal({ onClose, defaultClientId }: TaskModalProps) {
                 border: `1px solid ${showDeliverables ? 'rgba(245,166,35,0.25)' : 'rgba(255,255,255,0.07)'}`,
               }}
             >
-              <span className="text-xs font-semibold" style={{ color: showDeliverables ? '#f5a623' : '#a0a6cc' }}>
+              <span className="text-xs font-semibold" style={{ color: showDeliverables ? '#f5a623' : '#a1a1a1' }}>
                 📦 Entregables y cantidades
                 {Object.keys(deliverables).length > 0 && (
                   <span className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(245,166,35,0.15)', color: '#f5a623' }}>
@@ -336,7 +336,7 @@ export function TaskModal({ onClose, defaultClientId }: TaskModalProps) {
                   </span>
                 )}
               </span>
-              <ChevronDown size={12} style={{ color: '#6b7099', transform: showDeliverables ? 'rotate(180deg)' : 'none', transition: '150ms' }} />
+              <ChevronDown size={12} style={{ color: '#6b6b6b', transform: showDeliverables ? 'rotate(180deg)' : 'none', transition: '150ms' }} />
             </button>
 
             {showDeliverables && (
@@ -360,9 +360,9 @@ export function TaskModal({ onClose, defaultClientId }: TaskModalProps) {
                           type="button"
                           onClick={() => setDeliverable(key, Math.max(0, val - 1))}
                           className="w-6 h-6 rounded-md flex items-center justify-center text-sm font-bold"
-                          style={{ backgroundColor: val > 0 ? `${color}20` : 'rgba(255,255,255,0.04)', color: val > 0 ? color : '#3d4268' }}
+                          style={{ backgroundColor: val > 0 ? `${color}20` : 'rgba(255,255,255,0.04)', color: val > 0 ? color : '#585858' }}
                         >−</button>
-                        <span className="w-8 text-center text-[12px] font-bold tabular-nums" style={{ color: val > 0 ? color : '#3d4268' }}>
+                        <span className="w-8 text-center text-[12px] font-bold tabular-nums" style={{ color: val > 0 ? color : '#585858' }}>
                           {val}
                         </span>
                         <button
@@ -385,7 +385,7 @@ export function TaskModal({ onClose, defaultClientId }: TaskModalProps) {
               type="button"
               onClick={onClose}
               className="flex-1 px-4 py-2.5 rounded-lg text-sm transition-colors hover:bg-white/5"
-              style={{ border: '1px solid rgba(255,255,255,0.08)', color: '#a0a6cc' }}
+              style={{ border: '1px solid rgba(255,255,255,0.08)', color: '#a1a1a1' }}
             >
               Cancelar
             </button>
@@ -395,7 +395,7 @@ export function TaskModal({ onClose, defaultClientId }: TaskModalProps) {
               className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold disabled:opacity-50"
               style={{
                 background: 'linear-gradient(135deg, #f5a623, #ff7c1a)',
-                color: '#0c0e1a',
+                color: '#0f0f0f',
                 boxShadow: '0 0 16px rgba(245,166,35,0.3)',
               }}
             >
