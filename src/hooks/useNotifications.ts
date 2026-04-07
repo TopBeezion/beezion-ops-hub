@@ -99,7 +99,7 @@ export function useMeetingTaskWatcher() {
             addNotification({
               id: `meeting-${groupKey}-${Date.now()}`,
               type: 'meeting_tasks',
-              title: `📋 Nuevas tareas de reunión`,
+              title: `Nuevas tareas de reunión`,
               body: `Se agregaron ${taskList.length} tarea${taskList.length > 1 ? 's' : ''} al backlog`,
               tasks: taskList,
               timestamp: new Date().toISOString(),
