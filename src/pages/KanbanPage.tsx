@@ -11,7 +11,11 @@ import { STATUS_LABELS, AREA_COLORS, AREA_LABELS } from '../lib/constants'
 import { ClientBadge } from '../components/ui/ClientBadge'
 import { AssigneeAvatar } from '../components/ui/AssigneeAvatar'
 import { PriorityDot } from '../components/ui/PriorityDot'
-import { X, ExternalLink } from 'lucide-react'
+import {
+  X, ExternalLink, Zap, Hourglass,
+  Anchor, Video, PenTool, Target, FileDown, Film, Globe,
+  ThumbsUp, LayoutGrid, Type, HelpCircle, BarChart3, RefreshCw,
+} from 'lucide-react'
 import { useOutletContext } from 'react-router-dom'
 
 const COLUMNS: TaskStatus[] = ['pendiente', 'en_progreso', 'revision', 'completado']
@@ -39,18 +43,18 @@ function TaskCard({
   }
 
   const deliverables = task.deliverables
-  const chips: { label: string; count: number; color: string }[] = []
-  if (deliverables?.hooks)             chips.push({ label: 'hooks',   count: deliverables.hooks,             color: '#8b5cf6' })
-  if (deliverables?.scripts_video)     chips.push({ label: 'scripts', count: deliverables.scripts_video,     color: '#ec4899' })
-  if (deliverables?.body_copy)         chips.push({ label: 'body',    count: deliverables.body_copy,          color: '#3b82f6' })
-  if (deliverables?.cta)               chips.push({ label: 'CTA',     count: deliverables.cta,                color: '#f5a623' })
-  if (deliverables?.lead_magnet_pdf)   chips.push({ label: 'LM',      count: deliverables.lead_magnet_pdf,    color: '#22c55e' })
-  if (deliverables?.vsl_script)        chips.push({ label: 'VSL',     count: deliverables.vsl_script,         color: '#06b6d4' })
-  if (deliverables?.landing_copy)      chips.push({ label: 'landing', count: deliverables.landing_copy,       color: '#f97316' })
-  if (deliverables?.carousel_slides)   chips.push({ label: 'slides',  count: deliverables.carousel_slides,    color: '#a78bfa' })
-  if (deliverables?.headline_options)  chips.push({ label: 'hdl',     count: deliverables.headline_options,   color: '#f472b6' })
-  if (deliverables?.retargeting_scripts) chips.push({ label: 'retarg',count: deliverables.retargeting_scripts, color: '#34d399' })
-  if (deliverables?.thank_you_page_copy) chips.push({ label: 'TYP',   count: deliverables.thank_you_page_copy, color: '#fbbf24' })
+  const chips: { label: string; count: number; color: string; Icon: React.ElementType }[] = []
+  if (deliverables?.hooks)             chips.push({ label: 'hooks',   count: deliverables.hooks,             color: '#8b5cf6', Icon: Anchor })
+  if (deliverables?.scripts_video)     chips.push({ label: 'scripts', count: deliverables.scripts_video,     color: '#ec4899', Icon: Video })
+  if (deliverables?.body_copy)         chips.push({ label: 'body',    count: deliverables.body_copy,          color: '#3b82f6', Icon: PenTool })
+  if (deliverables?.cta)               chips.push({ label: 'CTA',     count: deliverables.cta,                color: '#f5a623', Icon: Target })
+  if (deliverables?.lead_magnet_pdf)   chips.push({ label: 'LM',      count: deliverables.lead_magnet_pdf,    color: '#22c55e', Icon: FileDown })
+  if (deliverables?.vsl_script)        chips.push({ label: 'VSL',     count: deliverables.vsl_script,         color: '#06b6d4', Icon: Film })
+  if (deliverables?.landing_copy)      chips.push({ label: 'landing', count: deliverables.landing_copy,       color: '#f97316', Icon: Globe })
+  if (deliverables?.carousel_slides)   chips.push({ label: 'slides',  count: deliverables.carousel_slides,    color: '#a78bfa', Icon: LayoutGrid })
+  if (deliverables?.headline_options)  chips.push({ label: 'hdl',     count: deliverables.headline_options,   color: '#f472b6', Icon: Type })
+  if (deliverables?.retargeting_scripts) chips.push({ label: 'retarg',count: deliverables.retargeting_scripts, color: '#34d399', Icon: RefreshCw })
+  if (deliverables?.thank_you_page_copy) chips.push({ label: 'TYP',   count: deliverables.thank_you_page_copy, color: '#fbbf24', Icon: ThumbsUp })
 
   const clientColor = task.client?.color || '#6b7280'
   const isUrgent   = task.tipo === 'urgente'
@@ -62,13 +66,15 @@ function TaskCard({
         className="rounded-xl p-3 cursor-pointer active:cursor-grabbing select-none relative overflow-hidden card-hover group"
         onClick={() => onOpen?.(task)}
         style={{
-          backgroundColor: '#1c1c1c',
+          backgroundColor: '#161616',
           border: isUrgent
             ? '1px solid rgba(239,68,68,0.45)'
             : isPrevious
             ? '1px solid rgba(249,115,22,0.38)'
-            : '1px solid rgba(255,255,255,0.09)',
-          boxShadow: isUrgent ? '0 0 14px rgba(239,68,68,0.12)' : 'none',
+            : '1px solid rgba(255,255,255,0.07)',
+          boxShadow: isUrgent
+            ? '0 0 14px rgba(239,68,68,0.12)'
+            : '0 2px 8px rgba(0,0,0,0.3)',
         }}
       >
         {/* Client color stripe */}
@@ -94,7 +100,7 @@ function TaskCard({
                 color: isUrgent ? '#f87171' : '#fb923c',
               }}
             >
-              {isUrgent ? '⚡ URG' : '⏳ PREV'}
+              {isUrgent ? <><Zap size={8} style={{ display: 'inline' }} /> URG</> : <><Hourglass size={8} style={{ display: 'inline' }} /> PREV</>}
             </span>
           </div>
         )}
@@ -116,17 +122,18 @@ function TaskCard({
 
         {chips.length > 0 && (
           <div className="flex flex-wrap gap-1 mb-2">
-            {chips.map(({ label, count, color }, i) => (
+            {chips.map(({ label, count, color, Icon }, i) => (
               <span
                 key={i}
-                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-bold leading-none"
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-bold leading-none"
                 style={{
                   backgroundColor: `${color}15`,
                   color,
                   border: `1px solid ${color}30`,
                 }}
               >
-                <span style={{ fontWeight: 900 }}>{count}</span>&nbsp;{label}
+                <Icon size={8} />
+                <span style={{ fontWeight: 900 }}>{count}</span>
               </span>
             ))}
           </div>
