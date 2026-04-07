@@ -249,7 +249,7 @@ export function DashboardPage() {
             </p>
             {urgentOrPrevious.length > 0 && (
               <p className="text-[10px] mt-1" style={{ color: '#ef4444' }}>
-                ⚡ {urgentOrPrevious.length} bloqueante{urgentOrPrevious.length > 1 ? 's' : ''}
+                <Zap size={10} style={{ display: 'inline', verticalAlign: 'middle' }} /> {urgentOrPrevious.length} bloqueante{urgentOrPrevious.length > 1 ? 's' : ''}
               </p>
             )}
           </div>
@@ -319,7 +319,7 @@ export function DashboardPage() {
                     color: task.tipo === 'urgente' ? '#ef4444' : '#f97316',
                   }}
                 >
-                  {task.tipo === 'urgente' ? '⚡ URG' : '⏳ PREV'}
+                  {task.tipo === 'urgente' ? <><Zap size={9} style={{ display: 'inline' }} /> URG</> : <><Activity size={9} style={{ display: 'inline' }} /> PREV</>}
                 </span>
                 <ClientBadge client={task.client} size="xs" />
                 <span className="flex-1 text-xs truncate font-medium" style={{ color: '#e0e0e0' }}>
