@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { X, ChevronDown } from 'lucide-react'
+import { X, ChevronDown, AlertTriangle } from 'lucide-react'
 import { useClients } from '../../hooks/useClients'
 import { useCreateTask } from '../../hooks/useTasks'
 import type { Area, Priority, TaskStatus, TaskTipo, Deliverables } from '../../types'
@@ -202,9 +202,9 @@ export function TaskModal({ onClose, defaultClientId }: TaskModalProps) {
                 className="px-3 py-2 rounded-lg text-xs font-semibold"
                 style={{ ...fieldStyle }}
               >
-                <option value="alta">🔴 Alta</option>
-                <option value="media">🟡 Media</option>
-                <option value="baja">🟢 Baja</option>
+                <option value="alta">Alta</option>
+                <option value="media">Media</option>
+                <option value="baja">Baja</option>
               </select>
             </div>
 
@@ -234,8 +234,8 @@ export function TaskModal({ onClose, defaultClientId }: TaskModalProps) {
                 style={{ ...fieldStyle }}
               >
                 <option value="nuevo">Nuevo</option>
-                <option value="pendiente_anterior">⏳ Pendiente anterior</option>
-                <option value="urgente">⚡ Urgente</option>
+                <option value="pendiente_anterior">Pendiente anterior</option>
+                <option value="urgente">Urgente</option>
               </select>
             </div>
           </div>
@@ -300,7 +300,7 @@ export function TaskModal({ onClose, defaultClientId }: TaskModalProps) {
             {/* Smart warning */}
             {assigneeInfo && !assigneeInfo.areas.includes(area) && (
               <p className="text-[10px] mt-1.5 px-1" style={{ color: '#f59e0b' }}>
-                ⚠️ {assignee} normalmente cubre {assigneeInfo.areas.join(', ')}, no <strong>{AREA_LABELS[area]}</strong>.
+                <AlertTriangle size={10} style={{ display: 'inline', verticalAlign: 'middle' }} /> {assignee} normalmente cubre {assigneeInfo.areas.join(', ')}, no <strong>{AREA_LABELS[area]}</strong>.
               </p>
             )}
           </div>
