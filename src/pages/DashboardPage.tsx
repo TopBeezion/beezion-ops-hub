@@ -10,7 +10,7 @@ import { useUpdateTaskStatus } from '../hooks/useTasks'
 import { formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { AlertTriangle, TrendingUp, CheckCircle2, Layers, Zap, Users, Activity } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useOutletContext } from 'react-router-dom'
 
 const AREAS: Area[] = ['copy', 'trafico', 'tech', 'admin']
 const ASSIGNEES = ['Alejandro', 'Alec', 'Paula', 'Jose Luis', 'Editor 1', 'Editor 2', 'Editor 3']
@@ -154,6 +154,7 @@ export function DashboardPage() {
   const { data: clients = [] } = useClients()
   const updateStatus = useUpdateTaskStatus()
   const navigate = useNavigate()
+  const ctx = useOutletContext<{ openTaskDetail?: (t: any) => void }>()
 
   if (isLoading) {
     return (
@@ -298,7 +299,8 @@ export function DashboardPage() {
             {urgentOrPrevious.slice(0, 6).map((task, i) => (
               <div
                 key={task.id}
-                className="flex items-center gap-3 px-4 py-2.5 hover:bg-white/[0.015] transition-colors"
+                className="flex items-center gap-3 px-4 py-2.5 hover:bg-white/[0.03] transition-colors cursor-pointer"
+                onClick={() => ctx?.openTaskDetail?.(task)}
                 style={{
                   borderBottom: i < Math.min(urgentOrPrevious.length, 6) - 1
                     ? '1px solid rgba(255,255,255,0.03)'
@@ -628,7 +630,8 @@ export function DashboardPage() {
           {recent.map((task, i) => (
             <div
               key={task.id}
-              className="flex items-center gap-3 px-4 py-2.5 hover:bg-white/[0.02] transition-colors"
+              className="flex items-center gap-3 px-4 py-2.5 hover:bg-white/[0.03] transition-colors cursor-pointer"
+              onClick={() => ctx?.openTaskDetail?.(task)}
               style={{
                 borderBottom: i < recent.length - 1 ? '1px solid rgba(255,255,255,0.03)' : 'none',
               }}
