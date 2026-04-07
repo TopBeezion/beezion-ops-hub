@@ -59,7 +59,8 @@ function TaskCard({
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
       <div
-        className="rounded-xl p-3 cursor-grab active:cursor-grabbing select-none relative overflow-hidden card-hover group"
+        className="rounded-xl p-3 cursor-pointer active:cursor-grabbing select-none relative overflow-hidden card-hover group"
+        onClick={() => onOpen?.(task)}
         style={{
           backgroundColor: '#1c1c1c',
           border: isUrgent
