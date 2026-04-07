@@ -1,5 +1,9 @@
 import { useState } from 'react'
-import { Search, ChevronDown, Plus, ExternalLink } from 'lucide-react'
+import {
+  Search, ChevronDown, Plus, ExternalLink,
+  Anchor, Video, PenTool, Target, FileDown, Film, Globe,
+  ThumbsUp, LayoutGrid, Type, HelpCircle, BarChart3, RefreshCw,
+} from 'lucide-react'
 import { useTasks, useUpdateTaskStatus } from '../hooks/useTasks'
 import { useClients } from '../hooks/useClients'
 import type { Area, Priority, Task, TaskFilters } from '../types'
@@ -96,20 +100,20 @@ export function BacklogPage() {
   const getDeliverableChips = (task: (typeof filteredTasks)[0]) => {
     const d = task.deliverables
     if (!d) return []
-    const chips: { label: string; count: number; color: string }[] = []
-    if (d.hooks)              chips.push({ label: 'hooks',    count: d.hooks,              color: '#8b5cf6' })
-    if (d.scripts_video)      chips.push({ label: 'scripts',  count: d.scripts_video,      color: '#ec4899' })
-    if (d.body_copy)          chips.push({ label: 'body',     count: d.body_copy,           color: '#3b82f6' })
-    if (d.cta)                chips.push({ label: 'CTA',      count: d.cta,                 color: '#f5a623' })
-    if (d.lead_magnet_pdf)    chips.push({ label: 'LM',       count: d.lead_magnet_pdf,     color: '#22c55e' })
-    if (d.vsl_script)         chips.push({ label: 'VSL',      count: d.vsl_script,          color: '#06b6d4' })
-    if (d.landing_copy)       chips.push({ label: 'landing',  count: d.landing_copy,        color: '#f97316' })
-    if (d.thank_you_page_copy)chips.push({ label: 'TYP',      count: d.thank_you_page_copy, color: '#fbbf24' })
-    if (d.carousel_slides)    chips.push({ label: 'slides',   count: d.carousel_slides,     color: '#a78bfa' })
-    if (d.quiz_preguntas)     chips.push({ label: 'quiz-Q',   count: d.quiz_preguntas,      color: '#818cf8' })
-    if (d.quiz_resultados)    chips.push({ label: 'quiz-R',   count: d.quiz_resultados,     color: '#6ee7b7' })
-    if (d.headline_options)   chips.push({ label: 'hdl',      count: d.headline_options,    color: '#f472b6' })
-    if (d.retargeting_scripts)chips.push({ label: 'retarg',   count: d.retargeting_scripts, color: '#34d399' })
+    const chips: { label: string; count: number; color: string; Icon: React.ElementType }[] = []
+    if (d.hooks)              chips.push({ label: 'hooks',    count: d.hooks,              color: '#8b5cf6', Icon: Anchor })
+    if (d.scripts_video)      chips.push({ label: 'scripts',  count: d.scripts_video,      color: '#ec4899', Icon: Video })
+    if (d.body_copy)          chips.push({ label: 'body',     count: d.body_copy,           color: '#3b82f6', Icon: PenTool })
+    if (d.cta)                chips.push({ label: 'CTA',      count: d.cta,                 color: '#f5a623', Icon: Target })
+    if (d.lead_magnet_pdf)    chips.push({ label: 'LM',       count: d.lead_magnet_pdf,     color: '#22c55e', Icon: FileDown })
+    if (d.vsl_script)         chips.push({ label: 'VSL',      count: d.vsl_script,          color: '#06b6d4', Icon: Film })
+    if (d.landing_copy)       chips.push({ label: 'landing',  count: d.landing_copy,        color: '#f97316', Icon: Globe })
+    if (d.thank_you_page_copy)chips.push({ label: 'TYP',      count: d.thank_you_page_copy, color: '#fbbf24', Icon: ThumbsUp })
+    if (d.carousel_slides)    chips.push({ label: 'slides',   count: d.carousel_slides,     color: '#a78bfa', Icon: LayoutGrid })
+    if (d.quiz_preguntas)     chips.push({ label: 'quiz-Q',   count: d.quiz_preguntas,      color: '#818cf8', Icon: HelpCircle })
+    if (d.quiz_resultados)    chips.push({ label: 'quiz-R',   count: d.quiz_resultados,     color: '#6ee7b7', Icon: BarChart3 })
+    if (d.headline_options)   chips.push({ label: 'hdl',      count: d.headline_options,    color: '#f472b6', Icon: Type })
+    if (d.retargeting_scripts)chips.push({ label: 'retarg',   count: d.retargeting_scripts, color: '#34d399', Icon: RefreshCw })
     return chips
   }
 
@@ -257,25 +261,25 @@ export function BacklogPage() {
                 n: 1, color: '#8b5cf6',
                 label: 'Sprint 1 — Copy & Briefs',
                 desc: 'Semana 1: Alejandro escribe hooks, scripts, briefs creativos y todos los textos de cada pieza.',
-                who: '✍️ Alejandro',
+                who: 'Alejandro',
               },
               {
                 n: 2, color: '#ec4899',
                 label: 'Sprint 2 — Producción & Diseño',
                 desc: 'Semana 2: Paula graba videos, crea portadas y diseños para lead magnets, edita piezas y apoya con seguimiento a clientes y gestiones admin. Jose Luis diseña PDFs, thumbnails y landings.',
-                who: '🎬 Paula · 🎨 Jose Luis',
+                who: 'Paula · Jose Luis',
               },
               {
                 n: 3, color: '#3b82f6',
                 label: 'Sprint 3 — Dev & Setup',
                 desc: 'Semana 3: Alec desarrolla landings, integra CRMs, configura automatizaciones y tracking.',
-                who: '⚙️ Alec',
+                who: 'Alec',
               },
               {
                 n: 4, color: '#4ade80',
                 label: 'Sprint 4 — Launch & Optim.',
                 desc: 'Semana 4: Alec lanza campañas, revisa métricas de la primera semana y optimiza.',
-                who: '🚀 Alec',
+                who: 'Alec',
               },
             ].map(({ n, color, label, desc, who }) => (
               <div
@@ -461,17 +465,18 @@ export function BacklogPage() {
                         >
                           <div className="flex flex-wrap gap-1">
                             {deliverableChips.length > 0 ? (
-                              deliverableChips.map(({ label, count, color }, i) => (
+                              deliverableChips.map(({ label, count, color, Icon }, i) => (
                                 <span
                                   key={i}
-                                  className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold whitespace-nowrap"
+                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold whitespace-nowrap"
                                   style={{
                                     backgroundColor: `${color}15`,
                                     color,
                                     border: `1px solid ${color}30`,
                                   }}
                                 >
-                                  <span style={{ fontWeight: 900 }}>{count}</span>&nbsp;{label}
+                                  <Icon size={8} />
+                                  <span style={{ fontWeight: 900 }}>{count}</span>
                                 </span>
                               ))
                             ) : (
