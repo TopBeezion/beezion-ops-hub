@@ -4,7 +4,7 @@ import { useClients } from '../hooks/useClients'
 import { useOutletContext } from 'react-router-dom'
 import type { Task } from '../types'
 import { AREA_COLORS, AREA_LABELS, STATUS_COLORS, STATUS_LABELS } from '../lib/constants'
-import { X, ChevronDown, ChevronUp } from 'lucide-react'
+import { X, ChevronDown, ChevronUp, Zap } from 'lucide-react'
 
 const WEEKS = [1, 2, 3, 4] as const
 
@@ -129,7 +129,7 @@ function TaskCard({ task, onOpen }: { task: Task; onOpen?: (t: Task) => void }) 
         {isUrgent && (
           <div className="flex items-center gap-1 mb-1">
             <span className="text-[8px] font-bold px-1 py-0.5 rounded" style={{ backgroundColor: 'rgba(239,68,68,0.15)', color: '#ef4444' }}>
-              ⚡ URGENTE
+              <Zap size={8} style={{ display: 'inline' }} /> URGENTE
             </span>
           </div>
         )}
