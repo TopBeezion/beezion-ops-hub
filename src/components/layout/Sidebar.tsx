@@ -1,195 +1,206 @@
 import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import {
-  LayoutDashboard,
-  List,
-  Kanban,
-  CalendarDays,
-  Settings,
-  ChevronLeft,
-  ChevronRight,
-  Zap,
-  ChevronDown,
-} from 'lucide-react'
+import { LayoutDashboard, List, Kanban, CalendarDays, Settings, ChevronLeft, ChevronRight, Zap, ChevronDown } from 'lucide-react'
 import { useClients } from '../../hooks/useClients'
-
-const navItems = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard', exact: true },
-  { to: '/backlog', icon: List, label: 'Backlog' },
-  { to: '/kanban', icon: Kanban, label: 'Kanban' },
-  { to: '/timeline', icon: CalendarDays, label: 'Timeline' },
-  { to: '/settings', icon: Settings, label: 'Configuración' },
-]
 
 interface SidebarProps {
   collapsed: boolean
   onToggle: () => void
 }
 
+const NAV_ITEMS = [
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/', exact: true },
+  { id: 'backlog', label: 'Backlog', icon: List, path: '/backlog' },
+  { id: 'kanban', label: 'Kanban', icon: Kanban, path: '/kanban' },
+  { id: 'timeline', label: 'Timeline', icon: CalendarDays, path: '/timeline' },
+  { id: 'settings', label: 'Configuración', icon: Settings, path: '/settings' },
+]
+
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const { data: clients } = useClients()
   const [clientsOpen, setClientsOpen] = useState(true)
 
+  const toggleClientsSection = () => setClientsOpen(o => !o)
+
   return (
-    <aside
-      className="flex flex-col h-screen sticky top-0 shrink-0 relative"
+    <div
       style={{
-        width: collapsed ? 56 : 220,
-        backgroundColor: '#111111',
-        borderRight: '1px solid rgba(255,255,255,0.06)',
-        transition: 'width 220ms cubic-bezier(0.4,0,0.2,1)',
+        width: collapsed ? '56px' : '240px',
+        backgroundColor: '#12141F',
+        borderRight: '1px solid rgba(255, 255, 255, 0.06)',
       }}
+      className="flex flex-col h-full transition-all duration-220 relative"
     >
-      {/* Top accent line */}
+      {/* Top Accent Gradient */}
       <div
-        className="absolute top-0 left-0 right-0 h-[1px]"
         style={{
-          background: 'linear-gradient(90deg, transparent 0%, rgba(245,166,35,0.7) 40%, rgba(139,92,246,0.5) 70%, transparent 100%)',
+          background: 'linear-gradient(90deg, #6366F1 0%, transparent 100%)',
+          height: '2px',
+          opacity: 0.3,
         }}
       />
 
-      {/* Logo */}
-      <div
-        className="flex items-center gap-2.5 px-3.5 shrink-0"
-        style={{
-          height: 52,
-          borderBottom: '1px solid rgba(255,255,255,0.05)',
-        }}
-      >
-        <div
-          className="w-6 h-6 rounded-md shrink-0 flex items-center justify-center"
-          style={{
-            background: 'linear-gradient(135deg, #f5a623 0%, #ff6b35 100%)',
-            boxShadow: '0 0 14px rgba(245,166,35,0.45)',
-          }}
-        >
-          <Zap size={12} color="#fff" fill="#fff" />
-        </div>
-        {!collapsed && (
-          <div>
-            <p className="text-sm font-bold leading-none tracking-tight" style={{ color: '#f5f5f5' }}>Beezion</p>
-            <p className="text-[9px] leading-none mt-0.5 font-semibold tracking-[0.12em] uppercase" style={{ color: '#f5a623' }}>OPS HUB</p>
+      {/* Logo Section */}
+      <div className="px-3 py-4 border-b" style={{ borderColor: 'rgba(255, 255, 255, 0.06)' }}>
+        <div className="flex items-center gap-2">
+          <div
+            style={{
+              background: 'linear-gradient(135deg, #6366F1 0%, #818CF8 100%)',
+              padding: '6px 8px',
+              borderRadius: '6px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <Zap size={16} color="white" />
           </div>
-        )}
+          {!collapsed && (
+            <div className="flex flex-col min-w-0">
+              <span
+                style={{ color: 'white', fontSize: '13px', fontWeight: '700', lineHeight: '1.2' }}
+              >
+                Beezion
+              </span>
+              <span
+                style={{
+                  color: '#6366F1',
+                  fontSize: '10px',
+                  fontWeight: '600',
+                  lineHeight: '1.2',
+                  letterSpacing: '0.5px',
+                }}
+              >
+                OPS HUB
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
-        {navItems.map(({ to, icon: Icon, label, exact }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={exact}
-            title={collapsed ? label : undefined}
-            className={({ isActive }) =>
-              `flex items-center rounded-lg font-medium relative overflow-hidden ${
-                collapsed ? 'justify-center px-0 py-2.5 w-full' : 'gap-2.5 px-3 py-2'
-              } ${isActive ? 'active-nav' : ''}`
-            }
-            style={({ isActive }) => ({
-              color: isActive ? '#f5a623' : '#5a5e7a',
-              backgroundColor: isActive ? 'rgba(245,166,35,0.09)' : 'transparent',
-              boxShadow: isActive ? 'inset 0 0 0 1px rgba(245,166,35,0.18)' : 'none',
-            })}
-          >
-            {({ isActive }) => (
-              <>
-                {isActive && (
+      {/* Main Navigation */}
+      <nav className="px-2 py-3 flex-1 overflow-y-auto">
+        <div className="space-y-1">
+          {NAV_ITEMS.map((item) => {
+            const Icon = item.icon
+            return (
+              <NavLink
+                key={item.id}
+                to={item.path}
+                end={item.id === 'dashboard'}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2 rounded-md text-13px font-medium transition-all duration-150 relative group ${
+                    isActive ? 'text-[#6366F1]' : 'text-[#9CA3AF] hover:text-[#E5E7EB]'
+                  }`
+                }
+                style={({ isActive }) => ({
+                  backgroundColor: isActive ? 'rgba(99, 102, 241, 0.09)' : 'transparent',
+                  borderLeft: isActive ? '3px solid #6366F1' : '3px solid transparent',
+                  paddingLeft: isActive ? '12px' : '12px',
+                })}
+              >
+                <Icon size={15} className="flex-shrink-0" />
+                {!collapsed && <span className="truncate">{item.label}</span>}
+                {collapsed && item.label && (
                   <div
-                    className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full"
-                    style={{ backgroundColor: '#f5a623' }}
-                  />
+                    className="absolute left-full ml-2 px-2 py-1 rounded bg-[#1F2433] text-[#E5E7EB] text-12px whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50"
+                    style={{ color: '#E5E7EB', fontSize: '12px' }}
+                  >
+                    {item.label}
+                  </div>
                 )}
-                <Icon
-                  size={15}
-                  className="shrink-0"
-                  style={{ color: isActive ? '#f5a623' : '#6b6b6b' }}
-                />
-                {!collapsed && (
-                  <span className="text-sm" style={{ color: isActive ? '#f5f5f5' : '#a1a1a1' }}>
-                    {label}
-                  </span>
-                )}
-              </>
-            )}
-          </NavLink>
-        ))}
+              </NavLink>
+            )
+          })}
+        </div>
 
-        {/* Clients section */}
-        <div className="mt-5">
-          {!collapsed && (
+        {/* Clients Section */}
+        {!collapsed && (
+          <div className="mt-6 pt-4" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
             <button
-              onClick={() => setClientsOpen(o => !o)}
-              className="flex items-center gap-1.5 px-3 py-1 w-full text-left mb-1 group"
+              onClick={toggleClientsSection}
+              className="flex items-center justify-between w-full px-3 py-2 transition-colors duration-150 group"
+              style={{ color: '#6B7280' }}
             >
               <span
-                className="text-[10px] font-bold uppercase tracking-[0.12em] flex-1"
-                style={{ color: '#585858' }}
+                style={{
+                  fontSize: '10px',
+                  fontWeight: '600',
+                  letterSpacing: '0.5px',
+                  textTransform: 'uppercase',
+                  color: '#4B5563',
+                }}
               >
                 Clientes
               </span>
               <ChevronDown
-                size={10}
-                style={{
-                  color: '#585858',
-                  transform: clientsOpen ? 'rotate(0deg)' : 'rotate(-90deg)',
-                  transition: 'transform 150ms',
-                }}
+                size={14}
+                className={`transition-transform duration-200 ${clientsOpen ? '' : '-rotate-90'}`}
+                style={{ color: '#4B5563' }}
               />
             </button>
-          )}
 
-          {(clientsOpen || collapsed) && clients?.map(client => (
-            <NavLink
-              key={client.id}
-              to={`/clients/${client.id}`}
-              title={collapsed ? client.name : undefined}
-              className={`flex items-center rounded-lg relative ${
-                collapsed ? 'justify-center px-0 py-2 w-full' : 'gap-2.5 px-3 py-1.5'
-              }`}
-              style={({ isActive }) => ({
-                color: isActive ? '#f5f5f5' : '#a1a1a1',
-                backgroundColor: isActive ? 'rgba(255,255,255,0.05)' : 'transparent',
-              })}
-            >
-              {({ isActive }) => (
-                <>
-                  <div
-                    className="w-2 h-2 rounded-full shrink-0"
-                    style={{
-                      backgroundColor: client.color,
-                      boxShadow: isActive ? `0 0 8px ${client.color}` : 'none',
-                    }}
-                  />
-                  {!collapsed && (
-                    <span
-                      className="truncate text-[12px] font-medium"
-                      style={{ color: isActive ? '#f5f5f5' : '#a1a1a1' }}
+            {clientsOpen && (
+              <div className="space-y-1 mt-2">
+                {clients?.map(client => (
+                    <NavLink
+                      key={client.id}
+                      to={`/clients/${client.id}`}
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-md transition-all duration-150"
+                      style={({ isActive }) => ({
+                        color: isActive ? '#E5E7EB' : '#9CA3AF',
+                        backgroundColor: isActive ? 'rgba(255,255,255,0.05)' : 'transparent',
+                      })}
                     >
-                      {client.name}
-                    </span>
-                  )}
-                </>
-              )}
-            </NavLink>
-          ))}
-        </div>
+                      {({ isActive }) => (
+                        <>
+                          <div
+                            style={{
+                              width: '8px',
+                              height: '8px',
+                              borderRadius: '50%',
+                              backgroundColor: client.color,
+                              flexShrink: 0,
+                              boxShadow: isActive ? `0 0 8px ${client.color}` : 'none',
+                            }}
+                          />
+                          <span className="truncate" style={{ fontSize: '12px', fontWeight: 500, color: isActive ? '#E5E7EB' : '#9CA3AF' }}>
+                            {client.name}
+                          </span>
+                        </>
+                      )}
+                    </NavLink>
+                  ))}
+              </div>
+            )}
+          </div>
+        )}
       </nav>
 
-      {/* Toggle button */}
+      {/* Collapse Toggle Button */}
       <div
-        className="flex items-center justify-end px-2 py-2.5"
-        style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}
+        className="px-2 py-3 border-t flex items-center justify-center"
+        style={{ borderColor: 'rgba(255, 255, 255, 0.06)' }}
       >
         <button
           onClick={onToggle}
-          className="p-1.5 rounded-lg hover:bg-white/5 transition-colors"
-          style={{ color: '#585858' }}
-          title={collapsed ? 'Expandir sidebar' : 'Colapsar sidebar'}
+          className="p-1.5 rounded-md transition-colors duration-150 group"
+          style={{
+            color: '#9CA3AF',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = '#E5E7EB'
+            e.currentTarget.style.backgroundColor = 'rgba(99, 102, 241, 0.09)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = '#9CA3AF'
+            e.currentTarget.style.backgroundColor = 'transparent'
+          }}
         >
-          {collapsed ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}
+          {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
         </button>
       </div>
-    </aside>
+    </div>
   )
 }
