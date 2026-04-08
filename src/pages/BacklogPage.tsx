@@ -1,85 +1,54 @@
-import { useState } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import {
-  Search, ChevronDown, Plus, ExternalLink,
-  Anchor, Video, PenTool, Target, FileDown, Film, Globe,
-  ThumbsUp, LayoutGrid, Type, HelpCircle, BarChart3, RefreshCw,
+  Search, ChevronDown, Plus, ChevronRight, Trash2, Edit2, Check, X,
 } from 'lucide-react'
-import { useTasks, useUpdateTaskStatus } from '../hooks/useTasks'
+import { useTasks, useUpdateTask, useUpdateTaskStatus } from '../hooks/useTasks'
 import { useClients } from '../hooks/useClients'
-import type { Area, Priority, Task, TaskFilters } from '../types'
-import { AREA_LABELS, PRIORITY_COLORS, PRIORITY_LABELS } from '../lib/constants'
-import { ClientBadge } from '../components/ui/ClientBadge'
-import { AreaBadge } from '../components/ui/AreaBadge'
-import { AssigneeAvatar } from '../components/ui/AssigneeAvatar'
-import { PriorityDot } from '../components/ui/PriorityDot'
-import { StatusSelect } from '../components/ui/StatusSelect'
+import { useTeam } from '../hooks/useTeam'
 import { useOutletContext } from 'react-router-dom'
-import { getSprintDateRange } from '../lib/dates'
+import type { Task, Area, Priority, TaskStatus, TaskFilters } from '../types'
+import { AREA_LABELS, AREA_COLORS, STATUS_LABELS, STATUS_COLORS, PRIORITY_LABELS, PRIORITY_COLORS } from '../lib/constants'
 
-const ASSIGNEES = ['Alejandro', 'Alec', 'Paula', 'Jose Luis', 'Editor 1', 'Editor 2', 'Editor 3']
+const PRIORITY_CYCLE: Priority[] = ['alta', 'media', 'baja']
+const STATUS_CYCLE: TaskStatus[] = ['pendiente', 'en_progreso', 'revision', 'completado']
 
-const SPRINT_META: Record<number, { label: string; sub: string; color: string }> = {
-  1: { label: 'Sprint 1', sub: 'Copy & Briefs',      color: '#8b5cf6' },
-  2: { label: 'Sprint 2', sub: 'Producción & Diseño', color: '#ec4899' },
-  3: { label: 'Sprint 3', sub: 'Dev & Setup',          color: '#3b82f6' },
-  4: { label: 'Sprint 4', sub: 'Launch & Optim.',      color: '#22c55e' },
-}
-// backward compat alias
-const SPRINT_LABELS = Object.fromEntries(
-  Object.entries(SPRINT_META).map(([k, v]) => [k, { label: `${v.label} — ${v.sub}`, color: v.color }])
-)
-
-function FilterSelect({
-  label,
-  value,
-  onChange,
-  options,
-}: {
-  label: string
-  value: string
-  onChange: (v: string) => void
-  options: { value: string; label: string }[]
-}) {
-  return (
-    <div className="relative">
-      <select
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        className="appearance-none pl-2.5 pr-6 py-1.5 rounded-lg text-xs outline-none cursor-pointer font-medium"
-        style={{
-          backgroundColor: value ? 'rgba(245,166,35,0.1)' : '#1c1c1c',
-          border: `1px solid ${value ? 'rgba(245,166,35,0.3)' : 'rgba(255,255,255,0.07)'}`,
-          color: value ? '#f5a623' : '#6b6b6b',
-        }}
-      >
-        <option value="">{label}</option>
-        {options.map(o => (
-          <option key={o.value} value={o.value} style={{ backgroundColor: '#1c1c1c', color: '#f5f5f5' }}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-      <ChevronDown size={10} className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: '#a1a1a1' }} />
-    </div>
-  )
-}
+type GroupByOption = 'none' | 'status' | 'client' | 'assignee' | 'priority' | 'area'
 
 export function BacklogPage() {
   const { data: clients = [] } = useClients()
-  const [filters, setFilters] = useState<TaskFilters>({})
-  const { data: tasks = [], isLoading } = useTasks(filters)
+  const { data: team = [] } = useTeam()
+  const updateTask = useUpdateTask()
   const updateStatus = useUpdateTaskStatus()
-  const [search, setSearch] = useState('')
-  const [groupBySprint, setGroupBySprint] = useState(true)
-  const [showSprintGuide, setShowSprintGuide] = useState(false)
   const ctx = useOutletContext<{ openNewTask?: () => void; openTaskDetail?: (t: Task) => void }>()
 
+  // Filter state
+  const [search, setSearch] = useState('')
+  const [filters, setFilters] = useState<TaskFilters>({})
+  const [groupBy, setGroupBy] = useState<GroupByOption>('none')
+
+  // Inline editing state
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
+  const [editingTitle, setEditingTitle] = useState('')
+  const [editTitleRef, setEditTitleRef] = useState<HTMLInputElement | null>(null)
+
+  // Collapsed groups
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
+
+  const { data: tasks = [], isLoading } = useTasks(filters)
+
+  // Apply search filter
   const filteredTasks = search
     ? tasks.filter(t => t.title.toLowerCase().includes(search.toLowerCase()))
     : tasks
 
-  const setFilter = (key: keyof TaskFilters, value: string) => {
-    setFilters(f => ({ ...f, [key]: value || undefined }))
+  // Filter helpers
+  const activeFilterCount = Object.values(filters).filter(Boolean).length + (search ? 1 : 0)
+
+  const setFilter = (key: keyof TaskFilters, value: string | number | undefined) => {
+    setFilters(f => ({
+      ...f,
+      [key]: value || undefined,
+    }))
   }
 
   const clearFilters = () => {
@@ -87,438 +56,567 @@ export function BacklogPage() {
     setSearch('')
   }
 
-  const hasFilters = Object.values(filters).some(Boolean) || search
+  // Grouping logic
+  const getGroupKey = (task: Task): string => {
+    switch (groupBy) {
+      case 'status':
+        return task.status
+      case 'client':
+        return task.client_id || 'unassigned'
+      case 'assignee':
+        return task.assignee || 'unassigned'
+      case 'priority':
+        return task.priority
+      case 'area':
+        return task.area
+      default:
+        return 'all'
+    }
+  }
 
-  // Group by sprint week
-  const grouped = groupBySprint
-    ? [1, 2, 3, 4].map(week => ({
-        week,
-        tasks: filteredTasks.filter(t => t.week === week),
-      })).filter(g => g.tasks.length > 0)
-    : [{ week: 0, tasks: filteredTasks }]
+  const grouped = groupBy === 'none'
+    ? [{ key: 'all', label: '', tasks: filteredTasks }]
+    : Object.entries(
+        filteredTasks.reduce((acc, task) => {
+          const key = getGroupKey(task)
+          if (!acc[key]) acc[key] = []
+          acc[key].push(task)
+          return acc
+        }, {} as Record<string, Task[]>)
+      ).map(([key, tasks]) => {
+        let label = key
+        if (groupBy === 'status') label = STATUS_LABELS[key as TaskStatus]
+        else if (groupBy === 'client') {
+          const client = clients.find(c => c.id === key)
+          label = client?.name || 'Sin cliente'
+        } else if (groupBy === 'assignee') label = key === 'unassigned' ? 'Sin asignar' : key
+        else if (groupBy === 'priority') label = PRIORITY_LABELS[key as Priority]
+        else if (groupBy === 'area') label = AREA_LABELS[key as Area]
 
-  const getDeliverableChips = (task: (typeof filteredTasks)[0]) => {
-    const d = task.deliverables
-    if (!d) return []
-    const chips: { label: string; count: number; color: string; Icon: React.ElementType }[] = []
-    if (d.hooks)              chips.push({ label: 'hooks',    count: d.hooks,              color: '#8b5cf6', Icon: Anchor })
-    if (d.scripts_video)      chips.push({ label: 'scripts',  count: d.scripts_video,      color: '#ec4899', Icon: Video })
-    if (d.body_copy)          chips.push({ label: 'body',     count: d.body_copy,           color: '#3b82f6', Icon: PenTool })
-    if (d.cta)                chips.push({ label: 'CTA',      count: d.cta,                 color: '#f5a623', Icon: Target })
-    if (d.lead_magnet_pdf)    chips.push({ label: 'LM',       count: d.lead_magnet_pdf,     color: '#22c55e', Icon: FileDown })
-    if (d.vsl_script)         chips.push({ label: 'VSL',      count: d.vsl_script,          color: '#06b6d4', Icon: Film })
-    if (d.landing_copy)       chips.push({ label: 'landing',  count: d.landing_copy,        color: '#f97316', Icon: Globe })
-    if (d.thank_you_page_copy)chips.push({ label: 'TYP',      count: d.thank_you_page_copy, color: '#fbbf24', Icon: ThumbsUp })
-    if (d.carousel_slides)    chips.push({ label: 'slides',   count: d.carousel_slides,     color: '#a78bfa', Icon: LayoutGrid })
-    if (d.quiz_preguntas)     chips.push({ label: 'quiz-Q',   count: d.quiz_preguntas,      color: '#818cf8', Icon: HelpCircle })
-    if (d.quiz_resultados)    chips.push({ label: 'quiz-R',   count: d.quiz_resultados,     color: '#6ee7b7', Icon: BarChart3 })
-    if (d.headline_options)   chips.push({ label: 'hdl',      count: d.headline_options,    color: '#f472b6', Icon: Type })
-    if (d.retargeting_scripts)chips.push({ label: 'retarg',   count: d.retargeting_scripts, color: '#34d399', Icon: RefreshCw })
-    return chips
+        return { key, label, tasks }
+      })
+
+  // Inline editing handlers
+  const startEditingTitle = (task: Task) => {
+    setEditingTaskId(task.id)
+    setEditingTitle(task.title)
+    setTimeout(() => editTitleRef?.focus(), 0)
+  }
+
+  const saveTitle = async (taskId: string) => {
+    if (editingTitle.trim() && editingTitle !== tasks.find(t => t.id === taskId)?.title) {
+      await updateTask.mutate({ id: taskId, title: editingTitle.trim() })
+    }
+    setEditingTaskId(null)
+    setEditingTitle('')
+  }
+
+  const cancelEditingTitle = () => {
+    setEditingTaskId(null)
+    setEditingTitle('')
+  }
+
+  const cycleStatus = async (task: Task) => {
+    const currentIndex = STATUS_CYCLE.indexOf(task.status)
+    const nextStatus = STATUS_CYCLE[(currentIndex + 1) % STATUS_CYCLE.length]
+    await updateStatus.mutate({ id: task.id, status: nextStatus })
+  }
+
+  const cyclePriority = async (task: Task) => {
+    const currentIndex = PRIORITY_CYCLE.indexOf(task.priority)
+    const nextPriority = PRIORITY_CYCLE[(currentIndex + 1) % PRIORITY_CYCLE.length]
+    await updateTask.mutate({ id: task.id, priority: nextPriority })
+  }
+
+  const toggleGroupCollapsed = (key: string) => {
+    const next = new Set(collapsedGroups)
+    if (next.has(key)) next.delete(key)
+    else next.add(key)
+    setCollapsedGroups(next)
+  }
+
+  // Render helpers
+  const renderClientBadge = (clientId?: string) => {
+    const client = clients.find(c => c.id === clientId)
+    if (!client) return <span style={{ color: '#6B7280' }}>—</span>
+    return (
+      <span
+        className="inline-block px-2 py-1 rounded text-xs font-medium"
+        style={{
+          backgroundColor: `${client.color}20`,
+          color: client.color,
+          border: `1px solid ${client.color}40`,
+        }}
+      >
+        {client.name}
+      </span>
+    )
+  }
+
+  const renderAreaBadge = (area: Area) => {
+    const color = AREA_COLORS[area]
+    return (
+      <span
+        className="inline-block px-2 py-1 rounded text-xs font-medium"
+        style={{
+          backgroundColor: `${color}20`,
+          color,
+          border: `1px solid ${color}40`,
+        }}
+      >
+        {AREA_LABELS[area]}
+      </span>
+    )
+  }
+
+  const renderStatusBadge = (status: TaskStatus, onClick?: () => void) => {
+    const color = STATUS_COLORS[status]
+    return (
+      <button
+        onClick={onClick}
+        className="inline-block px-2 py-1 rounded text-xs font-medium hover:opacity-80 transition-opacity"
+        style={{
+          backgroundColor: `${color}20`,
+          color,
+          border: `1px solid ${color}40`,
+        }}
+      >
+        {STATUS_LABELS[status]}
+      </button>
+    )
+  }
+
+  const renderPriorityBadge = (priority: Priority, onClick?: () => void) => {
+    const color = PRIORITY_COLORS[priority]
+    return (
+      <button
+        onClick={onClick}
+        className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium hover:opacity-80 transition-opacity"
+        style={{
+          backgroundColor: `${color}20`,
+          color,
+          border: `1px solid ${color}40`,
+        }}
+      >
+        <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
+        {PRIORITY_LABELS[priority]}
+      </button>
+    )
+  }
+
+  const renderTipoIndicator = (tipo: string) => {
+    if (tipo === 'urgente') {
+      return <span className="px-1.5 py-0.5 rounded text-[10px] font-bold" style={{ backgroundColor: '#EF444420', color: '#EF4444' }}>URGENTE</span>
+    }
+    if (tipo === 'pendiente_anterior') {
+      return <span className="px-1.5 py-0.5 rounded text-[10px] font-bold" style={{ backgroundColor: '#F9731620', color: '#F97316' }}>PREV</span>
+    }
+    return null
   }
 
   return (
-    <div className="flex flex-col h-full" style={{ backgroundColor: '#0f0f0f' }}>
-      {/* Filters bar */}
+    <div className="flex flex-col h-full" style={{ backgroundColor: '#0F1117' }}>
+      {/* Filter Bar */}
       <div
-        className="flex items-center gap-2 px-4 py-2.5 flex-wrap shrink-0"
+        className="filter-toolbar flex items-center gap-2 px-4 py-3 flex-wrap shrink-0"
         style={{
-          borderBottom: '1px solid rgba(255,255,255,0.05)',
-          backgroundColor: 'rgba(15,15,15,0.9)',
-          backdropFilter: 'blur(8px)',
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          backgroundColor: '#1A1D2E',
         }}
       >
         {/* Search */}
         <div className="relative">
-          <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: '#6b6b6b' }} />
+          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: '#9CA3AF' }} />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar tareas..."
-            className="pl-7 pr-3 py-1.5 rounded-lg text-xs outline-none w-48 font-medium placeholder:font-normal"
+            placeholder="Search tasks..."
+            className="pl-8 pr-3 py-2 rounded-lg text-sm outline-none w-52"
             style={{
-              backgroundColor: '#1c1c1c',
-              border: '1px solid rgba(255,255,255,0.07)',
-              color: '#f5f5f5',
+              backgroundColor: '#252940',
+              border: '1px solid rgba(255,255,255,0.08)',
+              color: '#E5E7EB',
             }}
           />
         </div>
 
-        <FilterSelect
-          label="Cliente"
+        {/* Client Filter */}
+        <select
           value={filters.client_id || ''}
-          onChange={v => setFilter('client_id', v)}
-          options={clients.map(c => ({ value: c.id, label: c.name }))}
-        />
-        <FilterSelect
-          label="Área"
-          value={filters.area || ''}
-          onChange={v => setFilter('area', v)}
-          options={(['copy', 'trafico', 'tech', 'admin'] as Area[]).map(a => ({ value: a, label: AREA_LABELS[a] }))}
-        />
-        <FilterSelect
-          label="Semana"
-          value={filters.week?.toString() || ''}
-          onChange={v => setFilter('week', v)}
-          options={[1, 2, 3, 4].map(w => ({ value: w.toString(), label: `Sprint ${w}` }))}
-        />
-        <FilterSelect
-          label="Responsable"
-          value={filters.assignee || ''}
-          onChange={v => setFilter('assignee', v)}
-          options={ASSIGNEES.map(a => ({ value: a, label: a }))}
-        />
-        <FilterSelect
-          label="Status"
-          value={filters.status || ''}
-          onChange={v => setFilter('status', v)}
-          options={[
-            { value: 'pendiente', label: 'Pendiente' },
-            { value: 'en_progreso', label: 'En Progreso' },
-            { value: 'revision', label: 'En Revisión' },
-            { value: 'completado', label: 'Completado' },
-          ]}
-        />
-        <FilterSelect
-          label="Prioridad"
-          value={filters.priority || ''}
-          onChange={v => setFilter('priority', v)}
-          options={(['alta', 'media', 'baja'] as Priority[]).map(p => ({ value: p, label: PRIORITY_LABELS[p] }))}
-        />
+          onChange={e => setFilter('client_id', e.target.value)}
+          className="filter-select px-3 py-2 rounded-lg text-sm outline-none cursor-pointer"
+          style={{
+            backgroundColor: filters.client_id ? 'rgba(99,102,241,0.1)' : '#252940',
+            border: '1px solid rgba(255,255,255,0.08)',
+            color: filters.client_id ? '#6366F1' : '#9CA3AF',
+          }}
+        >
+          <option value="">Client</option>
+          {clients.map(c => (
+            <option key={c.id} value={c.id} style={{ backgroundColor: '#1A1D2E' }}>
+              {c.name}
+            </option>
+          ))}
+        </select>
 
-        {hasFilters && (
+        {/* Area Filter */}
+        <select
+          value={filters.area || ''}
+          onChange={e => setFilter('area', e.target.value)}
+          className="filter-select px-3 py-2 rounded-lg text-sm outline-none cursor-pointer"
+          style={{
+            backgroundColor: filters.area ? 'rgba(99,102,241,0.1)' : '#252940',
+            border: '1px solid rgba(255,255,255,0.08)',
+            color: filters.area ? '#6366F1' : '#9CA3AF',
+          }}
+        >
+          <option value="">Area</option>
+          {(['copy', 'trafico', 'tech', 'admin'] as Area[]).map(a => (
+            <option key={a} value={a} style={{ backgroundColor: '#1A1D2E' }}>
+              {AREA_LABELS[a]}
+            </option>
+          ))}
+        </select>
+
+        {/* Assignee Filter */}
+        <select
+          value={filters.assignee || ''}
+          onChange={e => setFilter('assignee', e.target.value)}
+          className="filter-select px-3 py-2 rounded-lg text-sm outline-none cursor-pointer"
+          style={{
+            backgroundColor: filters.assignee ? 'rgba(99,102,241,0.1)' : '#252940',
+            border: '1px solid rgba(255,255,255,0.08)',
+            color: filters.assignee ? '#6366F1' : '#9CA3AF',
+          }}
+        >
+          <option value="">Assignee</option>
+          {team.map(m => (
+            <option key={m.id} value={m.name} style={{ backgroundColor: '#1A1D2E' }}>
+              {m.name}
+            </option>
+          ))}
+        </select>
+
+        {/* Status Filter */}
+        <select
+          value={filters.status || ''}
+          onChange={e => setFilter('status', e.target.value)}
+          className="filter-select px-3 py-2 rounded-lg text-sm outline-none cursor-pointer"
+          style={{
+            backgroundColor: filters.status ? 'rgba(99,102,241,0.1)' : '#252940',
+            border: '1px solid rgba(255,255,255,0.08)',
+            color: filters.status ? '#6366F1' : '#9CA3AF',
+          }}
+        >
+          <option value="">Status</option>
+          {(['pendiente', 'en_progreso', 'revision', 'completado'] as TaskStatus[]).map(s => (
+            <option key={s} value={s} style={{ backgroundColor: '#1A1D2E' }}>
+              {STATUS_LABELS[s]}
+            </option>
+          ))}
+        </select>
+
+        {/* Priority Filter */}
+        <select
+          value={filters.priority || ''}
+          onChange={e => setFilter('priority', e.target.value)}
+          className="filter-select px-3 py-2 rounded-lg text-sm outline-none cursor-pointer"
+          style={{
+            backgroundColor: filters.priority ? 'rgba(99,102,241,0.1)' : '#252940',
+            border: '1px solid rgba(255,255,255,0.08)',
+            color: filters.priority ? '#6366F1' : '#9CA3AF',
+          }}
+        >
+          <option value="">Priority</option>
+          {(['alta', 'media', 'baja'] as Priority[]).map(p => (
+            <option key={p} value={p} style={{ backgroundColor: '#1A1D2E' }}>
+              {PRIORITY_LABELS[p]}
+            </option>
+          ))}
+        </select>
+
+        {/* Week Filter */}
+        <select
+          value={filters.week?.toString() || ''}
+          onChange={e => setFilter('week', e.target.value ? parseInt(e.target.value) : undefined)}
+          className="filter-select px-3 py-2 rounded-lg text-sm outline-none cursor-pointer"
+          style={{
+            backgroundColor: filters.week ? 'rgba(99,102,241,0.1)' : '#252940',
+            border: '1px solid rgba(255,255,255,0.08)',
+            color: filters.week ? '#6366F1' : '#9CA3AF',
+          }}
+        >
+          <option value="">Sprint</option>
+          {[1, 2, 3, 4].map(w => (
+            <option key={w} value={w.toString()} style={{ backgroundColor: '#1A1D2E' }}>
+              Sprint {w}
+            </option>
+          ))}
+        </select>
+
+        {/* Group By */}
+        <select
+          value={groupBy}
+          onChange={e => setGroupBy(e.target.value as GroupByOption)}
+          className="filter-select px-3 py-2 rounded-lg text-sm outline-none cursor-pointer"
+          style={{
+            backgroundColor: groupBy !== 'none' ? 'rgba(99,102,241,0.1)' : '#252940',
+            border: '1px solid rgba(255,255,255,0.08)',
+            color: groupBy !== 'none' ? '#6366F1' : '#9CA3AF',
+          }}
+        >
+          <option value="none">Group by</option>
+          <option value="status">Status</option>
+          <option value="client">Client</option>
+          <option value="assignee">Assignee</option>
+          <option value="priority">Priority</option>
+          <option value="area">Area</option>
+        </select>
+
+        {/* Active filters indicator */}
+        {activeFilterCount > 0 && (
           <button
             onClick={clearFilters}
-            className="text-xs px-2.5 py-1.5 rounded-lg font-medium"
-            style={{ color: '#f5a623', backgroundColor: 'rgba(245,166,35,0.08)' }}
+            className="px-3 py-2 rounded-lg text-sm font-medium transition-opacity hover:opacity-80"
+            style={{
+              backgroundColor: '#252940',
+              color: '#6366F1',
+              border: '1px solid rgba(99,102,241,0.3)',
+            }}
           >
-            Limpiar
+            Clear filters
           </button>
         )}
 
-        {/* Group toggle */}
-        <button
-          onClick={() => setGroupBySprint(g => !g)}
-          className="text-xs px-2.5 py-1.5 rounded-lg font-medium ml-1"
-          style={{
-            color: groupBySprint ? '#f5f5f5' : '#6b6b6b',
-            backgroundColor: groupBySprint ? 'rgba(255,255,255,0.06)' : 'transparent',
-            border: '1px solid rgba(255,255,255,0.06)',
-          }}
-        >
-          {groupBySprint ? '⊞ Por sprint' : '≡ Lista plana'}
-        </button>
-
-        {/* Sprint guide toggle */}
-        <button
-          onClick={() => setShowSprintGuide(s => !s)}
-          className="text-xs px-2.5 py-1.5 rounded-lg font-medium"
-          style={{
-            color: showSprintGuide ? '#f5a623' : '#6b6b6b',
-            backgroundColor: showSprintGuide ? 'rgba(245,166,35,0.08)' : 'transparent',
-            border: `1px solid ${showSprintGuide ? 'rgba(245,166,35,0.25)' : 'rgba(255,255,255,0.06)'}`,
-          }}
-          title="Ver guía de sprints"
-        >
-          ? Sprints
-        </button>
-
-        <div className="ml-auto flex items-center gap-2">
-          <span className="text-xs font-medium" style={{ color: '#6b6b6b' }}>
-            {filteredTasks.length} tareas
+        {/* Right section */}
+        <div className="ml-auto flex items-center gap-3">
+          <span style={{ color: '#9CA3AF', fontSize: '14px', fontWeight: '500' }}>
+            {filteredTasks.length} tasks
           </span>
           {ctx?.openNewTask && (
             <button
               onClick={ctx.openNewTask}
-              className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg font-semibold"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg font-medium text-sm transition-opacity hover:opacity-90"
               style={{
-                background: 'linear-gradient(135deg, #f5a623, #ff7c1a)',
-                color: '#0f0f0f',
+                backgroundColor: '#6366F1',
+                color: '#E5E7EB',
               }}
             >
-              <Plus size={11} strokeWidth={2.5} />
-              Nueva
+              <Plus size={16} strokeWidth={2.5} />
+              New
             </button>
           )}
         </div>
       </div>
 
-      {/* Sprint Guide Panel */}
-      {showSprintGuide && (
-        <div
-          className="shrink-0 px-4 py-3"
-          style={{
-            borderBottom: '1px solid rgba(255,255,255,0.05)',
-            background: 'linear-gradient(135deg, rgba(245,166,35,0.04) 0%, rgba(15,15,15,0) 60%)',
-          }}
-        >
-          <p className="text-[10px] font-bold uppercase tracking-widest mb-2.5" style={{ color: '#f5a623' }}>
-            Guía de Sprints — Flujo de trabajo Beezion
-          </p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            {[
-              {
-                n: 1, color: '#8b5cf6',
-                label: 'Sprint 1 — Copy & Briefs',
-                desc: 'Semana 1: Alejandro escribe hooks, scripts, briefs creativos y todos los textos de cada pieza.',
-                who: 'Alejandro',
-              },
-              {
-                n: 2, color: '#ec4899',
-                label: 'Sprint 2 — Producción & Diseño',
-                desc: 'Semana 2: Paula graba videos, crea portadas y diseños para lead magnets, edita piezas y apoya con seguimiento a clientes y gestiones admin. Jose Luis diseña PDFs, thumbnails y landings.',
-                who: 'Paula · Jose Luis',
-              },
-              {
-                n: 3, color: '#3b82f6',
-                label: 'Sprint 3 — Dev & Setup',
-                desc: 'Semana 3: Alec desarrolla landings, integra CRMs, configura automatizaciones y tracking.',
-                who: 'Alec',
-              },
-              {
-                n: 4, color: '#4ade80',
-                label: 'Sprint 4 — Launch & Optim.',
-                desc: 'Semana 4: Alec lanza campañas, revisa métricas de la primera semana y optimiza.',
-                who: 'Alec',
-              },
-            ].map(({ n, color, label, desc, who }) => (
-              <div
-                key={n}
-                className="rounded-lg p-3"
-                style={{
-                  backgroundColor: `${color}08`,
-                  border: `1px solid ${color}20`,
-                }}
-              >
-                <div className="flex items-center gap-1.5 mb-1.5">
-                  <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
-                  <span className="text-[10px] font-bold" style={{ color }}>{label}</span>
-                </div>
-                <p className="text-[10px] leading-relaxed mb-1.5" style={{ color: '#a1a1a1' }}>{desc}</p>
-                <p className="text-[9px] font-semibold" style={{ color: '#6b6b6b' }}>{who}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Table */}
       {isLoading ? (
-        <div className="flex items-center justify-center h-64">
+        <div className="flex items-center justify-center flex-1">
           <div
             className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin"
-            style={{ borderColor: '#f5a623', borderTopColor: 'transparent' }}
+            style={{ borderColor: '#6366F1', borderTopColor: 'transparent' }}
           />
         </div>
+      ) : filteredTasks.length === 0 ? (
+        <div className="flex items-center justify-center flex-1" style={{ color: '#6B7280' }}>
+          <div className="text-center">
+            <p className="text-sm font-medium mb-1">No tasks found</p>
+            <p className="text-xs">Try adjusting your filters or create a new task</p>
+          </div>
+        </div>
       ) : (
-        <div className="overflow-auto flex-1">
-          <table className="w-full text-sm border-separate border-spacing-0">
-            <thead>
-              <tr className="sticky top-0 z-10" style={{ backgroundColor: '#0f0f0f' }}>
-                <th className="text-left px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider w-8"
-                  style={{ color: '#585858', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                  #
+        <div className="flex-1 overflow-auto">
+          <table className="w-full text-sm border-collapse">
+            <thead className="sticky top-0 z-10" style={{ backgroundColor: '#1A1D2E' }}>
+              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                <th className="px-4 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: '#6B7280', width: '50px' }}>
+                  Type
                 </th>
-                <th className="text-left px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider"
-                  style={{ color: '#585858', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                  Cliente
+                <th className="px-4 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: '#6B7280' }}>
+                  Title
                 </th>
-                <th className="text-left px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider"
-                  style={{ color: '#585858', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                  Tarea
+                <th className="px-4 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: '#6B7280', width: '110px' }}>
+                  Client
                 </th>
-                <th className="text-left px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider"
-                  style={{ color: '#585858', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                  Área
+                <th className="px-4 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: '#6B7280', width: '90px' }}>
+                  Area
                 </th>
-                <th className="text-left px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider"
-                  style={{ color: '#585858', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                  Responsable
+                <th className="px-4 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: '#6B7280', width: '110px' }}>
+                  Assignee
                 </th>
-                <th className="text-left px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider"
-                  style={{ color: '#585858', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                  Entregables
+                <th className="px-4 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: '#6B7280', width: '110px' }}>
+                  Priority
                 </th>
-                <th className="text-left px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider"
-                  style={{ color: '#585858', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                  Prior.
-                </th>
-                <th className="text-left px-3 py-2.5 text-[10px] font-semibold uppercase tracking-wider"
-                  style={{ color: '#585858', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                <th className="px-4 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: '#6B7280', width: '130px' }}>
                   Status
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: '#6B7280', width: '70px' }}>
+                  Sprint
                 </th>
               </tr>
             </thead>
             <tbody>
-              {grouped.map(({ week, tasks: groupTasks }) => (
-                <>
-                  {groupBySprint && week > 0 && (() => {
-                    const meta = SPRINT_META[week]
-                    const dates = getSprintDateRange(week)
-                    return (
-                      <tr key={`header-${week}`}>
-                        <td
-                          colSpan={8}
-                          className="px-4 py-2 sticky"
-                          style={{ backgroundColor: '#0f0f0f', top: 37, zIndex: 5 }}
+              {grouped.map(({ key, label, tasks: groupTasks }) => [
+                // Group header (if grouped)
+                ...(groupBy !== 'none' ? [{
+                  isHeader: true,
+                  key: `header-${key}`,
+                  label,
+                  groupKey: key,
+                  count: groupTasks.length,
+                }] : []),
+                // Tasks
+                ...groupTasks
+                  .filter(() => groupBy === 'none' || !collapsedGroups.has(key))
+                  .map(task => ({
+                    isHeader: false,
+                    task,
+                  })),
+              ]).map((item: any, idx) => {
+                if (item.isHeader) {
+                  return (
+                    <tr key={item.key} style={{ backgroundColor: '#252940', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                      <td colSpan={8} className="px-4 py-2">
+                        <button
+                          onClick={() => toggleGroupCollapsed(item.groupKey)}
+                          className="flex items-center gap-2 w-full font-medium text-sm hover:opacity-80 transition-opacity"
+                          style={{ color: '#E5E7EB' }}
                         >
-                          <div className="flex items-center gap-3">
-                            <div className="h-px flex-1" style={{ background: `linear-gradient(90deg, ${meta.color}, transparent)` }} />
-                            <div className="flex items-center gap-2">
-                              <span
-                                className="text-[11px] font-bold px-2.5 py-1 rounded-full"
-                                style={{ color: meta.color, backgroundColor: `${meta.color}15`, border: `1px solid ${meta.color}30` }}
-                              >
-                                {meta.label} · {meta.sub}
-                              </span>
-                              <span className="text-[10px] font-medium" style={{ color: '#6b6b6b' }}>
-                                {dates.label}
-                              </span>
-                              <span className="text-[10px] font-bold tabular-nums" style={{ color: '#585858' }}>
-                                {groupTasks.length} tareas
-                              </span>
-                            </div>
-                            <div className="h-px flex-1" style={{ backgroundColor: 'rgba(255,255,255,0.04)' }} />
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })()}
-                  {groupTasks.map((task, idx) => {
-                    const deliverableChips = getDeliverableChips(task)
-                    const clientColor = task.client?.color || '#6b7280'
+                          <ChevronRight
+                            size={16}
+                            style={{
+                              transform: collapsedGroups.has(item.groupKey) ? 'rotate(0)' : 'rotate(90deg)',
+                              transition: 'transform 0.2s',
+                            }}
+                          />
+                          {item.label}
+                          <span style={{ color: '#6B7280', fontSize: '12px', marginLeft: '8px' }}>
+                            {item.count}
+                          </span>
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                }
 
-                    return (
-                      <tr
-                        key={task.id}
-                        className="group cursor-pointer"
-                        onClick={() => ctx?.openTaskDetail?.(task)}
+                const task = item.task
+                const isEditing = editingTaskId === task.id
+
+                return (
+                  <tr
+                    key={task.id}
+                    className="hover:opacity-70 transition-opacity cursor-pointer"
+                    onClick={() => !isEditing && ctx?.openTaskDetail?.(task)}
+                    style={{
+                      backgroundColor: '#0F1117',
+                      borderBottom: '1px solid rgba(255,255,255,0.08)',
+                      minHeight: '44px',
+                    }}
+                  >
+                    {/* Tipo indicator */}
+                    <td className="px-4 py-3" style={{ color: '#E5E7EB' }}>
+                      {renderTipoIndicator(task.tipo)}
+                    </td>
+
+                    {/* Title - Inline Editable */}
+                    <td className="px-4 py-3" onClick={e => isEditing && e.stopPropagation()}>
+                      {isEditing ? (
+                        <div className="flex items-center gap-1">
+                          <input
+                            ref={setEditTitleRef}
+                            type="text"
+                            value={editingTitle}
+                            onChange={e => setEditingTitle(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') saveTitle(task.id)
+                              if (e.key === 'Escape') cancelEditingTitle()
+                            }}
+                            onClick={e => e.stopPropagation()}
+                            className="flex-1 px-2 py-1 rounded text-sm outline-none"
+                            style={{
+                              backgroundColor: '#252940',
+                              border: '1px solid #6366F1',
+                              color: '#E5E7EB',
+                            }}
+                          />
+                          <button
+                            onClick={e => {
+                              e.stopPropagation()
+                              saveTitle(task.id)
+                            }}
+                            className="p-1 hover:opacity-80"
+                            style={{ color: '#4ADE80' }}
+                          >
+                            <Check size={16} />
+                          </button>
+                          <button
+                            onClick={e => {
+                              e.stopPropagation()
+                              cancelEditingTitle()
+                            }}
+                            className="p-1 hover:opacity-80"
+                            style={{ color: '#EF4444' }}
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      ) : (
+                        <div
+                          className="hover:underline"
+                          onDoubleClick={e => {
+                            e.stopPropagation()
+                            startEditingTitle(task)
+                          }}
+                          style={{ color: '#E5E7EB', cursor: 'text' }}
+                        >
+                          {task.title}
+                        </div>
+                      )}
+                    </td>
+
+                    {/* Client */}
+                    <td className="px-4 py-3">
+                      {renderClientBadge(task.client_id)}
+                    </td>
+
+                    {/* Area */}
+                    <td className="px-4 py-3">
+                      {renderAreaBadge(task.area)}
+                    </td>
+
+                    {/* Assignee */}
+                    <td className="px-4 py-3" style={{ color: '#E5E7EB' }}>
+                      {task.assignee || '—'}
+                    </td>
+
+                    {/* Priority - Clickable to cycle */}
+                    <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                      <button onClick={() => cyclePriority(task)}>
+                        {renderPriorityBadge(task.priority)}
+                      </button>
+                    </td>
+
+                    {/* Status - Clickable to cycle */}
+                    <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                      {renderStatusBadge(task.status, () => cycleStatus(task))}
+                    </td>
+
+                    {/* Sprint */}
+                    <td className="px-4 py-3">
+                      <span
+                        className="inline-block px-2 py-1 rounded text-xs font-medium"
                         style={{
-                          borderLeft: task.tipo === 'urgente'
-                            ? '2px solid #ef4444'
-                            : task.tipo === 'pendiente_anterior'
-                            ? '2px solid #f97316'
-                            : `2px solid ${clientColor}40`,
+                          backgroundColor: '#6366F120',
+                          color: '#6366F1',
+                          border: '1px solid #6366F140',
                         }}
                       >
-                        <td
-                          className="px-4 py-2 text-[10px] tabular-nums"
-                          style={{ color: '#585858', borderBottom: '1px solid rgba(255,255,255,0.025)' }}
-                        >
-                          {idx + 1}
-                        </td>
-                        <td
-                          className="px-3 py-2"
-                          style={{ borderBottom: '1px solid rgba(255,255,255,0.025)' }}
-                        >
-                          <ClientBadge client={task.client} size="xs" />
-                        </td>
-                        <td
-                          className="px-3 py-2 max-w-xs"
-                          style={{ borderBottom: '1px solid rgba(255,255,255,0.025)' }}
-                        >
-                          <div>
-                            <p
-                              className="text-xs font-medium truncate group-hover:text-white transition-colors"
-                              style={{ color: '#d0d0d0' }}
-                              title={task.title}
-                            >
-                              {task.tipo === 'urgente' && (
-                                <span className="text-[9px] font-bold mr-1.5 px-1 py-0.5 rounded" style={{ backgroundColor: 'rgba(239,68,68,0.2)', color: '#ef4444' }}>
-                                  URGENTE
-                                </span>
-                              )}
-                              {task.tipo === 'pendiente_anterior' && (
-                                <span className="text-[9px] font-bold mr-1.5 px-1 py-0.5 rounded" style={{ backgroundColor: 'rgba(249,115,22,0.2)', color: '#f97316' }}>
-                                  PREV
-                                </span>
-                              )}
-                              {task.title}
-                            </p>
-                            {task.problema && (
-                              <p className="text-[10px] mt-0.5 truncate" style={{ color: '#585858' }}>
-                                {task.problema}
-                              </p>
-                            )}
-                          </div>
-                        </td>
-                        <td
-                          className="px-3 py-2"
-                          style={{ borderBottom: '1px solid rgba(255,255,255,0.025)' }}
-                        >
-                          <AreaBadge area={task.area} size="xs" />
-                        </td>
-                        <td
-                          className="px-3 py-2"
-                          style={{ borderBottom: '1px solid rgba(255,255,255,0.025)' }}
-                        >
-                          <div className="flex items-center gap-1.5">
-                            <AssigneeAvatar name={task.assignee} />
-                            <span className="text-[11px] font-medium" style={{ color: '#a1a1a1' }}>
-                              {task.assignee}
-                            </span>
-                          </div>
-                        </td>
-                        <td
-                          className="px-3 py-2"
-                          style={{ borderBottom: '1px solid rgba(255,255,255,0.025)' }}
-                        >
-                          <div className="flex flex-wrap gap-1">
-                            {deliverableChips.length > 0 ? (
-                              deliverableChips.map(({ label, count, color, Icon }, i) => (
-                                <span
-                                  key={i}
-                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold whitespace-nowrap"
-                                  style={{
-                                    backgroundColor: `${color}15`,
-                                    color,
-                                    border: `1px solid ${color}30`,
-                                  }}
-                                >
-                                  <Icon size={8} />
-                                  <span style={{ fontWeight: 900 }}>{count}</span>
-                                </span>
-                              ))
-                            ) : (
-                              <span className="text-[10px]" style={{ color: '#262626' }}>—</span>
-                            )}
-                          </div>
-                        </td>
-                        <td
-                          className="px-3 py-2"
-                          style={{ borderBottom: '1px solid rgba(255,255,255,0.025)' }}
-                        >
-                          <div className="flex items-center gap-1.5">
-                            <PriorityDot priority={task.priority} />
-                            <span
-                              className="text-[10px] font-semibold"
-                              style={{ color: PRIORITY_COLORS[task.priority] }}
-                            >
-                              {PRIORITY_LABELS[task.priority]}
-                            </span>
-                          </div>
-                        </td>
-                        <td
-                          className="px-3 py-2"
-                          style={{ borderBottom: '1px solid rgba(255,255,255,0.025)' }}
-                        >
-                          <StatusSelect
-                            status={task.status}
-                            onChange={status => updateStatus.mutate({ id: task.id, status })}
-                          />
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </>
-              ))}
-              {filteredTasks.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="text-center py-16 text-sm" style={{ color: '#585858' }}>
-                    No hay tareas con los filtros seleccionados
-                  </td>
-                </tr>
-              )}
+                        Sprint {task.week}
+                      </span>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
