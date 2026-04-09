@@ -13,7 +13,7 @@ const NAV_ITEMS = [
   { id: 'backlog', label: 'Backlog', icon: List, path: '/backlog' },
   { id: 'kanban', label: 'Kanban', icon: Kanban, path: '/kanban' },
   { id: 'timeline', label: 'Timeline', icon: CalendarDays, path: '/timeline' },
-  { id: 'settings', label: 'Configuración', icon: Settings, path: '/settings' },
+  { id: 'settings', label: 'ConfiguraciÃ³n', icon: Settings, path: '/settings' },
 ]
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
@@ -26,8 +26,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
     <div
       style={{
         width: collapsed ? '56px' : '240px',
-        backgroundColor: '#12141F',
-        borderRight: '1px solid rgba(255, 255, 255, 0.06)',
+        backgroundColor: '#292D34',
+        borderRight: '1px solid #E6E9EF',
       }}
       className="flex flex-col h-full transition-all duration-220 relative"
     >
@@ -35,13 +35,12 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       <div
         style={{
           background: 'linear-gradient(90deg, #6366F1 0%, transparent 100%)',
-          height: '2px',
-          opacity: 0.3,
+          height: '3px',
         }}
       />
 
       {/* Logo Section */}
-      <div className="px-3 py-4 border-b" style={{ borderColor: 'rgba(255, 255, 255, 0.06)' }}>
+      <div className="px-3 py-4 border-b" style={{ borderColor: '#3E4450' }}>
         <div className="flex items-center gap-2">
           <div
             style={{
@@ -59,7 +58,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           {!collapsed && (
             <div className="flex flex-col min-w-0">
               <span
-                style={{ color: 'white', fontSize: '13px', fontWeight: '700', lineHeight: '1.2' }}
+                style={{ color: '#FFFFFF', fontSize: '13px', fontWeight: '700', lineHeight: '1.2' }}
               >
                 Beezion
               </span>
@@ -91,11 +90,11 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                 end={item.id === 'dashboard'}
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-2 rounded-md text-13px font-medium transition-all duration-150 relative group ${
-                    isActive ? 'text-[#6366F1]' : 'text-[#9CA3AF] hover:text-[#E5E7EB]'
+                    isActive ? 'text-[#FFFFFF]' : 'text-[#C8CCD3] hover:text-[#FFFFFF]'
                   }`
                 }
                 style={({ isActive }) => ({
-                  backgroundColor: isActive ? 'rgba(99, 102, 241, 0.09)' : 'transparent',
+                  backgroundColor: isActive ? '#3E4450' : 'transparent',
                   borderLeft: isActive ? '3px solid #6366F1' : '3px solid transparent',
                   paddingLeft: isActive ? '12px' : '12px',
                 })}
@@ -104,8 +103,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                 {!collapsed && <span className="truncate">{item.label}</span>}
                 {collapsed && item.label && (
                   <div
-                    className="absolute left-full ml-2 px-2 py-1 rounded bg-[#1F2433] text-[#E5E7EB] text-12px whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50"
-                    style={{ color: '#E5E7EB', fontSize: '12px' }}
+                    className="absolute left-full ml-2 px-2 py-1 rounded text-[#FFFFFF] text-12px whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50"
+                    style={{ color: '#FFFFFF', fontSize: '12px', backgroundColor: '#3E4450' }}
                   >
                     {item.label}
                   </div>
@@ -117,11 +116,11 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
         {/* Clients Section */}
         {!collapsed && (
-          <div className="mt-6 pt-4" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+          <div className="mt-6 pt-4" style={{ borderTop: '1px solid #3E4450' }}>
             <button
               onClick={toggleClientsSection}
               className="flex items-center justify-between w-full px-3 py-2 transition-colors duration-150 group"
-              style={{ color: '#6B7280' }}
+              style={{ color: '#9CA3AF' }}
             >
               <span
                 style={{
@@ -129,7 +128,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                   fontWeight: '600',
                   letterSpacing: '0.5px',
                   textTransform: 'uppercase',
-                  color: '#4B5563',
+                  color: '#9CA3AF',
                 }}
               >
                 Clientes
@@ -137,7 +136,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
               <ChevronDown
                 size={14}
                 className={`transition-transform duration-200 ${clientsOpen ? '' : '-rotate-90'}`}
-                style={{ color: '#4B5563' }}
+                style={{ color: '#9CA3AF' }}
               />
             </button>
 
@@ -149,8 +148,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                       to={`/clients/${client.id}`}
                       className="flex items-center gap-2 px-3 py-1.5 rounded-md transition-all duration-150"
                       style={({ isActive }) => ({
-                        color: isActive ? '#E5E7EB' : '#9CA3AF',
-                        backgroundColor: isActive ? 'rgba(255,255,255,0.05)' : 'transparent',
+                        color: isActive ? '#FFFFFF' : '#C8CCD3',
+                        backgroundColor: isActive ? '#3E4450' : 'transparent',
                       })}
                     >
                       {({ isActive }) => (
@@ -165,7 +164,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                               boxShadow: isActive ? `0 0 8px ${client.color}` : 'none',
                             }}
                           />
-                          <span className="truncate" style={{ fontSize: '12px', fontWeight: 500, color: isActive ? '#E5E7EB' : '#9CA3AF' }}>
+                          <span className="truncate" style={{ fontSize: '12px', fontWeight: 500, color: isActive ? '#FFFFFF' : '#C8CCD3' }}>
                             {client.name}
                           </span>
                         </>
@@ -181,20 +180,20 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       {/* Collapse Toggle Button */}
       <div
         className="px-2 py-3 border-t flex items-center justify-center"
-        style={{ borderColor: 'rgba(255, 255, 255, 0.06)' }}
+        style={{ borderColor: '#3E4450' }}
       >
         <button
           onClick={onToggle}
           className="p-1.5 rounded-md transition-colors duration-150 group"
           style={{
-            color: '#9CA3AF',
+            color: '#C8CCD3',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.color = '#E5E7EB'
-            e.currentTarget.style.backgroundColor = 'rgba(99, 102, 241, 0.09)'
+            e.currentTarget.style.color = '#FFFFFF'
+            e.currentTarget.style.backgroundColor = '#3E4450'
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.color = '#9CA3AF'
+            e.currentTarget.style.color = '#C8CCD3'
             e.currentTarget.style.backgroundColor = 'transparent'
           }}
         >
