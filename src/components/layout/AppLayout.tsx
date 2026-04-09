@@ -14,7 +14,7 @@ const ROUTE_TITLES: Record<string, string> = {
   '/backlog': 'Backlog',
   '/kanban': 'Kanban',
   '/timeline': 'Timeline',
-  '/settings': 'Configuración',
+  '/settings': 'ConfiguraciÃ³n',
 }
 
 export function AppLayout() {
@@ -37,7 +37,7 @@ export function AppLayout() {
   const closeTaskDetail = useCallback(() => setSelectedTask(null), [])
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ backgroundColor: '#0f0f0f' }}>
+    <div className="flex h-screen overflow-hidden" style={{ backgroundColor: '#F6F7FB' }}>
       <Sidebar collapsed={collapsed} onToggle={() => setCollapsed(c => !c)} />
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <Header title={title} onNewTask={open} onOpenTaskById={openTaskById} />
