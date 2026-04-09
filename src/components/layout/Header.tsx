@@ -15,10 +15,8 @@ export function Header({ title, onNewTask, onOpenTaskById }: HeaderProps) {
         position: 'sticky',
         top: 0,
         zIndex: 10,
-        backgroundColor: 'rgba(15, 17, 23, 0.97)',
-        backdropFilter: 'blur(14px)',
-        WebkitBackdropFilter: 'blur(14px)',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.07)',
+        backgroundColor: '#FFFFFF',
+        borderBottom: '1px solid #E6E9EF',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -29,11 +27,11 @@ export function Header({ title, onNewTask, onOpenTaskById }: HeaderProps) {
       {/* Title */}
       <h1
         style={{
-          fontSize: '13px',
-          fontWeight: '600',
-          color: '#E5E7EB',
+          fontSize: '16px',
+          fontWeight: '700',
+          color: '#1F2128',
           margin: 0,
-          letterSpacing: '0.5px',
+          letterSpacing: '0px',
         }}
       >
         {title}
@@ -56,12 +54,12 @@ export function Header({ title, onNewTask, onOpenTaskById }: HeaderProps) {
           }}
         >
           <div
-            className="pulse-dot"
             style={{
               width: '8px',
               height: '8px',
               borderRadius: '50%',
               backgroundColor: '#10B981',
+              animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
             }}
           />
           <span
@@ -81,23 +79,51 @@ export function Header({ title, onNewTask, onOpenTaskById }: HeaderProps) {
         <NotificationBell onOpenTask={onOpenTaskById} />
 
         {/* New Task Button */}
-        {onNewTask && (
-          <button
-            onClick={onNewTask}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[13px] font-medium transition-all hover:scale-[1.02] active:scale-[0.98]"
-            style={{
-              background: 'linear-gradient(135deg, #6366F1 0%, #818CF8 100%)',
-              color: '#fff',
-              border: 'none',
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(99,102,241,0.4)',
-            }}
-          >
-            <Plus size={14} strokeWidth={2.5} />
-            Nueva tarea
-          </button>
-        )}
+        <button
+          onClick={onNewTask}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            paddingLeft: '12px',
+            paddingRight: '12px',
+            paddingTop: '8px',
+            paddingBottom: '8px',
+            fontSize: '13px',
+            fontWeight: '500',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            backgroundColor: '#6366F1',
+            cursor: 'pointer',
+            transition: 'background-color 0.2s ease, transform 0.2s ease',
+          }}
+          onMouseEnter={(e) => {
+            const button = e.currentTarget
+            button.style.backgroundColor = '#4F46E5'
+            button.style.transform = 'scale(1.05)'
+          }}
+          onMouseLeave={(e) => {
+            const button = e.currentTarget
+            button.style.backgroundColor = '#6366F1'
+            button.style.transform = 'scale(1)'
+          }}
+        >
+          <Plus size={16} strokeWidth={2.5} />
+          Nueva tarea
+        </button>
       </div>
+
+      <style>{`
+        @keyframes pulse {
+          0%, 100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.5;
+          }
+        }
+      `}</style>
     </header>
   )
 }
