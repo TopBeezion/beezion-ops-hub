@@ -1,335 +1,494 @@
+import { useMemo } from 'react'
 import { useTasks } from '../hooks/useTasks'
 import { useClients } from '../hooks/useClients'
-import type { Area } from '../types'
-import { AREA_LABELS, AREA_COLORS } from '../lib/constants'
-import { ClientBadge } from '../components/ui/ClientBadge'
-import { AreaBadge } from '../components/ui/AreaBadge'
-import { AssigneeAvatar } from '../components/ui/AssigneeAvatar'
-import { StatusSelect } from '../components/ui/StatusSelect'
-import { useUpdateTaskStatus } from '../hooks/useTasks'
-import { formatDistanceToNow } from 'date-fns'
-import { es } from 'date-fns/locale'
-import { AlertTriangle, TrendingUp, CheckCircle2, Layers, Zap, Users, Activity } from 'lucide-react'
-import { useNavigate, useOutletContext } from 'react-router-dom'
+import { useTeam } from '../hooks/useTeam'
+import { useOutletContext } from 'react-router-dom'
+import type { Task, Client, Area, TaskStatus } from '../types'
+import { AREA_LABELS, AREA_COLORS, STATUS_LABELS, STATUS_COLORS } from '../lib/constants'
+import {
+  Layers, Activity, CheckCircle2, AlertTriangle, TrendingUp, BarChart3, Users, Zap
+} from 'lucide-react'
 
-const AREAS: Area[] = ['copy', 'trafico', 'tech', 'admin']
-const ASSIGNEES = ['Alejandro', 'Alec', 'Paula', 'Jose Luis', 'Editor 1', 'Editor 2', 'Editor 3']
+// ─────────────────────────────────────────────────────────────────────
+// STYLING CONSTANTS
+// ─────────────────────────────────────────────────────────────────────
 
-const ASSIGNEE_COLORS: Record<string, string> = {
-  Alejandro: '#8b5cf6',
-  Alec: '#f5a623',
-  Paula: '#ec4899',
-  'Jose Luis': '#3b82f6',
-  'Editor 1': '#06b6d4',
-  'Editor 2': '#10b981',
-  'Editor 3': '#f97316',
+const COLORS = {
+  pageBg: '#0F1117',
+  cardBg: '#1A1D2E',
+  cardBorder: 'rgba(255,255,255,0.08)',
+  textPrimary: '#E5E7EB',
+  textSecondary: '#9CA3AF',
+  textMuted: '#6B7280',
+  accent: '#6366F1',
 }
 
-// Areas each team member covers
-const ASSIGNEE_AREAS: Record<string, string[]> = {
-  Alejandro: ['copy'],
-  Alec: ['tech', 'trafico'],
-  Paula: ['copy', 'admin'],
-  'Jose Luis': ['trafico'],
-  'Editor 1': ['copy'],
-  'Editor 2': ['copy'],
-  'Editor 3': ['copy'],
+const ACCENT_COLORS = {
+  blue: '#3B82F6',
+  green: '#10B981',
+  red: '#EF4444',
+  orange: '#F97316',
+  purple: '#8B5CF6',
 }
 
-// Role description per team member
-const ASSIGNEE_ROLE: Record<string, string> = {
-  Alejandro: 'CEO · Copy & Estrategia',
-  Alec: 'COO · Head Tech & Paid Media',
-  Paula: 'Aux. Marketing · Producción · Diseño LM · Admin',
-  'Jose Luis': 'Trafficker Digital',
-  'Editor 1': 'Edición de Video',
-  'Editor 2': 'Edición de Video',
-  'Editor 3': 'Edición de Video',
-}
+// ─────────────────────────────────────────────────────────────────────
+// COMPONENT: KPI Card
+// ─────────────────────────────────────────────────────────────────────
 
-const SPRINT_META = {
-  1: { label: 'Sprint 1', sub: 'Copy & Briefs', color: '#8b5cf6', owner: 'Alejandro · Editores' },
-  2: { label: 'Sprint 2', sub: 'Producción & Diseño', color: '#ec4899', owner: 'Paula · Jose Luis' },
-  3: { label: 'Sprint 3', sub: 'Dev & Setup', color: '#3b82f6', owner: 'Alec · Paula' },
-  4: { label: 'Sprint 4', sub: 'Launch & Optim.', color: '#22c55e', owner: 'Alec · Jose Luis' },
-}
-
-// SVG Progress Ring
-function ProgressRing({
-  value, max, color, size = 52,
-}: {
-  value: number; max: number; color: string; size?: number
-}) {
-  const radius = (size - 6) / 2
-  const circumference = 2 * Math.PI * radius
-  const pct = max > 0 ? value / max : 0
-  const offset = circumference * (1 - pct)
-
-  return (
-    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
-      <circle
-        cx={size / 2} cy={size / 2} r={radius}
-        fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth={3}
-      />
-      <circle
-        cx={size / 2} cy={size / 2} r={radius}
-        fill="none" stroke={color} strokeWidth={3} strokeLinecap="round"
-        strokeDasharray={circumference} strokeDashoffset={offset}
-        style={{ transition: 'stroke-dashoffset 0.7s cubic-bezier(0.4,0,0.2,1)' }}
-      />
-    </svg>
-  )
-}
-
-// KPI stat card
 function KpiCard({
-  label, value, sub, icon: Icon, accent,
+  label, value, trend, icon: Icon, accentColor
 }: {
-  label: string; value: number | string; sub?: string
-  icon: React.ElementType; accent: string
+  label: string
+  value: number | string
+  trend?: string
+  icon: React.ElementType
+  accentColor: string
 }) {
   return (
     <div
-      className="rounded-xl p-4 relative overflow-hidden card-hover"
+      className="rounded-xl p-5 relative overflow-hidden"
       style={{
-        backgroundColor: '#161616',
-        border: '1px solid rgba(255,255,255,0.07)',
+        backgroundColor: COLORS.cardBg,
+        border: `1px solid ${COLORS.cardBorder}`,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        minHeight: '140px',
       }}
     >
+      {/* Background accent glow */}
       <div
-        className="absolute -top-6 -right-6 w-20 h-20 rounded-full blur-2xl opacity-15"
-        style={{ backgroundColor: accent }}
+        className="absolute -top-8 -right-8 w-24 h-24 rounded-full blur-3xl"
+        style={{ backgroundColor: accentColor, opacity: 0.08 }}
       />
-      <div className="relative">
-        <div className="flex items-start justify-between mb-3">
-          <p className="text-xs font-medium leading-tight" style={{ color: '#a1a1a1' }}>{label}</p>
-          <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-            style={{ backgroundColor: `${accent}18`, border: `1px solid ${accent}28` }}
+
+      {/* Icon in top right */}
+      <div className="flex justify-between items-start relative z-10">
+        <div>
+          <p
+            className="text-xs font-semibold uppercase tracking-wider mb-2"
+            style={{ color: COLORS.textMuted }}
           >
-            <Icon size={13} style={{ color: accent }} />
-          </div>
-        </div>
-        <p
-          className="text-3xl font-bold tabular-nums count-up"
-          style={{ color: '#f5f5f5', letterSpacing: '-0.03em' }}
-        >
-          {value}
-        </p>
-        {sub && (
-          <p className="text-[11px] mt-1 font-medium" style={{ color: accent }}>
-            {sub}
+            {label}
           </p>
-        )}
+          <p
+            className="text-4xl font-bold leading-tight"
+            style={{ color: COLORS.textPrimary }}
+          >
+            {value}
+          </p>
+          {trend && (
+            <p className="text-xs font-medium mt-2" style={{ color: accentColor }}>
+              {trend}
+            </p>
+          )}
+        </div>
+        <div
+          className="p-2 rounded-lg"
+          style={{
+            backgroundColor: `${accentColor}18`,
+            border: `1px solid ${accentColor}30`,
+          }}
+        >
+          <Icon size={20} style={{ color: accentColor }} />
+        </div>
       </div>
     </div>
   )
 }
 
-// Section header
-function SectionHead({ title, count }: { title: string; count?: number }) {
+// ─────────────────────────────────────────────────────────────────────
+// COMPONENT: Section Header
+// ─────────────────────────────────────────────────────────────────────
+
+function SectionHeader({
+  title, icon: Icon, count
+}: {
+  title: string
+  icon?: React.ElementType
+  count?: number
+}) {
   return (
-    <div className="flex items-center gap-2 mb-3">
-      <span
-        className="text-[10px] font-bold uppercase tracking-[0.12em]"
-        style={{ color: '#585858' }}
+    <div className="flex items-center gap-2 mb-4">
+      {Icon && <Icon size={16} style={{ color: COLORS.accent }} />}
+      <h2
+        className="text-sm font-semibold uppercase tracking-wide"
+        style={{ color: COLORS.textPrimary }}
       >
         {title}
-      </span>
+      </h2>
       {count !== undefined && (
         <span
-          className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
-          style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: '#6b6b6b' }}
+          className="text-xs font-medium px-2 py-1 rounded-md"
+          style={{
+            backgroundColor: 'rgba(99, 102, 241, 0.1)',
+            color: COLORS.accent,
+          }}
         >
           {count}
         </span>
       )}
-      <div className="flex-1 h-px" style={{ backgroundColor: 'rgba(255,255,255,0.04)' }} />
+      <div className="flex-1 h-px" style={{ backgroundColor: COLORS.cardBorder }} />
     </div>
   )
 }
 
+// ─────────────────────────────────────────────────────────────────────
+// COMPONENT: Skill Level Indicator
+// ─────────────────────────────────────────────────────────────────────
+
+function UtilizationIndicator({ count }: { count: number }) {
+  let color = ACCENT_COLORS.green
+  let label = 'Bajo'
+  if (count >= 5 && count < 8) {
+    color = '#F59E0B'
+    label = 'Moderado'
+  } else if (count >= 8) {
+    color = ACCENT_COLORS.red
+    label = 'Alto'
+  }
+  return (
+    <div
+      className="text-xs font-semibold px-2 py-1 rounded-md"
+      style={{ backgroundColor: `${color}20`, color }}
+    >
+      {label}
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// COMPONENT: Progress Bar
+// ─────────────────────────────────────────────────────────────────────
+
+function ProgressBar({ done, total, color }: { done: number; total: number; color: string }) {
+  const pct = total > 0 ? (done / total) * 100 : 0
+  return (
+    <div
+      className="h-2 rounded-full overflow-hidden"
+      style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
+    >
+      <div
+        className="h-full transition-all duration-300"
+        style={{ width: `${pct}%`, backgroundColor: color }}
+      />
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// COMPONENT: Team Member Row
+// ─────────────────────────────────────────────────────────────────────
+
+function TeamMemberRow({
+  member, taskCount, tasksByStatus
+}: {
+  member: any
+  taskCount: number
+  tasksByStatus: { pending: number; in_progress: number; completed: number; revision: number }
+}) {
+  const total = Object.values(tasksByStatus).reduce((a, b) => a + b, 0)
+  const utilization = Math.min(100, (tasksByStatus.in_progress / Math.max(1, total)) * 100)
+
+  return (
+    <div
+      className="rounded-lg p-3 flex items-center gap-3"
+      style={{
+        backgroundColor: COLORS.cardBg,
+        border: `1px solid ${COLORS.cardBorder}`,
+      }}
+    >
+      {/* Avatar */}
+      <div
+        className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+        style={{
+          backgroundColor: `${member.color || COLORS.accent}20`,
+          color: member.color || COLORS.accent,
+          border: `1px solid ${member.color || COLORS.accent}40`,
+        }}
+      >
+        {(member.name || member.displayName || 'U').substring(0, 2).toUpperCase()}
+      </div>
+
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold" style={{ color: COLORS.textPrimary }}>
+          {member.name || member.displayName || 'Unknown'}
+        </p>
+        <p className="text-xs" style={{ color: COLORS.textMuted }}>
+          {taskCount} tareas
+          {tasksByStatus.in_progress > 0 && ` · ${tasksByStatus.in_progress} en progreso`}
+        </p>
+      </div>
+
+      {/* Status dots */}
+      <div className="flex gap-1 flex-shrink-0">
+        {tasksByStatus.completed > 0 && (
+          <div
+            className="w-2 h-2 rounded-full"
+            style={{ backgroundColor: ACCENT_COLORS.green }}
+            title={`${tasksByStatus.completed} completadas`}
+          />
+        )}
+        {tasksByStatus.in_progress > 0 && (
+          <div
+            className="w-2 h-2 rounded-full animate-pulse"
+            style={{ backgroundColor: COLORS.accent }}
+            title={`${tasksByStatus.in_progress} en progreso`}
+          />
+        )}
+        {tasksByStatus.revision > 0 && (
+          <div
+            className="w-2 h-2 rounded-full"
+            style={{ backgroundColor: '#F59E0B' }}
+            title={`${tasksByStatus.revision} en revisión`}
+          />
+        )}
+      </div>
+
+      {/* Utilization */}
+      <UtilizationIndicator count={taskCount} />
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// MAIN COMPONENT: DashboardPage
+// ─────────────────────────────────────────────────────────────────────
+
 export function DashboardPage() {
   const { data: tasks = [], isLoading } = useTasks()
   const { data: clients = [] } = useClients()
-  const updateStatus = useUpdateTaskStatus()
-  const navigate = useNavigate()
-  const ctx = useOutletContext<{ openTaskDetail?: (t: any) => void }>()
+  const { data: teamMembers = [] } = useTeam()
+  const ctx = useOutletContext<{
+    openNewTask?: () => void
+    openTaskDetail?: (task: Task) => void
+  }>()
+
+  // ─────────────────────────────────────────────────────────────────
+  // COMPUTED STATS
+  // ─────────────────────────────────────────────────────────────────
+
+  const stats = useMemo(() => {
+    const total = tasks.length
+    const completed = tasks.filter(t => t.status === 'completado').length
+    const inProgress = tasks.filter(t => t.status === 'en_progreso').length
+    const urgent = tasks.filter(t => t.tipo === 'urgente' || t.tipo === 'pendiente_anterior').length
+    const completionPct = total > 0 ? Math.round((completed / total) * 100) : 0
+
+    return { total, completed, inProgress, urgent, completionPct }
+  }, [tasks])
+
+  // Client stats
+  const clientStats = useMemo(() => {
+    return clients.map(client => {
+      const clientTasks = tasks.filter(t => t.client_id === client.id)
+      const done = clientTasks.filter(t => t.status === 'completado').length
+      const inProg = clientTasks.filter(t => t.status === 'en_progreso').length
+      const pct = clientTasks.length > 0 ? Math.round((done / clientTasks.length) * 100) : 0
+      const isAtRisk = clientTasks.length >= 3 && pct < 30 && inProg === 0
+      const byArea = {
+        copy: clientTasks.filter(t => t.area === 'copy').length,
+        trafico: clientTasks.filter(t => t.area === 'trafico').length,
+        tech: clientTasks.filter(t => t.area === 'tech').length,
+        admin: clientTasks.filter(t => t.area === 'admin').length,
+      }
+      return { client, total: clientTasks.length, done, inProg, pct, isAtRisk, byArea }
+    }).filter(c => c.total > 0)
+  }, [clients, tasks])
+
+  // Area stats
+  const areaStats = useMemo(() => {
+    const areas: Area[] = ['copy', 'trafico', 'tech', 'admin']
+    return areas.map(area => {
+      const areaTasks = tasks.filter(t => t.area === area)
+      return {
+        area,
+        total: areaTasks.length,
+        done: areaTasks.filter(t => t.status === 'completado').length,
+        inProg: areaTasks.filter(t => t.status === 'en_progreso').length,
+      }
+    })
+  }, [tasks])
+
+  // Team stats
+  const teamStats = useMemo(() => {
+    const members = teamMembers.length > 0 ? teamMembers : deriveMembersFromTasks(tasks)
+    return members.map(member => {
+      const memberTasks = tasks.filter(t =>
+        t.assignee === (member.name || member.displayName) ||
+        t.assignee_id === member.id
+      )
+      return {
+        member,
+        total: memberTasks.length,
+        byStatus: {
+          pending: memberTasks.filter(t => t.status === 'pendiente').length,
+          in_progress: memberTasks.filter(t => t.status === 'en_progreso').length,
+          completed: memberTasks.filter(t => t.status === 'completado').length,
+          revision: memberTasks.filter(t => t.status === 'revision').length,
+        }
+      }
+    })
+  }, [tasks, teamMembers])
+
+  // Blockers
+  const blockers = useMemo(() => {
+    return tasks
+      .filter(t => t.tipo === 'urgente' || t.tipo === 'pendiente_anterior')
+      .sort((a, b) => {
+        if (a.tipo === 'urgente' && b.tipo !== 'urgente') return -1
+        if (a.tipo !== 'urgente' && b.tipo === 'urgente') return 1
+        return 0
+      })
+      .slice(0, 8)
+  }, [tasks])
+
+  // ─────────────────────────────────────────────────────────────────
+  // RENDER: LOADING STATE
+  // ─────────────────────────────────────────────────────────────────
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div
+        className="flex items-center justify-center h-96"
+        style={{ backgroundColor: COLORS.pageBg }}
+      >
         <div
-          className="w-8 h-8 rounded-full border-2 animate-spin"
-          style={{ borderColor: '#f5a623', borderTopColor: 'transparent' }}
+          className="w-10 h-10 rounded-full border-2 border-transparent border-t-current animate-spin"
+          style={{ color: COLORS.accent }}
         />
       </div>
     )
   }
 
-  const total = tasks.length
-  const completados = tasks.filter(t => t.status === 'completado').length
-  const enProgreso = tasks.filter(t => t.status === 'en_progreso').length
-  const enRevision = tasks.filter(t => t.status === 'revision').length
-  const urgentOrPrevious = tasks.filter(t => t.tipo === 'urgente' || t.tipo === 'pendiente_anterior')
-  const completedPct = total > 0 ? Math.round((completados / total) * 100) : 0
-
-  // COO Health Score: penalise urgent/prev + revision, reward completados
-  const urgentPenalty = urgentOrPrevious.length * 4
-  const revisionPenalty = enRevision * 2
-  const rawHealth = Math.max(0, Math.min(100, completedPct - urgentPenalty - revisionPenalty + (enProgreso > 0 ? 5 : 0)))
-  const healthColor = rawHealth >= 70 ? '#22c55e' : rawHealth >= 40 ? '#f5a623' : '#ef4444'
-  const healthLabel = rawHealth >= 70 ? 'Operación sana' : rawHealth >= 40 ? 'Atención requerida' : 'Riesgo operativo'
-
-  const byArea = AREAS.map(area => ({
-    area,
-    total: tasks.filter(t => t.area === area).length,
-    done: tasks.filter(t => t.area === area && t.status === 'completado').length,
-    inProgress: tasks.filter(t => t.area === area && t.status === 'en_progreso').length,
-  }))
-
-  const byAssignee = ASSIGNEES.map(name => ({
-    name,
-    total: tasks.filter(t => t.assignee === name).length,
-    pendiente: tasks.filter(t => t.assignee === name && t.status === 'pendiente').length,
-    enProgreso: tasks.filter(t => t.assignee === name && t.status === 'en_progreso').length,
-    completado: tasks.filter(t => t.assignee === name && t.status === 'completado').length,
-    revision: tasks.filter(t => t.assignee === name && t.status === 'revision').length,
-  }))
-
-  const byClient = clients.map(client => {
-    const ct = tasks.filter(t => t.client_id === client.id)
-    const done = ct.filter(t => t.status === 'completado').length
-    const prog = ct.filter(t => t.status === 'en_progreso').length
-    const pct = ct.length > 0 ? Math.round((done / ct.length) * 100) : 0
-    const atRisk = ct.length > 0 && pct < 25 && ct.length >= 3
-    return {
-      client, total: ct.length, done, prog, pct, atRisk,
-      copy: ct.filter(t => t.area === 'copy').length,
-      trafico: ct.filter(t => t.area === 'trafico').length,
-      tech: ct.filter(t => t.area === 'tech').length,
-      admin: ct.filter(t => t.area === 'admin').length,
-    }
-  })
-
-  const atRiskClients = byClient.filter(c => c.atRisk)
-
-  const recent = [...tasks]
-    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
-    .slice(0, 7)
+  // ─────────────────────────────────────────────────────────────────
+  // RENDER: MAIN DASHBOARD
+  // ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="p-5 space-y-6 max-w-[1480px]">
+    <div
+      className="min-h-screen p-6 space-y-6"
+      style={{ backgroundColor: COLORS.pageBg }}
+    >
+      {/* ─────────────────────────────────────────────────────────────
+          SECTION 1: KPI ROW (4 CARDS)
+          ───────────────────────────────────────────────────────────── */}
 
-      {/* ── Row 1: Health score + KPIs ─────────────────────────────── */}
-      <div className="grid grid-cols-5 gap-3">
-
-        {/* Health Score — COO hero metric */}
-        <div
-          className="rounded-xl p-5 flex items-center gap-4 card-hover col-span-1"
-          style={{
-            background: `linear-gradient(135deg, ${healthColor}0a 0%, #161616 60%)`,
-            border: `1px solid ${healthColor}30`,
-          }}
-        >
-          <div className="relative shrink-0">
-            <ProgressRing value={rawHealth} max={100} color={healthColor} size={64} />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-sm font-bold tabular-nums" style={{ color: healthColor }}>
-                {rawHealth}
-              </span>
-            </div>
-          </div>
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.1em] mb-0.5" style={{ color: '#6b6b6b' }}>
-              Health Score
-            </p>
-            <p className="text-sm font-semibold leading-tight" style={{ color: healthColor }}>
-              {healthLabel}
-            </p>
-            {urgentOrPrevious.length > 0 && (
-              <p className="text-[10px] mt-1" style={{ color: '#ef4444' }}>
-                <Zap size={10} style={{ display: 'inline', verticalAlign: 'middle' }} /> {urgentOrPrevious.length} bloqueante{urgentOrPrevious.length > 1 ? 's' : ''}
-              </p>
-            )}
-          </div>
-        </div>
-
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: '16px',
+        }}
+      >
         <KpiCard
-          label="Tareas totales"
-          value={total}
-          sub={`${completedPct}% completado`}
+          label="Total de tareas"
+          value={stats.total}
+          trend={`${stats.completionPct}% completadas`}
           icon={Layers}
-          accent="#8b5cf6"
+          accentColor={COLORS.accent}
         />
         <KpiCard
           label="En progreso"
-          value={enProgreso}
-          sub="activas ahora"
+          value={stats.inProgress}
+          trend="activas ahora"
           icon={Activity}
-          accent="#3b82f6"
+          accentColor={ACCENT_COLORS.blue}
         />
         <KpiCard
           label="Completadas"
-          value={completados}
-          sub={`de ${total} total`}
+          value={stats.completed}
+          trend={`de ${stats.total} total`}
           icon={CheckCircle2}
-          accent="#22c55e"
+          accentColor={ACCENT_COLORS.green}
         />
         <KpiCard
-          label="Urgentes / Previas"
-          value={urgentOrPrevious.length}
-          sub={urgentOrPrevious.length > 0 ? 'requieren atención' : 'sin pendientes'}
-          icon={urgentOrPrevious.length > 0 ? AlertTriangle : TrendingUp}
-          accent={urgentOrPrevious.length > 0 ? '#ef4444' : '#22c55e'}
+          label="Urgentes"
+          value={stats.urgent}
+          trend={stats.urgent > 0 ? 'requieren atención' : 'ninguno'}
+          icon={stats.urgent > 0 ? AlertTriangle : TrendingUp}
+          accentColor={stats.urgent > 0 ? ACCENT_COLORS.red : ACCENT_COLORS.green}
         />
       </div>
 
-      {/* ── Row 2: Bottlenecks / urgent ────────────────────────────── */}
-      {urgentOrPrevious.length > 0 && (
+      {/* ─────────────────────────────────────────────────────────────
+          SECTION 2: BLOCKERS & URGENT (if any)
+          ───────────────────────────────────────────────────────────── */}
+
+      {blockers.length > 0 && (
         <div>
-          <SectionHead title="Bloqueantes & Urgentes" count={urgentOrPrevious.length} />
+          <SectionHeader title="Bloqueantes y Urgentes" icon={AlertTriangle} count={blockers.length} />
           <div
             className="rounded-xl overflow-hidden"
             style={{
-              background: 'linear-gradient(135deg, rgba(239,68,68,0.04) 0%, #161616 55%)',
-              border: '1px solid rgba(239,68,68,0.2)',
+              backgroundColor: COLORS.cardBg,
+              border: `1px solid ${ACCENT_COLORS.red}30`,
+              backgroundImage: `linear-gradient(135deg, ${ACCENT_COLORS.red}08 0%, transparent 100%)`,
             }}
           >
-            {urgentOrPrevious.slice(0, 6).map((task, i) => (
+            {blockers.map((task, idx) => (
               <div
                 key={task.id}
-                className="flex items-center gap-3 px-4 py-2.5 hover:bg-white/[0.03] transition-colors cursor-pointer"
+                className="px-4 py-3 flex items-center gap-3 hover:bg-white/[0.02] transition-colors cursor-pointer"
                 onClick={() => ctx?.openTaskDetail?.(task)}
                 style={{
-                  borderBottom: i < Math.min(urgentOrPrevious.length, 6) - 1
-                    ? '1px solid rgba(255,255,255,0.03)'
-                    : 'none',
-                  borderLeft: `3px solid ${task.tipo === 'urgente' ? '#ef4444' : '#f97316'}`,
+                  borderBottom: idx < blockers.length - 1 ? `1px solid ${COLORS.cardBorder}` : 'none',
+                  borderLeft: `3px solid ${task.tipo === 'urgente' ? ACCENT_COLORS.red : ACCENT_COLORS.orange}`,
                 }}
               >
+                {/* Type badge */}
                 <div
-                  className="w-1.5 h-1.5 rounded-full shrink-0 pulse-dot"
-                  style={{ backgroundColor: task.tipo === 'urgente' ? '#ef4444' : '#f97316' }}
-                />
-                <span
-                  className="text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0"
+                  className="text-[10px] font-bold px-2 py-1 rounded flex items-center gap-1"
                   style={{
-                    backgroundColor: task.tipo === 'urgente' ? 'rgba(239,68,68,0.12)' : 'rgba(249,115,22,0.12)',
-                    color: task.tipo === 'urgente' ? '#ef4444' : '#f97316',
+                    backgroundColor: task.tipo === 'urgente' ? `${ACCENT_COLORS.red}20` : `${ACCENT_COLORS.orange}20`,
+                    color: task.tipo === 'urgente' ? ACCENT_COLORS.red : ACCENT_COLORS.orange,
                   }}
                 >
-                  {task.tipo === 'urgente' ? <><Zap size={9} style={{ display: 'inline' }} /> URG</> : <><Activity size={9} style={{ display: 'inline' }} /> PREV</>}
-                </span>
-                <ClientBadge client={task.client} size="xs" />
-                <span className="flex-1 text-xs truncate font-medium" style={{ color: '#e0e0e0' }}>
+                  {task.tipo === 'urgente' ? <Zap size={10} /> : <AlertTriangle size={10} />}
+                  {task.tipo === 'urgente' ? 'URG' : 'PREV'}
+                </div>
+
+                {/* Client badge */}
+                {task.client && (
+                  <div
+                    className="text-[10px] font-semibold px-2 py-1 rounded"
+                    style={{
+                      backgroundColor: `${task.client.color || COLORS.accent}20`,
+                      color: task.client.color || COLORS.accent,
+                    }}
+                  >
+                    {task.client.name}
+                  </div>
+                )}
+
+                {/* Title */}
+                <span
+                  className="flex-1 text-sm font-medium truncate"
+                  style={{ color: COLORS.textPrimary }}
+                >
                   {task.title}
                 </span>
-                <AreaBadge area={task.area} size="xs" />
-                <AssigneeAvatar name={task.assignee} size="sm" />
-                <StatusSelect
-                  status={task.status}
-                  onChange={status => updateStatus.mutate({ id: task.id, status })}
+
+                {/* Area */}
+                {task.area && (
+                  <div
+                    className="text-[10px] font-semibold px-2 py-1 rounded"
+                    style={{
+                      backgroundColor: `${AREA_COLORS[task.area]}20`,
+                      color: AREA_COLORS[task.area],
+                    }}
+                  >
+                    {AREA_LABELS[task.area]}
+                  </div>
+                )}
+
+                {/* Status indicator */}
+                <div
+                  className="w-2 h-2 rounded-full flex-shrink-0"
+                  style={{
+                    backgroundColor: STATUS_COLORS[task.status] || COLORS.textMuted,
+                  }}
                 />
               </div>
             ))}
@@ -337,67 +496,88 @@ export function DashboardPage() {
         </div>
       )}
 
-      {/* ── Row 3: Client overview + Sprints ───────────────────────── */}
-      <div className="grid grid-cols-3 gap-4">
+      {/* ─────────────────────────────────────────────────────────────
+          SECTION 3: CLIENT OVERVIEW (left) + BLOCKERS (right)
+          ───────────────────────────────────────────────────────────── */}
 
-        {/* Client cards — 2 cols */}
-        <div className="col-span-2">
-          <SectionHead title="Clientes" count={byClient.length} />
-          <div className="grid grid-cols-3 gap-3">
-            {byClient.map(({ client, total: ct, done, pct, atRisk, copy, trafico, tech, admin }) => (
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '2fr 1fr',
+          gap: '24px',
+        }}
+      >
+        {/* LEFT: CLIENT CARDS */}
+        <div>
+          <SectionHeader title="Clientes" count={clientStats.length} />
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: '16px',
+            }}
+          >
+            {clientStats.map(({ client, total, done, pct, isAtRisk, byArea }) => (
               <button
                 key={client.id}
-                onClick={() => navigate(`/clients/${client.id}`)}
-                className="rounded-xl p-4 text-left card-hover relative overflow-hidden group"
+                className="rounded-lg p-4 text-left transition-all hover:scale-105"
                 style={{
-                  backgroundColor: '#161616',
-                  border: atRisk ? `1px solid rgba(239,68,68,0.35)` : `1px solid ${client.color}20`,
+                  backgroundColor: COLORS.cardBg,
+                  border: isAtRisk
+                    ? `1px solid ${ACCENT_COLORS.red}50`
+                    : `1px solid ${client.color || COLORS.accent}30`,
+                  backgroundImage: isAtRisk
+                    ? `linear-gradient(135deg, ${ACCENT_COLORS.red}08 0%, transparent 100%)`
+                    : undefined,
                 }}
+                onClick={() => { /* navigate to client */ }}
               >
-                {/* Color top stripe */}
-                <div
-                  className="absolute top-0 left-0 right-0 h-[2px] rounded-t-xl"
-                  style={{ backgroundColor: atRisk ? '#ef4444' : client.color }}
-                />
-                {/* At-risk badge */}
-                {atRisk && (
-                  <div
-                    className="absolute top-3 right-3 text-[8px] font-bold px-1.5 py-0.5 rounded"
-                    style={{ backgroundColor: 'rgba(239,68,68,0.15)', color: '#ef4444' }}
-                  >
-                    EN RIESGO
+                {/* Header with color dot */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{
+                        backgroundColor: isAtRisk ? ACCENT_COLORS.red : client.color || COLORS.accent,
+                      }}
+                    />
+                    <h3 className="font-semibold" style={{ color: COLORS.textPrimary }}>
+                      {client.name}
+                    </h3>
                   </div>
-                )}
+                  {isAtRisk && (
+                    <AlertTriangle size={14} style={{ color: ACCENT_COLORS.red }} />
+                  )}
+                </div>
 
-                <div className="flex items-center justify-between mt-1 mb-3">
-                  <div>
-                    <p className="text-xs font-bold" style={{ color: '#f5f5f5' }}>{client.name}</p>
-                    <p className="text-[10px] mt-0.5" style={{ color: '#6b6b6b' }}>
-                      {done}/{ct} tareas
-                    </p>
+                {/* Progress */}
+                <div className="mb-3">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs" style={{ color: COLORS.textMuted }}>
+                      {done}/{total} completadas
+                    </span>
+                    <span className="text-sm font-bold" style={{ color: client.color || COLORS.accent }}>
+                      {pct}%
+                    </span>
                   </div>
-                  <div className="relative">
-                    <ProgressRing value={done} max={ct} color={atRisk ? '#ef4444' : client.color} size={44} />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-[9px] font-bold tabular-nums" style={{ color: atRisk ? '#ef4444' : client.color }}>
-                        {pct}%
-                      </span>
-                    </div>
-                  </div>
+                  <ProgressBar done={done} total={total} color={client.color || COLORS.accent} />
                 </div>
 
                 {/* Area breakdown */}
-                <div className="grid grid-cols-4 gap-1">
-                  {[
-                    { key: 'C', count: copy, color: AREA_COLORS.copy },
-                    { key: 'T', count: trafico, color: AREA_COLORS.trafico },
-                    { key: 'D', count: tech, color: AREA_COLORS.tech },
-                    { key: 'A', count: admin, color: AREA_COLORS.admin },
-                  ].map(({ key, count, color }) => (
-                    <div key={key} className="text-center">
-                      <div className="text-[9px] font-bold" style={{ color: count > 0 ? color : '#262626' }}>{count}</div>
-                      <div className="text-[8px]" style={{ color: '#585858' }}>{key}</div>
-                    </div>
+                <div className="flex gap-2">
+                  {(Object.entries(byArea) as [Area, number][]).map(([area, count]) => (
+                    count > 0 && (
+                      <div
+                        key={area}
+                        className="text-[10px] font-semibold px-1.5 py-0.5 rounded"
+                        style={{
+                          backgroundColor: `${AREA_COLORS[area]}20`,
+                          color: AREA_COLORS[area],
+                        }}
+                      >
+                        {area.slice(0, 1).toUpperCase()} {count}
+                      </div>
+                    )
                   ))}
                 </div>
               </button>
@@ -405,176 +585,30 @@ export function DashboardPage() {
           </div>
         </div>
 
-        {/* Sprint progress — 1 col */}
+        {/* RIGHT: AREA BREAKDOWN STACKED BAR */}
         <div>
-          <SectionHead title="Sprints" />
-          <div className="space-y-2.5">
-            {([1, 2, 3, 4] as const).map(w => {
-              const meta = SPRINT_META[w]
-              const wt = tasks.filter(t => t.week === w)
-              const wd = wt.filter(t => t.status === 'completado').length
-              const wpct = wt.length > 0 ? (wd / wt.length) * 100 : 0
-              return (
-                <div
-                  key={w}
-                  className="rounded-xl p-3.5"
-                  style={{
-                    backgroundColor: '#161616',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                  }}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-2 h-2 rounded-full"
-                        style={{ backgroundColor: meta.color, boxShadow: `0 0 6px ${meta.color}` }}
-                      />
-                      <span className="text-xs font-semibold" style={{ color: '#f5f5f5' }}>{meta.label}</span>
-                    </div>
-                    <span className="text-[10px] font-bold tabular-nums" style={{ color: meta.color }}>
-                      {wd}/{wt.length}
-                    </span>
-                  </div>
-                  <div className="h-1.5 rounded-full overflow-hidden mb-2" style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
-                    <div
-                      className="h-full rounded-full"
-                      style={{
-                        width: `${wpct}%`,
-                        background: `linear-gradient(90deg, ${meta.color}, ${meta.color}88)`,
-                        transition: 'width 0.7s cubic-bezier(0.4,0,0.2,1)',
-                      }}
-                    />
-                  </div>
-                  <p className="text-[10px]" style={{ color: '#6b6b6b' }}>
-                    {meta.sub} · <span style={{ color: '#a1a1a1' }}>{meta.owner}</span>
-                  </p>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* ── Row 4: Area breakdown + Team capacity ──────────────────── */}
-      <div className="grid grid-cols-2 gap-4">
-
-        {/* Area breakdown */}
-        <div>
-          <SectionHead title="Por área" />
-          <div className="space-y-2">
-            {byArea.map(({ area, total: at, done, inProgress }) => {
-              const color = AREA_COLORS[area]
-              const donePct = at > 0 ? (done / at) * 100 : 0
-              const inPct = at > 0 ? (inProgress / at) * 100 : 0
+          <SectionHeader title="Por Área" icon={BarChart3} count={areaStats.length} />
+          <div className="space-y-3">
+            {areaStats.map(({ area, total, done, inProg }) => {
+              const pct = total > 0 ? (done / total) * 100 : 0
               return (
                 <div
                   key={area}
-                  className="rounded-xl p-3.5 flex items-center gap-3"
+                  className="rounded-lg p-3"
                   style={{
-                    backgroundColor: '#161616',
-                    border: '1px solid rgba(255,255,255,0.05)',
+                    backgroundColor: COLORS.cardBg,
+                    border: `1px solid ${COLORS.cardBorder}`,
                   }}
                 >
-                  <div
-                    className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold"
-                    style={{
-                      backgroundColor: `${color}15`,
-                      color,
-                      border: `1px solid ${color}28`,
-                    }}
-                  >
-                    {at}
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-semibold" style={{ color: COLORS.textPrimary }}>
+                      {AREA_LABELS[area]}
+                    </span>
+                    <span className="text-xs" style={{ color: COLORS.textMuted }}>
+                      {done}/{total}
+                    </span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-sm font-medium" style={{ color: '#d0d3ea' }}>
-                        {AREA_LABELS[area]}
-                      </span>
-                      <span className="text-[10px] font-medium" style={{ color: '#6b6b6b' }}>
-                        {done}/{at} · {Math.round(donePct)}%
-                      </span>
-                    </div>
-                    {/* Stacked bar: done + in progress + pending */}
-                    <div className="flex h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(255,255,255,0.04)' }}>
-                      <div className="h-full" style={{ width: `${donePct}%`, backgroundColor: '#22c55e', transition: 'width 0.6s' }} />
-                      <div className="h-full" style={{ width: `${inPct}%`, backgroundColor: color, opacity: 0.7, transition: 'width 0.6s' }} />
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Team capacity */}
-        <div>
-          <SectionHead title="Carga del equipo" count={ASSIGNEES.length} />
-          <div className="space-y-2">
-            {byAssignee.map(({ name, total: nt, pendiente, enProgreso: ep, completado, revision }) => {
-              const color = ASSIGNEE_COLORS[name] || '#6b7280'
-              const utilizationPct = nt > 0 ? Math.round(((ep + revision) / nt) * 100) : 0
-              const donePct = nt > 0 ? (completado / nt) * 100 : 0
-              const inPct = nt > 0 ? (ep / nt) * 100 : 0
-              const revPct = nt > 0 ? (revision / nt) * 100 : 0
-              const pendPct = nt > 0 ? (pendiente / nt) * 100 : 0
-              return (
-                <div
-                  key={name}
-                  className="rounded-xl p-3.5"
-                  style={{
-                    backgroundColor: '#161616',
-                    border: `1px solid ${color}18`,
-                  }}
-                >
-                  <div className="flex items-center gap-3 mb-2.5">
-                    <div
-                      className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-                      style={{
-                        background: `linear-gradient(135deg, ${color}28, ${color}10)`,
-                        color,
-                        border: `1px solid ${color}38`,
-                      }}
-                    >
-                      {name.slice(0, 2).toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold leading-none" style={{ color: '#f5f5f5' }}>{name}</p>
-                      <p className="text-[10px] mt-0.5 truncate" style={{ color: '#a1a1a1' }}>
-                        {ASSIGNEE_ROLE[name] || ''}
-                      </p>
-                      <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                        <span className="text-[9px]" style={{ color: '#6b6b6b' }}>
-                          {nt} tareas · {utilizationPct}% activo
-                        </span>
-                        {(ASSIGNEE_AREAS[name] || []).map(a => (
-                          <span
-                            key={a}
-                            className="text-[9px] px-1.5 py-px rounded font-semibold uppercase tracking-wide"
-                            style={{
-                              backgroundColor: `${AREA_COLORS[a as Area]}15`,
-                              color: AREA_COLORS[a as Area],
-                              border: `1px solid ${AREA_COLORS[a as Area]}28`,
-                            }}
-                          >
-                            {a}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {completado > 0 && <span className="text-[10px] font-medium" style={{ color: '#22c55e' }}>✓{completado}</span>}
-                      {ep > 0 && <span className="text-[10px] font-medium" style={{ color }}>◷{ep}</span>}
-                      {revision > 0 && <span className="text-[10px] font-medium" style={{ color: '#f59e0b' }}>⟳{revision}</span>}
-                      {pendiente > 0 && <span className="text-[10px]" style={{ color: '#585858' }}>○{pendiente}</span>}
-                    </div>
-                  </div>
-                  {/* Stacked bar */}
-                  <div className="flex h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(255,255,255,0.04)' }}>
-                    {donePct > 0 && <div className="h-full" style={{ width: `${donePct}%`, backgroundColor: '#22c55e' }} />}
-                    {inPct > 0 && <div className="h-full" style={{ width: `${inPct}%`, backgroundColor: color }} />}
-                    {revPct > 0 && <div className="h-full" style={{ width: `${revPct}%`, backgroundColor: '#f59e0b' }} />}
-                    {pendPct > 0 && <div className="h-full" style={{ width: `${pendPct}%`, backgroundColor: 'rgba(255,255,255,0.06)' }} />}
-                  </div>
+                  <ProgressBar done={done} total={total} color={AREA_COLORS[area]} />
                 </div>
               )
             })}
@@ -582,77 +616,133 @@ export function DashboardPage() {
         </div>
       </div>
 
-      {/* ── Row 5: At-risk clients warning (if any) ────────────────── */}
-      {atRiskClients.length > 0 && (
-        <div
-          className="rounded-xl p-4"
-          style={{
-            background: 'linear-gradient(135deg, rgba(239,68,68,0.05) 0%, #161616 60%)',
-            border: '1px solid rgba(239,68,68,0.2)',
-          }}
-        >
-          <div className="flex items-center gap-2 mb-3">
-            <AlertTriangle size={13} style={{ color: '#ef4444' }} />
-            <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#ef4444' }}>
-              Clientes en riesgo — menos del 25% completado
-            </span>
+      {/* ─────────────────────────────────────────────────────────────
+          SECTION 4: TEAM CAPACITY (left) + AREA BREAKDOWN (right)
+          ───────────────────────────────────────────────────────────── */}
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '24px',
+        }}
+      >
+        {/* LEFT: TEAM CAPACITY */}
+        <div>
+          <SectionHeader title="Carga del Equipo" icon={Users} count={teamStats.length} />
+          <div className="space-y-2">
+            {teamStats.map(({ member, total, byStatus }) => (
+              <TeamMemberRow
+                key={member.id || member.name}
+                member={member}
+                taskCount={total}
+                tasksByStatus={byStatus}
+              />
+            ))}
+            {teamStats.length === 0 && (
+              <p className="text-sm text-center py-6" style={{ color: COLORS.textMuted }}>
+                Sin datos de equipo disponibles
+              </p>
+            )}
           </div>
-          <div className="flex flex-wrap gap-2">
-            {atRiskClients.map(({ client, pct, total: ct }) => (
-              <button
-                key={client.id}
-                onClick={() => navigate(`/clients/${client.id}`)}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg card-hover"
+        </div>
+
+        {/* RIGHT: SUMMARY STATS */}
+        <div>
+          <SectionHeader title="Resumen Operativo" />
+          <div className="space-y-3">
+            {[
+              {
+                label: 'Tareas pendientes',
+                value: tasks.filter(t => t.status === 'pendiente').length,
+                icon: '⏳',
+              },
+              {
+                label: 'En revisión',
+                value: tasks.filter(t => t.status === 'revision').length,
+                icon: '🔍',
+              },
+              {
+                label: 'Clientes activos',
+                value: clientStats.length,
+                icon: '👥',
+              },
+              {
+                label: 'Equipo activo',
+                value: teamStats.filter(t => t.total > 0).length,
+                icon: '⚡',
+              },
+            ].map((stat, idx) => (
+              <div
+                key={idx}
+                className="rounded-lg p-3 flex items-center justify-between"
                 style={{
-                  backgroundColor: 'rgba(239,68,68,0.08)',
-                  border: '1px solid rgba(239,68,68,0.25)',
+                  backgroundColor: COLORS.cardBg,
+                  border: `1px solid ${COLORS.cardBorder}`,
                 }}
               >
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: client.color }} />
-                <span className="text-xs font-semibold" style={{ color: '#f5f5f5' }}>{client.name}</span>
-                <span className="text-[10px]" style={{ color: '#ef4444' }}>{pct}% · {ct} tareas</span>
-              </button>
+                <span className="text-sm" style={{ color: COLORS.textMuted }}>
+                  {stat.label}
+                </span>
+                <span className="text-2xl font-bold" style={{ color: COLORS.accent }}>
+                  {stat.value}
+                </span>
+              </div>
             ))}
           </div>
         </div>
-      )}
+      </div>
 
-      {/* ── Row 6: Recent activity ─────────────────────────────────── */}
-      <div>
-        <SectionHead title="Actividad reciente" count={recent.length} />
+      {/* ─────────────────────────────────────────────────────────────
+          FOOTER: HELPFUL MESSAGE IF EMPTY
+          ───────────────────────────────────────────────────────────── */}
+
+      {tasks.length === 0 && (
         <div
-          className="rounded-xl overflow-hidden"
+          className="rounded-lg p-8 text-center"
           style={{
-            backgroundColor: '#161616',
-            border: '1px solid rgba(255,255,255,0.06)',
+            backgroundColor: COLORS.cardBg,
+            border: `1px solid ${COLORS.cardBorder}`,
           }}
         >
-          {recent.map((task, i) => (
-            <div
-              key={task.id}
-              className="flex items-center gap-3 px-4 py-2.5 hover:bg-white/[0.03] transition-colors cursor-pointer"
-              onClick={() => ctx?.openTaskDetail?.(task)}
-              style={{
-                borderBottom: i < recent.length - 1 ? '1px solid rgba(255,255,255,0.03)' : 'none',
-              }}
-            >
-              <ClientBadge client={task.client} size="xs" />
-              <span className="flex-1 text-xs truncate font-medium" style={{ color: '#e0e0e0' }}>
-                {task.title}
-              </span>
-              <AreaBadge area={task.area} size="xs" />
-              <AssigneeAvatar name={task.assignee} size="sm" />
-              <StatusSelect
-                status={task.status}
-                onChange={status => updateStatus.mutate({ id: task.id, status })}
-              />
-              <span className="text-[10px] shrink-0 hidden lg:block" style={{ color: '#585858' }}>
-                {formatDistanceToNow(new Date(task.updated_at), { locale: es, addSuffix: true })}
-              </span>
-            </div>
-          ))}
+          <p className="text-sm mb-3" style={{ color: COLORS.textMuted }}>
+            Sin tareas en el sistema
+          </p>
+          <button
+            onClick={() => ctx?.openNewTask?.()}
+            className="px-4 py-2 rounded-lg font-semibold transition-colors"
+            style={{
+              backgroundColor: COLORS.accent,
+              color: 'white',
+            }}
+          >
+            Crear primera tarea
+          </button>
         </div>
-      </div>
+      )}
     </div>
   )
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// UTILITY: Derive team members from tasks if useTeam not available
+// ─────────────────────────────────────────────────────────────────────
+
+function deriveMembersFromTasks(tasks: Task[]) {
+  const assignees = new Set<string>()
+  tasks.forEach(t => {
+    if (t.assignee) assignees.add(t.assignee)
+  })
+
+  const colors = Object.values(ACCENT_COLORS)
+  let colorIdx = 0
+
+  return Array.from(assignees).map(name => ({
+    id: name,
+    name,
+    displayName: name,
+    email: `${name.toLowerCase().replace(' ', '.')}@team.local`,
+    role: 'Team Member',
+    color: colors[colorIdx++ % colors.length],
+  }))
 }
