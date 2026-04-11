@@ -7,12 +7,12 @@ import type { Task, Client, TaskStatus } from '../types'
 import { STATUS_LABELS, STATUS_COLORS, ASSIGNEE_COLORS, PRIORITY_COLORS } from '../lib/constants'
 import {
   Flame, CheckCircle2, Clock, AlertTriangle, ChevronDown,
-  Circle, RefreshCw, User, Calendar,
+  Circle, RefreshCw,
 } from 'lucide-react'
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
-  bg: '#FFF5F5',
+  bg: '#F0F2F8',
   card: '#FFFFFF',
   border: '#E6E9EF',
   text: '#1F2128',
@@ -283,7 +283,7 @@ export function BomberosPage() {
         </span>
 
         <button
-          onClick={() => updateTask.mutate}
+          onClick={() => window.location.reload()}
           style={{
             display: 'flex', alignItems: 'center', gap: 6,
             fontSize: 12, fontWeight: 600,
