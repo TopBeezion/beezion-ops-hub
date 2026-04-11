@@ -9,6 +9,16 @@ import { AssigneeAvatar } from '../components/ui/AssigneeAvatar'
 import { PriorityDot } from '../components/ui/PriorityDot'
 import { StatusSelect } from '../components/ui/StatusSelect'
 
+// ─── Design tokens (same as Dashboard) ────────────────────────────────────────
+const C = {
+  bg: '#F0F2F8',
+  card: '#FFFFFF',
+  border: '#E4E7F0',
+  text: '#1A1D27',
+  sub: '#5A5E72',
+  muted: '#9699B0',
+}
+
 // Hardcoded strategic data per client
 const CLIENT_STRATEGY: Record<string, { problems: string[]; strategies: string[]; kpis: string[] }> = {
   Dapta: {
@@ -49,7 +59,7 @@ const CLIENT_STRATEGY: Record<string, { problems: string[]; strategies: string[]
       'Thank You Page con urgencia real y escasez (confirmar oferta con Miguel) — no dejar que el lead abandone sin acción',
       'Estructura campañas en 4 grupos: CFO1, CFO2, Competidores (apuntar a usuarios de competencia), Awareness + retargeting por VTR',
       'Scripts 4 videos awareness + 2 videos retargeting por VTR (25%, 50%, 75%)',
-      'Revisar y ajustar los 16 hooks existentes que Alec envió a Alejandro — ajustar tono y mensaje por ICP',
+      'Revisar y ajustar los 16 hooks existentes — ajustar tono y mensaje por ICP',
     ],
     kpis: ['Aumentar volumen MQLs semanales', 'Mejorar tasa MQL→SQL', 'Reducir CPL por segmento'],
   },
@@ -61,10 +71,10 @@ const CLIENT_STRATEGY: Record<string, { problems: string[]; strategies: string[]
       'No hay lead magnets activos generando leads de tráfico frío consistente',
     ],
     strategies: [
-      'Crear 3 lead magnets de HubSpot para captura tráfico frío: (1) HubSpot Sales Audit checklist, (2) HubSpot Implementation Checklist, (3) Sales Process Checklist — cada uno con PDF + landing copy + 3 hooks',
-      'Quiz funnel "What\'s the ROI of your HubSpot?" — 8 preguntas + 3 resultados posibles + Thank You Page con urgencia para scheduling',
+      'Crear 3 lead magnets de HubSpot para captura tráfico frío: (1) HubSpot Sales Audit checklist, (2) HubSpot Implementation Checklist, (3) Sales Process Checklist',
+      'Quiz funnel "What\'s the ROI of your HubSpot?" — 8 preguntas + 3 resultados posibles + Thank You Page con urgencia',
       'Actualizar booking page: nuevo BCL (video) + urgencia estadística + escasez (X spots disponibles este mes)',
-      'Urgencia basada en estadística: "7 de cada 10 empresas que llegan a nosotros omiten mejorar sus resultados por no tomar acción"',
+      'Urgencia basada en estadística: "7 de cada 10 empresas omiten mejorar sus resultados por no tomar acción"',
       'Lanzar campaña awareness + retargeting para visitantes que llegaron a landing pero no descargaron lead magnet',
       'Testear YouTube display ads en videos del canal de On The Fuze — usar inventario propio para retargeting',
       'Reservar presupuesto para test en Mayo: video estilo Wilson Luna con Gabriel como cara del contenido',
@@ -74,21 +84,20 @@ const CLIENT_STRATEGY: Record<string, { problems: string[]; strategies: string[]
   Finkargo: {
     problems: [
       'MQLs bajos tanto en Colombia como en México — volumen insuficiente para el equipo comercial',
-      'Baja conversión FOB a pitch — leads que califican como FOB (Free on Board) no avanzan a presentación',
-      'Falta de datos de contactabilidad — no se sabe cuántos FOB contactados respondieron vs no respondieron',
+      'Baja conversión FOB a pitch — leads que califican como FOB no avanzan a presentación',
+      'Falta de datos de contactabilidad — no se sabe cuántos FOB contactados respondieron',
       'BCL pendiente de producción desde sprint anterior — bloqueando activación de Thank You Page',
       'Sin lead magnet activo para captura de tráfico frío en importadores',
     ],
     strategies: [
-      'Producir BCL Finkargo (ya aprobado conceptualmente) y subir a Thank You Page como activación inmediata post-registro',
-      'Crear lead magnet: "Calculadora de costos para importadores" — herramienta interactiva que calcule ahorro potencial con Finkargo',
-      'Pedir métricas de contactabilidad a Figueroa (equipo comercial): FOB contactados vs respondidos — URGENTE para semana actual',
+      'Producir BCL Finkargo (ya aprobado conceptualmente) y subir a Thank You Page como activación inmediata',
+      'Crear lead magnet: "Calculadora de costos para importadores" — herramienta interactiva de ahorro potencial',
+      'Pedir métricas de contactabilidad a Figueroa: FOB contactados vs respondidos — URGENTE',
       'Configurar lista FOB calificados en Meta y lanzar campaña de remarketing segmentada',
       'Copy anuncio remarketing FOB: "Aprobamos hasta $3M en 48 horas" — 4 hooks + 1 body copy + 1 CTA',
-      'Implementar alertas automáticas en sistema cuando un crédito está próximo a vencer — retención y reactivación',
-      'Crear carrusel de testimonios escritos de importadores que ya usaron Finkargo — 5 slides',
+      'Implementar alertas automáticas cuando un crédito está próximo a vencer — retención y reactivación',
+      'Crear carrusel de testimonios escritos de importadores — 5 slides',
       'Crear template de reporte quincenal de performance para alinear expectativas con cliente',
-      'Presentación Q1 para reunión con cliente: resultados vs expectativas + cuello de botella identificado + estrategia Abril',
     ],
     kpis: ['Aumentar MQLs Colombia y México', 'Mejorar conversión FOB→pitch', 'Establecer ritmo quincenal de reporte'],
   },
@@ -100,10 +109,10 @@ const CLIENT_STRATEGY: Record<string, { problems: string[]; strategies: string[]
       'Landing page visualmente desactualizada — diseño, contraste y CTA necesitan revisión urgente',
     ],
     strategies: [
-      'Enviar propuestas de nuevos headlines para landing + anuncios — 5 opciones + 3 variaciones de CTA para que Alejandro revise y elija',
-      'Escribir nuevos hooks para ads "Talk to Sale" y "Registros" con enfoque completamente diferente al actual — 6 hooks + 1 CTA + 1 body copy',
+      'Enviar propuestas de nuevos headlines para landing + anuncios — 5 opciones + 3 variaciones de CTA',
+      'Escribir nuevos hooks para ads "Talk to Sale" y "Registros" con enfoque completamente diferente — 6 hooks + 1 CTA + 1 body copy',
       'Estructurar campaña awareness transversal para ampliar el embudo superior',
-      'Auditoría completa de la landing page: diseño, contraste de colores, claridad del CTA, modernidad visual — proponer mejoras concretas',
+      'Auditoría completa de la landing page: diseño, contraste de colores, claridad del CTA, modernidad visual',
     ],
     kpis: ['Mejorar CTR de ads', 'Aumentar conversión landing', 'Alcanzar 1000 MQLs desde paid'],
   },
@@ -135,55 +144,53 @@ export function ClientDetailPage() {
     tasks: tasks.filter(t => t.status === status),
   }))
 
-  const clientColor = client?.color || '#f5a623'
+  const clientColor = client?.color || '#6366F1'
 
   return (
-    <div className="space-y-5">
-      {/* Client hero header */}
+    <div style={{ backgroundColor: C.bg, minHeight: '100%' }}>
+
+      {/* ── Client hero header ── */}
       <div
-        className="relative overflow-hidden px-6 pt-6 pb-5"
         style={{
-          background: `linear-gradient(135deg, ${clientColor}12 0%, rgba(15,15,15,0) 60%)`,
-          borderBottom: `1px solid ${clientColor}20`,
+          background: `linear-gradient(135deg, ${clientColor}12 0%, ${C.card} 60%)`,
+          borderBottom: `1px solid ${clientColor}25`,
+          padding: '20px 24px 16px',
+          position: 'relative',
+          overflow: 'hidden',
         }}
       >
-        {/* Large faded letter background */}
-        <div
-          className="absolute right-6 top-1/2 -translate-y-1/2 text-[120px] font-black select-none pointer-events-none"
-          style={{ color: `${clientColor}06`, lineHeight: 1 }}
-        >
+        {/* Faded letter background */}
+        <div style={{
+          position: 'absolute', right: 24, top: '50%', transform: 'translateY(-50%)',
+          fontSize: 120, fontWeight: 900, lineHeight: 1,
+          color: `${clientColor}06`, pointerEvents: 'none', userSelect: 'none',
+        }}>
           {client?.name[0]}
         </div>
 
-        <div className="relative flex items-start justify-between">
-          <div className="flex items-center gap-4">
-            <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl shrink-0"
-              style={{
-                background: `linear-gradient(135deg, ${clientColor}30, ${clientColor}10)`,
-                color: clientColor,
-                border: `1px solid ${clientColor}40`,
-                boxShadow: `0 0 20px ${clientColor}20`,
-              }}
-            >
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            {/* Avatar */}
+            <div style={{
+              width: 48, height: 48, borderRadius: 14, flexShrink: 0,
+              background: `linear-gradient(135deg, ${clientColor}25, ${clientColor}10)`,
+              border: `1.5px solid ${clientColor}35`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 20, fontWeight: 900, color: clientColor,
+            }}>
               {client?.name[0]}
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight" style={{ color: '#f5f5f5' }}>
+              <h1 style={{ fontSize: 18, fontWeight: 800, color: C.text, margin: 0 }}>
                 {client?.name}
               </h1>
-              <div className="flex items-center gap-3 mt-1">
-                <span className="text-[11px] font-medium" style={{ color: '#6b6b6b' }}>
-                  {tasks.length} tareas totales
-                </span>
-                <span
-                  className="text-[11px] font-bold px-2 py-0.5 rounded-full"
-                  style={{
-                    backgroundColor: `${clientColor}15`,
-                    color: clientColor,
-                    border: `1px solid ${clientColor}30`,
-                  }}
-                >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
+                <span style={{ fontSize: 11, color: C.muted }}>{tasks.length} tareas totales</span>
+                <span style={{
+                  fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99,
+                  backgroundColor: `${clientColor}15`, color: clientColor,
+                  border: `1px solid ${clientColor}30`,
+                }}>
                   {progress}% completado
                 </span>
               </div>
@@ -191,258 +198,227 @@ export function ClientDetailPage() {
           </div>
 
           {/* Progress ring */}
-          <div className="relative shrink-0">
-            <svg width={64} height={64} style={{ transform: 'rotate(-90deg)' }}>
-              <circle cx={32} cy={32} r={26} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth={3} />
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            <svg width={60} height={60} style={{ transform: 'rotate(-90deg)' }}>
+              <circle cx={30} cy={30} r={24} fill="none" stroke={C.border} strokeWidth={3} />
               <circle
-                cx={32} cy={32} r={26}
-                fill="none"
-                stroke={clientColor}
-                strokeWidth={3}
-                strokeLinecap="round"
-                strokeDasharray={2 * Math.PI * 26}
-                strokeDashoffset={2 * Math.PI * 26 * (1 - progress / 100)}
-                style={{ transition: 'stroke-dashoffset 0.8s cubic-bezier(0.4,0,0.2,1)' }}
+                cx={30} cy={30} r={24}
+                fill="none" stroke={clientColor} strokeWidth={3} strokeLinecap="round"
+                strokeDasharray={2 * Math.PI * 24}
+                strokeDashoffset={2 * Math.PI * 24 * (1 - progress / 100)}
+                style={{ transition: 'stroke-dashoffset 0.8s ease' }}
               />
             </svg>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-sm font-bold tabular-nums" style={{ color: clientColor }}>
-                {progress}%
-              </span>
+            <div style={{
+              position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 11, fontWeight: 800, color: clientColor,
+            }}>
+              {progress}%
             </div>
           </div>
         </div>
 
-        {/* Overall progress bar */}
-        <div className="mt-4">
-          <div
-            className="h-1 rounded-full overflow-hidden"
-            style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
-          >
-            <div
-              className="h-full rounded-full"
-              style={{
-                width: `${progress}%`,
-                background: `linear-gradient(90deg, ${clientColor}, ${clientColor}88)`,
-                transition: 'width 0.8s cubic-bezier(0.4,0,0.2,1)',
-              }}
-            />
-          </div>
+        {/* Progress bar */}
+        <div style={{ marginTop: 14, height: 3, backgroundColor: C.border, borderRadius: 3, overflow: 'hidden' }}>
+          <div style={{
+            height: '100%', width: `${progress}%`,
+            background: `linear-gradient(90deg, ${clientColor}, ${clientColor}88)`,
+            borderRadius: 3, transition: 'width 0.8s ease',
+          }} />
         </div>
       </div>
 
-      <div className="px-6 space-y-5">
-      {/* Status breakdown */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {tasksByStatus.map(({ status, tasks: statusTasks }) => (
-          <div
-            key={status}
-            className="rounded-xl p-3"
-            style={{
-              backgroundColor: '#1c1c1c',
-              border: `1px solid ${STATUS_COLORS[status]}20`,
-            }}
-          >
-            <div className="flex items-center gap-1.5 mb-2">
-              <div
-                className="w-1.5 h-1.5 rounded-full"
-                style={{ backgroundColor: STATUS_COLORS[status], boxShadow: `0 0 4px ${STATUS_COLORS[status]}` }}
-              />
-              <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#6b6b6b' }}>
-                {STATUS_LABELS[status]}
+      <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+        {/* ── Status breakdown ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+          {tasksByStatus.map(({ status, tasks: st }) => (
+            <div key={status} style={{
+              backgroundColor: C.card, border: `1px solid ${STATUS_COLORS[status]}20`,
+              borderRadius: 12, padding: '12px 14px',
+              borderTop: `3px solid ${STATUS_COLORS[status]}`,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                <div style={{
+                  width: 6, height: 6, borderRadius: '50%',
+                  backgroundColor: STATUS_COLORS[status],
+                }} />
+                <p style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  {STATUS_LABELS[status]}
+                </p>
+              </div>
+              <p style={{ fontSize: 28, fontWeight: 800, color: st.length > 0 ? STATUS_COLORS[status] : C.border, lineHeight: 1 }}>
+                {st.length}
               </p>
             </div>
-            <p
-              className="text-2xl font-bold tabular-nums"
-              style={{ color: statusTasks.length > 0 ? STATUS_COLORS[status] : '#585858' }}
-            >
-              {statusTasks.length}
+          ))}
+        </div>
+
+        {/* ── Strategy ── */}
+        {strategy && (
+          <>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+
+              {/* Problems */}
+              <div style={{
+                backgroundColor: C.card, border: `1px solid #FCA5A530`,
+                borderRadius: 12, padding: 16,
+                borderLeft: '3px solid #EF4444',
+              }}>
+                <p style={{ fontSize: 10, fontWeight: 700, color: '#EF4444', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
+                  🔴 Problemas identificados
+                </p>
+                <ul style={{ display: 'flex', flexDirection: 'column', gap: 8, listStyle: 'none', padding: 0, margin: 0 }}>
+                  {strategy.problems.map((p, i) => (
+                    <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                      <span style={{
+                        fontSize: 9, fontWeight: 800, flexShrink: 0,
+                        width: 16, height: 16, borderRadius: 4, marginTop: 1,
+                        backgroundColor: '#FEF2F2', color: '#EF4444',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>{i + 1}</span>
+                      <span style={{ fontSize: 12, color: C.sub, lineHeight: 1.5 }}>{p}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* KPIs */}
+              <div style={{
+                backgroundColor: C.card, border: `1px solid #93C5FD30`,
+                borderRadius: 12, padding: 16,
+                borderLeft: '3px solid #3B82F6',
+              }}>
+                <p style={{ fontSize: 10, fontWeight: 700, color: '#3B82F6', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
+                  🎯 KPIs objetivo
+                </p>
+                <ul style={{ display: 'flex', flexDirection: 'column', gap: 10, listStyle: 'none', padding: 0, margin: 0 }}>
+                  {strategy.kpis.map((k, i) => (
+                    <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                      <span style={{ fontSize: 12, color: '#3B82F6', flexShrink: 0, marginTop: 2 }}>◎</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: C.text, lineHeight: 1.5 }}>{k}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            {/* Strategies */}
+            <div style={{
+              backgroundColor: C.card, border: `1px solid #86EFAC30`,
+              borderRadius: 12, padding: 16,
+              borderLeft: '3px solid #10B981',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <p style={{ fontSize: 10, fontWeight: 700, color: '#10B981', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  ✅ Estrategias acordadas
+                </p>
+                <span style={{
+                  fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 99,
+                  backgroundColor: '#D1FAE5', color: '#10B981',
+                }}>
+                  {strategy.strategies.length} iniciativas
+                </span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                {strategy.strategies.map((s, i) => (
+                  <div key={i} style={{
+                    display: 'flex', alignItems: 'flex-start', gap: 8,
+                    padding: '8px 10px', borderRadius: 8, backgroundColor: '#F0FDF4',
+                    border: '1px solid #86EFAC30',
+                  }}>
+                    <span style={{
+                      fontSize: 9, fontWeight: 800, flexShrink: 0,
+                      width: 16, height: 16, borderRadius: 4, marginTop: 1,
+                      backgroundColor: '#D1FAE5', color: '#10B981',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>{i + 1}</span>
+                    <span style={{ fontSize: 11, color: C.sub, lineHeight: 1.5 }}>{s}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ── Tasks ── */}
+        <div style={{ backgroundColor: C.card, border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden' }}>
+          {/* Task list header */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '12px 16px', borderBottom: `1px solid ${C.border}`,
+          }}>
+            <p style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Tareas del sprint
             </p>
-          </div>
-        ))}
-      </div>
-
-      {/* Strategy */}
-      {strategy && (
-        <div className="space-y-3">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {/* Problems */}
-            <div
-              className="rounded-xl p-4"
-              style={{
-                backgroundColor: '#1c1c1c',
-                border: '1px solid rgba(248,113,113,0.2)',
-                background: 'linear-gradient(135deg, rgba(248,113,113,0.04) 0%, #1c1c1c 50%)',
-              }}
-            >
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#f87171' }} />
-                <h2 className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#f87171' }}>
-                  Problemas identificados
-                </h2>
-              </div>
-              <ul className="space-y-2">
-                {strategy.problems.map((p, i) => (
-                  <li key={i} className="flex items-start gap-2.5">
-                    <span
-                      className="text-[9px] font-bold mt-0.5 shrink-0 w-4 h-4 rounded flex items-center justify-center"
-                      style={{ backgroundColor: 'rgba(248,113,113,0.12)', color: '#f87171' }}
-                    >
-                      {i + 1}
-                    </span>
-                    <span className="text-xs leading-relaxed" style={{ color: '#d0d0d0' }}>{p}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* KPIs */}
-            <div
-              className="rounded-xl p-4"
-              style={{
-                backgroundColor: '#1c1c1c',
-                border: '1px solid rgba(96,165,250,0.2)',
-                background: 'linear-gradient(135deg, rgba(96,165,250,0.04) 0%, #1c1c1c 50%)',
-              }}
-            >
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#60a5fa' }} />
-                <h2 className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#60a5fa' }}>
-                  KPIs objetivo
-                </h2>
-              </div>
-              <ul className="space-y-2">
-                {strategy.kpis.map((k, i) => (
-                  <li key={i} className="flex items-start gap-2.5">
-                    <span
-                      className="text-[10px] shrink-0 mt-0.5"
-                      style={{ color: '#60a5fa' }}
-                    >
-                      ◎
-                    </span>
-                    <span className="text-xs leading-relaxed font-medium" style={{ color: '#d0d0d0' }}>{k}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          {/* Strategies */}
-          <div
-            className="rounded-xl p-4"
-            style={{
-              backgroundColor: '#1c1c1c',
-              border: '1px solid rgba(74,222,128,0.2)',
-              background: 'linear-gradient(135deg, rgba(74,222,128,0.03) 0%, #1c1c1c 50%)',
-            }}
-          >
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#4ade80' }} />
-              <h2 className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#4ade80' }}>
-                Estrategias acordadas
-              </h2>
-              <span
-                className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full"
-                style={{ backgroundColor: 'rgba(74,222,128,0.12)', color: '#4ade80' }}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <button
+                onClick={() => setAreaFilter('')}
+                style={{
+                  padding: '4px 10px', borderRadius: 6, fontSize: 10, fontWeight: 600,
+                  cursor: 'pointer', border: 'none',
+                  color: !areaFilter ? '#FFFFFF' : C.muted,
+                  backgroundColor: !areaFilter ? clientColor : 'transparent',
+                }}
               >
-                {strategy.strategies.length} iniciativas
-              </span>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {strategy.strategies.map((s, i) => (
-                <div
-                  key={i}
-                  className="flex items-start gap-2.5 rounded-lg p-2.5"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
+                Todas
+              </button>
+              {(['copy', 'trafico', 'tech', 'admin'] as Area[]).map(area => (
+                <button
+                  key={area}
+                  onClick={() => setAreaFilter(area)}
+                  style={{
+                    padding: '4px 10px', borderRadius: 6, fontSize: 10, fontWeight: 600,
+                    cursor: 'pointer', border: 'none',
+                    color: areaFilter === area ? '#FFFFFF' : C.muted,
+                    backgroundColor: areaFilter === area ? clientColor : 'transparent',
+                  }}
                 >
-                  <span
-                    className="text-[9px] font-black shrink-0 w-4 h-4 rounded flex items-center justify-center mt-0.5"
-                    style={{ backgroundColor: 'rgba(74,222,128,0.12)', color: '#4ade80' }}
-                  >
-                    {i + 1}
-                  </span>
-                  <span className="text-xs leading-relaxed" style={{ color: '#d0d0d0' }}>{s}</span>
-                </div>
+                  {AREA_LABELS[area]}
+                </button>
               ))}
             </div>
           </div>
-        </div>
-      )}
 
-      {/* Tasks */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#585858' }}>
-            Tareas del sprint
-          </h2>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setAreaFilter('')}
-              className="px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all"
-              style={{
-                color: !areaFilter ? '#f5f5f5' : '#6b6b6b',
-                backgroundColor: !areaFilter ? 'rgba(255,255,255,0.07)' : 'transparent',
-                border: `1px solid ${!areaFilter ? 'rgba(255,255,255,0.1)' : 'transparent'}`,
-              }}
-            >
-              Todas
-            </button>
-            {(['copy', 'trafico', 'tech', 'admin'] as Area[]).map(area => (
-              <button
-                key={area}
-                onClick={() => setAreaFilter(area)}
-                className="px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all"
-                style={{
-                  color: areaFilter === area ? '#f5f5f5' : '#6b6b6b',
-                  backgroundColor: areaFilter === area ? 'rgba(255,255,255,0.07)' : 'transparent',
-                  border: `1px solid ${areaFilter === area ? 'rgba(255,255,255,0.1)' : 'transparent'}`,
-                }}
-              >
-                {AREA_LABELS[area]}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {isLoading ? (
-          <div className="flex items-center justify-center h-32">
-            <div
-              className="w-7 h-7 rounded-full border-2 border-t-transparent animate-spin"
-              style={{ borderColor: clientColor, borderTopColor: 'transparent' }}
-            />
-          </div>
-        ) : (
-          <div
-            className="rounded-xl overflow-hidden"
-            style={{
-              backgroundColor: '#1c1c1c',
-              border: '1px solid rgba(255,255,255,0.05)',
-            }}
-          >
-            {filteredTasks.map((task, i) => (
+          {/* Task rows */}
+          {isLoading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
+              <div className="w-6 h-6 rounded-full border-2 border-transparent border-t-current animate-spin"
+                style={{ color: clientColor }} />
+            </div>
+          ) : filteredTasks.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px 16px', color: C.muted, fontSize: 13 }}>
+              No hay tareas para este filtro
+            </div>
+          ) : (
+            filteredTasks.map((task, i) => (
               <div
                 key={task.id}
-                className="flex items-center gap-3 px-4 py-2.5 group hover:bg-white/[0.02] transition-colors"
                 style={{
-                  borderBottom: i < filteredTasks.length - 1 ? '1px solid rgba(255,255,255,0.03)' : 'none',
-                  borderLeft: `2px solid ${clientColor}30`,
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '10px 16px',
+                  borderBottom: i < filteredTasks.length - 1 ? `1px solid ${C.border}` : 'none',
+                  borderLeft: `3px solid ${clientColor}30`,
+                  backgroundColor: '#FFFFFF',
+                  transition: 'background 0.15s',
                 }}
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#F8F9FC')}
+                onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#FFFFFF')}
               >
                 <PriorityDot priority={task.priority} />
-                <span
-                  className="flex-1 text-xs font-medium"
-                  style={{
-                    color: task.status === 'completado' ? '#585858' : '#d0d0d0',
-                    textDecoration: task.status === 'completado' ? 'line-through' : 'none',
-                  }}
-                >
+                <span style={{
+                  flex: 1, fontSize: 12, fontWeight: 500,
+                  color: task.status === 'completado' ? C.muted : C.text,
+                  textDecoration: task.status === 'completado' ? 'line-through' : 'none',
+                }}>
                   {task.title}
                 </span>
                 <AreaBadge area={task.area} size="xs" />
                 <AssigneeAvatar name={task.assignee} size="sm" />
-                <span
-                  className="text-[10px] font-bold px-1.5 py-0.5 rounded"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.04)', color: '#6b6b6b' }}
+                <span style={{
+                  fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 4,
+                  backgroundColor: C.bg, color: C.muted, flexShrink: 0,
+                }}
                   title={['', 'S1: Copy & Briefs', 'S2: Producción & Diseño', 'S3: Dev & Setup', 'S4: Launch & Optim.'][task.week]}
                 >
                   S{task.week}
@@ -452,16 +428,11 @@ export function ClientDetailPage() {
                   onChange={status => updateStatus.mutate({ id: task.id, status })}
                 />
               </div>
-            ))}
-            {filteredTasks.length === 0 && (
-              <div className="text-center py-12 text-sm" style={{ color: '#585858' }}>
-                No hay tareas para este filtro
-              </div>
-            )}
-          </div>
-        )}
+            ))
+          )}
+        </div>
+
       </div>
-      </div>{/* end px-6 wrapper */}
     </div>
   )
 }
