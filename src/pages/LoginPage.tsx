@@ -55,8 +55,8 @@ export function LoginPage() {
               required
               className="w-full px-3 py-2 rounded-md text-sm outline-none transition-colors"
               style={{
-                backgroundColor: '#13152a',
-                border: '1px solid #1f2240',
+                backgroundColor: '#1c1c1c',
+                border: '1px solid #262626',
                 color: '#e8e9ef',
               }}
               placeholder="tu@beezion.co"
@@ -74,8 +74,8 @@ export function LoginPage() {
               required
               className="w-full px-3 py-2 rounded-md text-sm outline-none"
               style={{
-                backgroundColor: '#13152a',
-                border: '1px solid #1f2240',
+                backgroundColor: '#1c1c1c',
+                border: '1px solid #262626',
                 color: '#e8e9ef',
               }}
             />

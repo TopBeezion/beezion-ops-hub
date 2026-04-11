@@ -1,0 +1,149 @@
+{
+  "name": "Beezion - Meeting → Tasks Auto-Creator",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "beezion-meeting",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "1",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "beezion-meeting-webhook"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "Eres un asistente de operaciones de Beezion, una agencia de growth marketing B2B en LATAM.\n\nCuando recibes el resumen de una reunión, extraes las tareas accionables y las devuelves en formato JSON estricto.\n\nREGLAS DE ASIGNACIÓN:\n- Área 'copy': Tareas de hooks, scripts, anuncios, body copy, CTAs, lead magnets → assignee: 'Alec' o 'Alejandro'\n- Área 'trafico': Tareas de configuración de ads, audiences, campañas, optimización → assignee: 'Alejandro'\n- Área 'tech': Tareas técnicas, CRM, automatizaciones, tracking → assignee: 'Jose Luis'\n- Área 'admin': Tareas de gestión, reportes, llamadas, coordinación → assignee: 'Paula'\n\nCLIENTES DISPONIBLES: Bink, Dapta, Finkargo, OTF, Treble\n\nRespuesta SOLO en JSON válido, sin markdown:\n{\n  \"meeting_title\": \"string\",\n  \"tasks\": [\n    {\n      \"title\": \"string (accionable y específico)\",\n      \"client_name\": \"string | null\",\n      \"area\": \"copy | trafico | tech | admin\",\n      \"assignee\": \"string\",\n      \"priority\": \"alta | media | baja\",\n      \"week\": 1,\n      \"tipo\": \"nuevo | pendiente_anterior | urgente\",\n      \"problema\": \"string | null (contexto del problema que resuelve)\"\n    }\n  ]\n}"
+            },
+            {
+              "role": "user",
+              "content": "=Resumen de reunión:\n\nTítulo: {{ $json.meeting_title }}\nFecha: {{ $json.meeting_date }}\nTranscript/Resumen:\n{{ $json.transcript }}\n\nExtrae todas las tareas accionables."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2",
+      "name": "OpenAI - Extract Tasks",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse the AI response and build the final payload\nconst aiResponse = $input.first().json.message.content;\n\nlet parsed;\ntry {\n  // Remove markdown code blocks if present\n  const clean = aiResponse.replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim();\n  parsed = JSON.parse(clean);\n} catch (e) {\n  throw new Error('Failed to parse AI response: ' + e.message + '\\nRaw: ' + aiResponse);\n}\n\nconst webhookData = $('Webhook Trigger').first().json;\n\nreturn [{\n  json: {\n    meeting_title: parsed.meeting_title || webhookData.meeting_title || 'Reunión sin título',\n    meeting_date: webhookData.meeting_date || new Date().toISOString().slice(0, 10),\n    transcript: webhookData.transcript || '',\n    tasks: parsed.tasks || []\n  }\n}];"
+      },
+      "id": "3",
+      "name": "Build Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://xxjlwwjvhvyadjllcxyy.supabase.co/functions/v1/process-meeting",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $credentials.supabaseAnonKey }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": []
+        },
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "4",
+      "name": "POST to Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1000, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, tasks_created: $json.tasks_created, message: 'Tareas creadas en Beezion Ops Hub' }) }}",
+        "options": {}
+      },
+      "id": "5",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "OpenAI - Extract Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI - Extract Tasks": {
+      "main": [
+        [
+          {
+            "node": "Build Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Payload": {
+      "main": [
+        [
+          {
+            "node": "POST to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST to Supabase": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": ["beezion", "meetings", "automation"],
+  "pinData": {}
+}
