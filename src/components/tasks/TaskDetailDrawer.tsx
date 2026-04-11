@@ -6,10 +6,13 @@ import {
 } from 'lucide-react'
 import { useUpdateTask } from '../../hooks/useTasks'
 import { useClients } from '../../hooks/useClients'
-import type { Task, Area, Priority, TaskStatus, TaskTipo, Deliverables } from '../../types'
+import { useCampaignsByClient } from '../../hooks/useCampaigns'
+import type { Task, Area, Priority, TaskStatus, TaskTipo, Etapa, MiniStatus, Deliverables } from '../../types'
 import {
   AREA_LABELS, AREA_COLORS, STATUS_LABELS, STATUS_COLORS,
   PRIORITY_LABELS, PRIORITY_COLORS,
+  ETAPA_LABELS, ETAPA_COLORS, ETAPA_ORDER,
+  MINI_STATUS_LABELS, MINI_STATUS_COLORS, MINI_STATUS_ORDER,
 } from '../../lib/constants'
 import { getSprintDateRange, formatFullDate } from '../../lib/dates'
 
@@ -80,9 +83,15 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
   const [week,        setWeek]        = useState(task.week)
   const [tipo,        setTipo]        = useState<TaskTipo>(task.tipo)
   const [clientId,    setClientId]    = useState(task.client_id ?? '')
+  const [campaignId,  setCampaignId]  = useState(task.campaign_id ?? '')
+  const [etapa,       setEtapa]       = useState<Etapa | ''>(task.etapa ?? '')
+  const [miniStatus,  setMiniStatus]  = useState<MiniStatus | ''>(task.mini_status ?? '')
+  const [dueDate,     setDueDate]     = useState(task.due_date ?? '')
   const [deliverables, setDeliverables] = useState<Deliverables>(task.deliverables ?? {})
   const [saving,      setSaving]      = useState(false)
   const [saved,       setSaved]       = useState(false)
+
+  const { data: campaigns = [] } = useCampaignsByClient(clientId || undefined)
 
   // Sprint date range
   const sprint = getSprintDateRange(week)
@@ -107,6 +116,10 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
     week !== task.week ||
     tipo !== task.tipo ||
     clientId !== (task.client_id ?? '') ||
+    campaignId !== (task.campaign_id ?? '') ||
+    etapa !== (task.etapa ?? '') ||
+    miniStatus !== (task.mini_status ?? '') ||
+    dueDate !== (task.due_date ?? '') ||
     JSON.stringify(deliverables) !== JSON.stringify(task.deliverables ?? {})
 
   const handleSave = async () => {
@@ -124,6 +137,10 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
         week,
         tipo,
         client_id: clientId || undefined,
+        campaign_id: campaignId || undefined,
+        etapa: etapa || undefined,
+        mini_status: miniStatus || undefined,
+        due_date: dueDate || undefined,
         deliverables: Object.keys(deliverables).length > 0 ? deliverables : undefined,
       })
       setSaved(true)
@@ -379,22 +396,101 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
             )}
           </div>
 
-          {/* ── Cliente ── */}
+          {/* ── Cliente + Campaña ── */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="flex items-center gap-1 mb-1.5" style={sectionLabel}>
+                <Tag size={9} /> Cliente
+              </label>
+              <select
+                value={clientId}
+                onChange={e => { setClientId(e.target.value); setCampaignId('') }}
+                className="px-3 py-2 rounded-lg text-sm w-full"
+                style={{ ...inputBase }}
+              >
+                <option value="">Sin cliente</option>
+                {clients.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="flex items-center gap-1 mb-1.5" style={sectionLabel}>
+                <Zap size={9} /> Campaña
+              </label>
+              <select
+                value={campaignId}
+                onChange={e => setCampaignId(e.target.value)}
+                disabled={!clientId}
+                className="px-3 py-2 rounded-lg text-xs w-full"
+                style={{ ...inputBase, opacity: clientId ? 1 : 0.5 }}
+              >
+                <option value="">Sin campaña</option>
+                {campaigns.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* ── Etapa + Mini Status ── */}
+          {(campaignId || etapa || miniStatus) && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="flex items-center gap-1 mb-1.5" style={sectionLabel}>
+                  <Layers size={9} /> Etapa
+                </label>
+                <select
+                  value={etapa}
+                  onChange={e => setEtapa(e.target.value as Etapa | '')}
+                  className="px-3 py-2 rounded-lg text-xs font-semibold w-full"
+                  style={{
+                    ...inputBase,
+                    color: etapa ? ETAPA_COLORS[etapa as Etapa] : '#9699A6',
+                    backgroundColor: etapa ? `${ETAPA_COLORS[etapa as Etapa]}15` : '#FFFFFF',
+                    border: etapa ? `1px solid ${ETAPA_COLORS[etapa as Etapa]}30` : '1px solid #E6E9EF',
+                  }}
+                >
+                  <option value="">Sin etapa</option>
+                  {ETAPA_ORDER.map(e => <option key={e} value={e}>{ETAPA_LABELS[e]}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="flex items-center gap-1 mb-1.5" style={sectionLabel}>
+                  <Tag size={9} /> Mini status
+                </label>
+                <select
+                  value={miniStatus}
+                  onChange={e => setMiniStatus(e.target.value as MiniStatus | '')}
+                  className="px-3 py-2 rounded-lg text-xs font-semibold w-full"
+                  style={{
+                    ...inputBase,
+                    color: miniStatus ? MINI_STATUS_COLORS[miniStatus as MiniStatus] : '#9699A6',
+                    backgroundColor: miniStatus ? `${MINI_STATUS_COLORS[miniStatus as MiniStatus]}15` : '#FFFFFF',
+                  }}
+                >
+                  <option value="">Sin estado</option>
+                  {MINI_STATUS_ORDER.map(s => <option key={s} value={s}>{MINI_STATUS_LABELS[s]}</option>)}
+                </select>
+              </div>
+            </div>
+          )}
+
+          {/* ── Fecha límite ── */}
           <div>
             <label className="flex items-center gap-1 mb-1.5" style={sectionLabel}>
-              <Tag size={9} /> Cliente
+              <Calendar size={9} /> Fecha límite
             </label>
-            <select
-              value={clientId}
-              onChange={e => setClientId(e.target.value)}
+            <input
+              type="date"
+              value={dueDate}
+              onChange={e => setDueDate(e.target.value)}
               className="px-3 py-2 rounded-lg text-sm w-full"
-              style={{ ...inputBase }}
-            >
-              <option value="">Sin cliente asignado</option>
-              {clients.map(c => (
-                <option key={c.id} value={c.id} style={{ backgroundColor: '#FFFFFF' }}>{c.name}</option>
-              ))}
-            </select>
+              style={{
+                ...inputBase,
+                color: dueDate && new Date(dueDate) < new Date() ? '#E2445C' : '#1F2128',
+              }}
+            />
           </div>
 
           {/* ── Sprint / Fechas ── */}

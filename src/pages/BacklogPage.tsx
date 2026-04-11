@@ -1,12 +1,15 @@
 import { useState } from 'react'
 import {
-  Search, ChevronDown, Plus, ChevronRight, X,
+  Search, Plus, ChevronRight,
 } from 'lucide-react'
 import { useTasks, useUpdateTask, useUpdateTaskStatus } from '../hooks/useTasks'
 import { useClients } from '../hooks/useClients'
 import { useOutletContext } from 'react-router-dom'
-import type { Task, Area, Priority, TaskStatus, TaskFilters } from '../types'
-import { AREA_LABELS, AREA_COLORS, STATUS_LABELS, STATUS_COLORS, PRIORITY_LABELS, PRIORITY_COLORS } from '../lib/constants'
+import type { Task, Area, Priority, TaskStatus, TaskFilters, Etapa } from '../types'
+import {
+  AREA_LABELS, AREA_COLORS, STATUS_LABELS, STATUS_COLORS,
+  PRIORITY_LABELS, PRIORITY_COLORS, ETAPA_LABELS, ETAPA_COLORS, ETAPA_ORDER,
+} from '../lib/constants'
 
 const PRIORITY_CYCLE: Priority[] = ['baja', 'media', 'alta']
 const STATUS_CYCLE: TaskStatus[] = ['pendiente', 'en_progreso', 'revision', 'completado']
@@ -274,6 +277,24 @@ export function BacklogPage() {
           ))}
         </select>
 
+        {/* Etapa Filter */}
+        <select
+          value={filters.etapa || ''}
+          onChange={e => setFilter('etapa', e.target.value)}
+          className="filter-select px-3 py-2 rounded-lg text-sm outline-none cursor-pointer"
+          style={{
+            backgroundColor: filters.etapa ? '#F0F3FF' : '#F6F7FB',
+            border: '1px solid #E6E9EF',
+            color: filters.etapa ? ETAPA_COLORS[filters.etapa as Etapa] : '#9699A6',
+            fontWeight: filters.etapa ? 600 : 400,
+          }}
+        >
+          <option value="">Etapa</option>
+          {ETAPA_ORDER.map(e => (
+            <option key={e} value={e}>{ETAPA_LABELS[e]}</option>
+          ))}
+        </select>
+
         {/* Sprint Filter */}
         <select
           value={filters.week?.toString() || ''}
@@ -389,6 +410,12 @@ export function BacklogPage() {
                 <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: '#676879', width: '150px' }}>
                   Assignee
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: '#676879', width: '110px' }}>
+                  Etapa
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: '#676879', width: '100px' }}>
+                  Fecha límite
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: '#676879', width: '80px' }}>
                   Sprint
                 </th>
@@ -423,7 +450,7 @@ export function BacklogPage() {
 
                   return (
                     <tr key={item.key} style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #ECEDF2' }}>
-                      <td colSpan={7} className="px-6 py-3">
+                      <td colSpan={9} className="px-6 py-3">
                         <button
                           onClick={() => toggleGroupCollapsed(item.groupKey)}
                           className="group-header flex items-center gap-2 w-full font-semibold text-sm hover:opacity-80 transition-opacity"
@@ -530,20 +557,42 @@ export function BacklogPage() {
                       {renderAssigneeAvatar(task.assignee)}
                     </td>
 
+                    {/* Etapa */}
+                    <td className="px-6 py-4">
+                      {task.etapa ? (
+                        <span style={{
+                          fontSize: 11, fontWeight: 600,
+                          color: ETAPA_COLORS[task.etapa],
+                          backgroundColor: `${ETAPA_COLORS[task.etapa]}15`,
+                          padding: '2px 8px', borderRadius: 6,
+                          border: `1px solid ${ETAPA_COLORS[task.etapa]}30`,
+                        }}>
+                          {ETAPA_LABELS[task.etapa].split(' ')[0]}
+                        </span>
+                      ) : <span style={{ color: '#9699A6' }}>—</span>}
+                    </td>
+
+                    {/* Due Date */}
+                    <td className="px-6 py-4">
+                      {task.due_date ? (
+                        <span style={{
+                          fontSize: 11, fontWeight: 600,
+                          color: new Date(task.due_date) < new Date() ? '#E2445C' : '#676879',
+                        }}>
+                          {new Date(task.due_date).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })}
+                        </span>
+                      ) : <span style={{ color: '#9699A6' }}>—</span>}
+                    </td>
+
                     {/* Sprint */}
                     <td className="px-6 py-4">
                       {task.week ? (
-                        <span
-                          style={{
-                            backgroundColor: '#F0F3FF',
-                            color: '#3B82F6',
-                            padding: '4px 8px',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            fontWeight: '600',
-                            border: '1px solid #BFDBFE',
-                          }}
-                        >
+                        <span style={{
+                          backgroundColor: '#F0F3FF', color: '#3B82F6',
+                          padding: '4px 8px', borderRadius: '6px',
+                          fontSize: '12px', fontWeight: '600',
+                          border: '1px solid #BFDBFE',
+                        }}>
                           S{task.week}
                         </span>
                       ) : (
