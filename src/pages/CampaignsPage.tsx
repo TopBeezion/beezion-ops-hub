@@ -146,7 +146,7 @@ function CampaignCard({
                 : <ChevronRight size={14} />
               }
             </div>
-            <span style={{ fontSize: '13px', fontWeight: 600, color: '#1F2128', truncate: true }}>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: '#1F2128', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {campaign.name}
             </span>
             {/* Type badge */}
