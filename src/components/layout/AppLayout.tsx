@@ -11,6 +11,8 @@ import type { Task } from '../../types'
 
 const ROUTE_TITLES: Record<string, string> = {
   '/': 'Dashboard',
+  '/bomberos': '🔥 Bomberos',
+  '/campaigns': 'Campañas',
   '/backlog': 'Backlog',
   '/kanban': 'Kanban',
   '/timeline': 'Timeline',

@@ -167,17 +167,18 @@ export function BacklogPage() {
       >
         {/* Search */}
         <div className="relative">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#9699A6' }} />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#9699A6' }} />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search tasks..."
+            placeholder="Buscar tareas..."
             className="filter-search pl-9 pr-4 py-2 rounded-lg text-sm outline-none"
             style={{
               backgroundColor: '#F6F7FB',
-              border: '1px solid #E6E9EF',
-              color: '#1F2128',
-              width: '240px',
+              border: '1px solid #E4E7F0',
+              color: '#1A1D27',
+              fontSize: 12,
+              width: '220px',
             }}
           />
         </div>
@@ -188,17 +189,14 @@ export function BacklogPage() {
           onChange={e => setFilter('client_id', e.target.value)}
           className="filter-select px-3 py-2 rounded-lg text-sm outline-none cursor-pointer"
           style={{
-            backgroundColor: filters.client_id ? '#F0F3FF' : '#F6F7FB',
-            border: '1px solid #E6E9EF',
-            color: filters.client_id ? '#1F2128' : '#9699A6',
+            backgroundColor: filters.client_id ? '#EEF2FF' : '#F6F7FB',
+            border: `1px solid ${filters.client_id ? '#6366F1' : '#E4E7F0'}`,
+            color: filters.client_id ? '#4F46E5' : '#9699A6',
+            fontSize: 12, fontWeight: filters.client_id ? 600 : 400,
           }}
         >
-          <option value="">Client</option>
-          {clients.map(c => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
+          <option value="">Cliente</option>
+          {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
 
         {/* Area Filter */}
@@ -207,16 +205,15 @@ export function BacklogPage() {
           onChange={e => setFilter('area', e.target.value)}
           className="filter-select px-3 py-2 rounded-lg text-sm outline-none cursor-pointer"
           style={{
-            backgroundColor: filters.area ? '#F0F3FF' : '#F6F7FB',
-            border: '1px solid #E6E9EF',
-            color: filters.area ? '#1F2128' : '#9699A6',
+            backgroundColor: filters.area ? '#EEF2FF' : '#F6F7FB',
+            border: `1px solid ${filters.area ? '#6366F1' : '#E4E7F0'}`,
+            color: filters.area ? '#4F46E5' : '#9699A6',
+            fontSize: 12, fontWeight: filters.area ? 600 : 400,
           }}
         >
-          <option value="">Area</option>
+          <option value="">Área</option>
           {(['copy', 'trafico', 'tech', 'admin'] as Area[]).map(a => (
-            <option key={a} value={a}>
-              {AREA_LABELS[a]}
-            </option>
+            <option key={a} value={a}>{AREA_LABELS[a]}</option>
           ))}
         </select>
 
@@ -226,17 +223,14 @@ export function BacklogPage() {
           onChange={e => setFilter('assignee', e.target.value)}
           className="filter-select px-3 py-2 rounded-lg text-sm outline-none cursor-pointer"
           style={{
-            backgroundColor: filters.assignee ? '#F0F3FF' : '#F6F7FB',
-            border: '1px solid #E6E9EF',
-            color: filters.assignee ? '#1F2128' : '#9699A6',
+            backgroundColor: filters.assignee ? '#EEF2FF' : '#F6F7FB',
+            border: `1px solid ${filters.assignee ? '#6366F1' : '#E4E7F0'}`,
+            color: filters.assignee ? '#4F46E5' : '#9699A6',
+            fontSize: 12, fontWeight: filters.assignee ? 600 : 400,
           }}
         >
-          <option value="">Assignee</option>
-          {TEAM_MEMBERS.map(m => (
-            <option key={m} value={m}>
-              {m}
-            </option>
-          ))}
+          <option value="">Asignado</option>
+          {TEAM_MEMBERS.map(m => <option key={m} value={m}>{m}</option>)}
         </select>
 
         {/* Status Filter */}
@@ -245,16 +239,15 @@ export function BacklogPage() {
           onChange={e => setFilter('status', e.target.value)}
           className="filter-select px-3 py-2 rounded-lg text-sm outline-none cursor-pointer"
           style={{
-            backgroundColor: filters.status ? '#F0F3FF' : '#F6F7FB',
-            border: '1px solid #E6E9EF',
-            color: filters.status ? '#1F2128' : '#9699A6',
+            backgroundColor: filters.status ? '#EEF2FF' : '#F6F7FB',
+            border: `1px solid ${filters.status ? '#6366F1' : '#E4E7F0'}`,
+            color: filters.status ? '#4F46E5' : '#9699A6',
+            fontSize: 12, fontWeight: filters.status ? 600 : 400,
           }}
         >
-          <option value="">Status</option>
+          <option value="">Estado</option>
           {(['pendiente', 'en_progreso', 'revision', 'completado'] as TaskStatus[]).map(s => (
-            <option key={s} value={s}>
-              {STATUS_LABELS[s]}
-            </option>
+            <option key={s} value={s}>{STATUS_LABELS[s]}</option>
           ))}
         </select>
 
@@ -264,16 +257,15 @@ export function BacklogPage() {
           onChange={e => setFilter('priority', e.target.value)}
           className="filter-select px-3 py-2 rounded-lg text-sm outline-none cursor-pointer"
           style={{
-            backgroundColor: filters.priority ? '#F0F3FF' : '#F6F7FB',
-            border: '1px solid #E6E9EF',
-            color: filters.priority ? '#1F2128' : '#9699A6',
+            backgroundColor: filters.priority ? '#EEF2FF' : '#F6F7FB',
+            border: `1px solid ${filters.priority ? '#6366F1' : '#E4E7F0'}`,
+            color: filters.priority ? '#4F46E5' : '#9699A6',
+            fontSize: 12, fontWeight: filters.priority ? 600 : 400,
           }}
         >
-          <option value="">Priority</option>
+          <option value="">Prioridad</option>
           {(['baja', 'media', 'alta'] as Priority[]).map(p => (
-            <option key={p} value={p}>
-              {PRIORITY_LABELS[p]}
-            </option>
+            <option key={p} value={p}>{PRIORITY_LABELS[p]}</option>
           ))}
         </select>
 
@@ -320,17 +312,18 @@ export function BacklogPage() {
           onChange={e => setGroupBy(e.target.value as GroupByOption)}
           className="filter-select px-3 py-2 rounded-lg text-sm outline-none cursor-pointer"
           style={{
-            backgroundColor: groupBy !== 'none' ? '#F0F3FF' : '#F6F7FB',
-            border: '1px solid #E6E9EF',
-            color: groupBy !== 'none' ? '#1F2128' : '#9699A6',
+            backgroundColor: groupBy !== 'none' ? '#EEF2FF' : '#F6F7FB',
+            border: `1px solid ${groupBy !== 'none' ? '#6366F1' : '#E4E7F0'}`,
+            color: groupBy !== 'none' ? '#4F46E5' : '#9699A6',
+            fontSize: 12, fontWeight: groupBy !== 'none' ? 600 : 400,
           }}
         >
-          <option value="none">Group by</option>
-          <option value="status">Status</option>
-          <option value="client">Client</option>
-          <option value="assignee">Assignee</option>
-          <option value="priority">Priority</option>
-          <option value="area">Area</option>
+          <option value="none">Agrupar por</option>
+          <option value="status">Estado</option>
+          <option value="client">Cliente</option>
+          <option value="assignee">Asignado</option>
+          <option value="priority">Prioridad</option>
+          <option value="area">Área</option>
         </select>
 
         {/* Active filters indicator */}
@@ -342,28 +335,32 @@ export function BacklogPage() {
               backgroundColor: '#FEF2F2',
               color: '#DC2626',
               border: '1px solid #FCA5A5',
+              fontSize: 12,
             }}
           >
-            Clear {activeFilterCount}
+            Limpiar ({activeFilterCount})
           </button>
         )}
 
         {/* Right section */}
         <div className="ml-auto flex items-center gap-3">
-          <span style={{ color: '#9699A6', fontSize: '13px', fontWeight: '500' }}>
-            {filteredTasks.length} {filteredTasks.length === 1 ? 'task' : 'tasks'}
+          <span style={{ color: '#9699A6', fontSize: 12, fontWeight: 500 }}>
+            {filteredTasks.length} {filteredTasks.length === 1 ? 'tarea' : 'tareas'}
           </span>
           {ctx?.openNewTask && (
             <button
               onClick={ctx.openNewTask}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors hover:bg-blue-600"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors"
               style={{
-                backgroundColor: '#3B82F6',
+                backgroundColor: '#6366F1',
                 color: '#FFFFFF',
+                fontSize: 12,
               }}
+              onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#4F46E5')}
+              onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#6366F1')}
             >
-              <Plus size={16} strokeWidth={2.5} />
-              New task
+              <Plus size={14} strokeWidth={2.5} />
+              Nueva tarea
             </button>
           )}
         </div>
@@ -384,7 +381,7 @@ export function BacklogPage() {
         <div className="flex items-center justify-center flex-1" style={{ color: '#9699A6' }}>
           <div className="text-center">
             <p className="text-sm font-medium mb-1" style={{ color: '#676879' }}>No hay tareas</p>
-            <p className="text-xs" style={{ color: '#9699A6' }}>Try adjusting your filters or create a new task</p>
+            <p className="text-xs" style={{ color: '#9699A6' }}>Ajusta los filtros o crea una nueva tarea</p>
           </div>
         </div>
       ) : (
@@ -392,32 +389,32 @@ export function BacklogPage() {
           <table className="task-table w-full text-sm border-collapse">
             <thead className="sticky top-0 z-10" style={{ backgroundColor: '#FFFFFF', borderBottom: '1px solid #ECEDF2' }}>
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: '#676879', width: '300px' }}>
-                  Title
+                <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: '#9699B0', width: '300px', letterSpacing: '0.04em' }}>
+                  TAREA
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: '#676879', width: '140px' }}>
-                  Client
+                <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: '#9699B0', width: '140px', letterSpacing: '0.04em' }}>
+                  CLIENTE
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: '#676879', width: '110px' }}>
-                  Status
+                <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: '#9699B0', width: '110px', letterSpacing: '0.04em' }}>
+                  ESTADO
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: '#676879', width: '100px' }}>
-                  Priority
+                <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: '#9699B0', width: '100px', letterSpacing: '0.04em' }}>
+                  PRIORIDAD
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: '#676879', width: '100px' }}>
-                  Area
+                <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: '#9699B0', width: '100px', letterSpacing: '0.04em' }}>
+                  ÁREA
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: '#676879', width: '150px' }}>
-                  Assignee
+                <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: '#9699B0', width: '150px', letterSpacing: '0.04em' }}>
+                  ASIGNADO
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: '#676879', width: '110px' }}>
-                  Etapa
+                <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: '#9699B0', width: '110px', letterSpacing: '0.04em' }}>
+                  ETAPA
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: '#676879', width: '100px' }}>
-                  Fecha límite
+                <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: '#9699B0', width: '100px', letterSpacing: '0.04em' }}>
+                  FECHA LÍMITE
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: '#676879', width: '80px' }}>
-                  Sprint
+                <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: '#9699B0', width: '80px', letterSpacing: '0.04em' }}>
+                  SPRINT
                 </th>
               </tr>
             </thead>

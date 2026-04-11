@@ -18,20 +18,16 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import {
   GripVertical,
-  Plus,
   Filter,
   Clock,
   AlertTriangle,
-  Zap,
 } from 'lucide-react'
 import type { Task, TaskStatus, Area, Client } from '../types'
 import {
-  STATUS_LABELS,
-  STATUS_COLORS,
   AREA_LABELS,
   AREA_COLORS,
-  PRIORITY_LABELS,
   PRIORITY_COLORS,
+  ASSIGNEE_COLORS,
 } from '../lib/constants'
 
 const COLUMNS: { id: TaskStatus; label: string; color: string }[] = [
@@ -40,16 +36,6 @@ const COLUMNS: { id: TaskStatus; label: string; color: string }[] = [
   { id: 'revision', label: 'En Revisión', color: '#FDAB3D' },
   { id: 'completado', label: 'Completado', color: '#00C875' },
 ]
-
-const ASSIGNEE_COLORS: Record<string, string> = {
-  Alejandro: '#8b5cf6',
-  Alec: '#f59e0b',
-  Paula: '#ec4899',
-  'Jose Luis': '#3b82f6',
-  'Editor 1': '#06b6d4',
-  'Editor 2': '#10b981',
-  'Editor 3': '#f97316',
-}
 
 interface DraggableTaskCardProps {
   task: Task
@@ -274,7 +260,7 @@ export function KanbanPage() {
   const { data: tasks = [] } = useTasks()
   const { data: clients = [] } = useClients()
   const { data: team = [] } = useTeam()
-  const { openNewTask, openTaskDetail } = useOutletContext<{
+  const { openTaskDetail } = useOutletContext<{
     openNewTask: () => void
     openTaskDetail: (task: Task) => void
   }>()
@@ -341,94 +327,53 @@ export function KanbanPage() {
     >
       {/* Filter Bar */}
       <div
-        className="px-6 py-4 border-b"
-        style={{ borderColor: '#ECEDF2', backgroundColor: '#FFFFFF' }}
+        className="px-5 py-3 border-b flex items-center gap-3 flex-wrap"
+        style={{ borderColor: '#E4E7F0', backgroundColor: '#FFFFFF' }}
       >
-        <div className="flex items-center justify-between gap-4 mb-4">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold" style={{ color: '#1F2128' }}>
-              Tablero Kanban
-            </h1>
-            <span
-              className="text-sm px-2 py-1 rounded"
-              style={{
-                backgroundColor: '#E0E7FF',
-                color: '#4F46E5',
-              }}
-            >
-              {totalTasks} tareas
-            </span>
-          </div>
-          <button
-            onClick={openNewTask}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:shadow-md"
-            style={{
-              backgroundColor: '#4F46E5',
-              color: '#FFFFFF',
-            }}
-          >
-            <Plus size={18} />
-            Nueva tarea
-          </button>
+        <div className="flex items-center gap-2 mr-2">
+          <Filter size={14} style={{ color: '#9699B0' }} />
+          <span style={{ fontSize: 12, fontWeight: 600, color: '#9699B0' }}>Filtrar:</span>
         </div>
 
-        {/* Filters */}
-        <div className="flex items-center gap-3">
-          <Filter size={18} style={{ color: '#676879' }} />
+        <select
+          value={filterClient}
+          onChange={(e) => setFilterClient(e.target.value)}
+          className="text-sm rounded-lg border transition-colors"
+          style={{ backgroundColor: '#F8F9FC', borderColor: '#E4E7F0', color: '#1A1D27', fontSize: 12, padding: '5px 10px' }}
+        >
+          <option value="">Todos los clientes</option>
+          {clients.map((client) => (
+            <option key={client.id} value={client.id}>{client.name}</option>
+          ))}
+        </select>
 
-          <select
-            value={filterClient}
-            onChange={(e) => setFilterClient(e.target.value)}
-            className="text-sm px-3 py-1.5 rounded-lg border transition-colors"
-            style={{
-              backgroundColor: '#FFFFFF',
-              borderColor: '#ECEDF2',
-              color: '#1F2128',
-            }}
-          >
-            <option value="">Todos los clientes</option>
-            {clients.map((client) => (
-              <option key={client.id} value={client.id}>
-                {client.name}
-              </option>
-            ))}
-          </select>
+        <select
+          value={filterArea}
+          onChange={(e) => setFilterArea(e.target.value)}
+          className="text-sm rounded-lg border transition-colors"
+          style={{ backgroundColor: '#F8F9FC', borderColor: '#E4E7F0', color: '#1A1D27', fontSize: 12, padding: '5px 10px' }}
+        >
+          <option value="">Todas las áreas</option>
+          {(Object.entries(AREA_LABELS) as [string, string][]).map(([key, label]) => (
+            <option key={key} value={key}>{label}</option>
+          ))}
+        </select>
 
-          <select
-            value={filterArea}
-            onChange={(e) => setFilterArea(e.target.value)}
-            className="text-sm px-3 py-1.5 rounded-lg border transition-colors"
-            style={{
-              backgroundColor: '#FFFFFF',
-              borderColor: '#ECEDF2',
-              color: '#1F2128',
-            }}
-          >
-            <option value="">Todas las áreas</option>
-            <option value="diseno">Diseño</option>
-            <option value="desarrollo">Desarrollo</option>
-            <option value="marketing">Marketing</option>
-            <option value="soporte">Soporte</option>
-          </select>
+        <select
+          value={filterAssignee}
+          onChange={(e) => setFilterAssignee(e.target.value)}
+          className="text-sm rounded-lg border transition-colors"
+          style={{ backgroundColor: '#F8F9FC', borderColor: '#E4E7F0', color: '#1A1D27', fontSize: 12, padding: '5px 10px' }}
+        >
+          <option value="">Todos los asignados</option>
+          {team.map((member) => (
+            <option key={member.id} value={member.name}>{member.name}</option>
+          ))}
+        </select>
 
-          <select
-            value={filterAssignee}
-            onChange={(e) => setFilterAssignee(e.target.value)}
-            className="text-sm px-3 py-1.5 rounded-lg border transition-colors"
-            style={{
-              backgroundColor: '#FFFFFF',
-              borderColor: '#ECEDF2',
-              color: '#1F2128',
-            }}
-          >
-            <option value="">Todos los asignados</option>
-            {team.map((member) => (
-              <option key={member.id} value={member.id}>
-                {member.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <span style={{ fontSize: 11, color: '#9699B0', marginLeft: 'auto', fontWeight: 500 }}>
+          {totalTasks} tareas
+        </span>
       </div>
 
       {/* Kanban Columns */}
