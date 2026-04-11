@@ -6,6 +6,17 @@ import type { Task } from '../types'
 import { AREA_COLORS, AREA_LABELS, STATUS_COLORS, STATUS_LABELS } from '../lib/constants'
 import { X, ChevronDown, ChevronUp, Zap } from 'lucide-react'
 
+// ─── Design tokens ─────────────────────────────────────────────────────────────
+const C = {
+  bg: '#F0F2F8',
+  card: '#FFFFFF',
+  border: '#E4E7F0',
+  text: '#1A1D27',
+  sub: '#5A5E72',
+  muted: '#9699B0',
+  headerBg: '#FFFFFF',
+}
+
 const WEEKS = [1, 2, 3, 4] as const
 
 const SPRINT_META: Record<number, { label: string; sub: string; color: string; owner: string }> = {
@@ -34,10 +45,10 @@ function ProgressRing({ value, max, color, size = 44 }: { value: number; max: nu
   const pct = max > 0 ? value / max : 0
   return (
     <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth={2.5} />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={C.border} strokeWidth={2.5} />
       <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={2.5}
         strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={circ * (1 - pct)}
-        style={{ transition: 'stroke-dashoffset 0.7s cubic-bezier(0.4,0,0.2,1)' }}
+        style={{ transition: 'stroke-dashoffset 0.7s ease' }}
       />
     </svg>
   )
@@ -49,43 +60,40 @@ function DeliverableChips({ task, isDone }: { task: Task; isDone: boolean }) {
   if (!d) return null
 
   const chips: { label: string; count: number; color: string }[] = []
-  if (d.hooks)           chips.push({ label: 'hooks',   count: d.hooks,           color: '#8b5cf6' })
-  if (d.scripts_video)   chips.push({ label: 'scripts', count: d.scripts_video,   color: '#ec4899' })
-  if (d.body_copy)       chips.push({ label: 'body',    count: d.body_copy,        color: '#3b82f6' })
-  if (d.cta)             chips.push({ label: 'CTA',     count: d.cta,              color: '#f5a623' })
-  if (d.lead_magnet_pdf) chips.push({ label: 'LM',      count: d.lead_magnet_pdf,  color: '#22c55e' })
-  if (d.vsl_script)      chips.push({ label: 'VSL',     count: d.vsl_script,       color: '#06b6d4' })
-  if (d.landing_copy)    chips.push({ label: 'landing', count: d.landing_copy,     color: '#f97316' })
-  if (d.carousel_slides) chips.push({ label: 'slides',  count: d.carousel_slides,  color: '#a78bfa' })
-  if (d.headline_options)chips.push({ label: 'hdl',     count: d.headline_options, color: '#f472b6' })
+  if (d.hooks)           chips.push({ label: 'hooks',   count: d.hooks,            color: '#8b5cf6' })
+  if (d.scripts_video)   chips.push({ label: 'scripts', count: d.scripts_video,    color: '#ec4899' })
+  if (d.body_copy)       chips.push({ label: 'body',    count: d.body_copy,         color: '#3b82f6' })
+  if (d.cta)             chips.push({ label: 'CTA',     count: d.cta,               color: '#f5a623' })
+  if (d.lead_magnet_pdf) chips.push({ label: 'LM',      count: d.lead_magnet_pdf,   color: '#22c55e' })
+  if (d.vsl_script)      chips.push({ label: 'VSL',     count: d.vsl_script,        color: '#06b6d4' })
+  if (d.landing_copy)    chips.push({ label: 'landing', count: d.landing_copy,      color: '#f97316' })
+  if (d.carousel_slides) chips.push({ label: 'slides',  count: d.carousel_slides,   color: '#a78bfa' })
+  if (d.headline_options)chips.push({ label: 'hdl',     count: d.headline_options,  color: '#f472b6' })
   if (d.retargeting_scripts) chips.push({ label: 'retarg', count: d.retargeting_scripts, color: '#34d399' })
-
   if (chips.length === 0) return null
 
   const visible = chips.slice(0, 3)
   const extra   = chips.length - 3
 
   return (
-    <div className="flex flex-wrap gap-1 mt-1.5">
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 5 }}>
       {visible.map(({ label, count, color }) => (
-        <span
-          key={label}
-          className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-bold leading-none"
-          style={{
-            backgroundColor: isDone ? 'rgba(255,255,255,0.03)' : `${color}15`,
-            color: isDone ? '#303030' : color,
-            border: `1px solid ${isDone ? 'rgba(255,255,255,0.04)' : `${color}30`}`,
-          }}
-        >
-          <span style={{ color: isDone ? '#303030' : color, fontWeight: 900 }}>{count}</span>
-          &nbsp;{label}
+        <span key={label} style={{
+          display: 'inline-flex', alignItems: 'center', gap: 2,
+          padding: '1px 5px', borderRadius: 4, fontSize: 9, fontWeight: 700,
+          backgroundColor: isDone ? C.bg : `${color}12`,
+          color: isDone ? C.muted : color,
+          border: `1px solid ${isDone ? C.border : `${color}25`}`,
+        }}>
+          <span style={{ fontWeight: 900 }}>{count}</span>&nbsp;{label}
         </span>
       ))}
       {extra > 0 && (
-        <span
-          className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] font-bold leading-none"
-          style={{ backgroundColor: 'rgba(255,255,255,0.04)', color: '#585858' }}
-        >
+        <span style={{
+          display: 'inline-flex', alignItems: 'center',
+          padding: '1px 5px', borderRadius: 4, fontSize: 9, fontWeight: 700,
+          backgroundColor: C.bg, color: C.muted, border: `1px solid ${C.border}`,
+        }}>
           +{extra}
         </span>
       )}
@@ -100,74 +108,76 @@ function TaskCard({ task, onOpen }: { task: Task; onOpen?: (t: Task) => void }) 
   const isDone      = task.status === 'completado'
   const isUrgent    = task.tipo === 'urgente'
   const initials    = ASSIGNEE_INITIALS[task.assignee] ?? task.assignee.slice(0, 2).toUpperCase()
-  const avatarColor = ASSIGNEE_COLORS[task.assignee] ?? '#6b7280'
+  const avatarColor = ASSIGNEE_COLORS[task.assignee] ?? '#6366F1'
   const hasDeliverables = task.deliverables && Object.values(task.deliverables).some(v => v && v > 0)
 
   return (
     <button
       onClick={() => onOpen?.(task)}
-      className="group relative rounded-lg overflow-hidden text-left w-full"
       style={{
-        backgroundColor: isDone ? 'rgba(255,255,255,0.02)' : 'rgba(26,26,26,0.9)',
+        display: 'block', width: '100%', textAlign: 'left',
+        backgroundColor: isDone ? C.bg : C.card,
         border: isUrgent
-          ? '1px solid rgba(239,68,68,0.4)'
+          ? '1px solid rgba(239,68,68,0.35)'
           : isDone
-          ? '1px solid rgba(255,255,255,0.04)'
-          : '1px solid rgba(255,255,255,0.08)',
-        borderLeft: `3px solid ${isDone ? '#222222' : statusColor}`,
+          ? `1px solid ${C.border}`
+          : `1px solid ${C.border}`,
+        borderLeft: `3px solid ${isDone ? C.border : statusColor}`,
+        borderRadius: 7, overflow: 'hidden',
         transition: 'all 150ms ease',
         cursor: onOpen ? 'pointer' : 'default',
+        position: 'relative',
       }}
       title={`${task.title} · ${task.assignee} · ${STATUS_LABELS[task.status]}`}
+      onMouseEnter={e => { if (!isDone) (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)' }}
+      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = 'none' }}
     >
       {isUrgent && (
-        <div className="absolute inset-0 pointer-events-none rounded-lg" style={{ boxShadow: 'inset 0 0 12px rgba(239,68,68,0.08)' }} />
+        <div style={{ position: 'absolute', inset: 0, borderRadius: 7, boxShadow: 'inset 0 0 0 1px rgba(239,68,68,0.15)', pointerEvents: 'none' }} />
       )}
-
-      <div className="px-2.5 py-2">
-        {/* Urgency tag */}
+      <div style={{ padding: '8px 10px' }}>
         {isUrgent && (
-          <div className="flex items-center gap-1 mb-1">
-            <span className="text-[8px] font-bold px-1 py-0.5 rounded" style={{ backgroundColor: 'rgba(239,68,68,0.15)', color: '#ef4444' }}>
-              <Zap size={8} style={{ display: 'inline' }} /> URGENTE
+          <div style={{ marginBottom: 4 }}>
+            <span style={{
+              fontSize: 8, fontWeight: 800, padding: '1px 5px', borderRadius: 3,
+              backgroundColor: '#FEF2F2', color: '#EF4444',
+              display: 'inline-flex', alignItems: 'center', gap: 2,
+            }}>
+              <Zap size={7} /> URGENTE
             </span>
           </div>
         )}
-
-        {/* Title */}
-        <p
-          className="text-[11px] font-medium leading-snug"
-          style={{
-            color: isDone ? '#585858' : '#e0e0e0',
-            textDecoration: isDone ? 'line-through' : 'none',
-          }}
-        >
+        <p style={{
+          fontSize: 11, fontWeight: 500, lineHeight: 1.4,
+          color: isDone ? C.muted : C.text,
+          textDecoration: isDone ? 'line-through' : 'none',
+        }}>
           {task.title}
         </p>
-
-        {/* Deliverables breakdown */}
         {hasDeliverables && <DeliverableChips task={task} isDone={isDone} />}
-
-        {/* Footer row */}
-        <div className={`flex items-center justify-between gap-1 ${hasDeliverables ? 'mt-2' : 'mt-1.5'}`} style={{ borderTop: hasDeliverables ? '1px solid rgba(255,255,255,0.05)' : 'none', paddingTop: hasDeliverables ? '6px' : 0 }}>
-          <span
-            className="text-[9px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wide leading-none"
-            style={{
-              backgroundColor: isDone ? 'rgba(255,255,255,0.03)' : `${areaColor}15`,
-              color: isDone ? '#303030' : areaColor,
-              border: `1px solid ${isDone ? 'rgba(255,255,255,0.04)' : `${areaColor}28`}`,
-            }}
-          >
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4,
+          marginTop: hasDeliverables ? 6 : 5,
+          borderTop: hasDeliverables ? `1px solid ${C.border}` : 'none',
+          paddingTop: hasDeliverables ? 5 : 0,
+        }}>
+          <span style={{
+            fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 4,
+            backgroundColor: isDone ? C.bg : `${areaColor}12`,
+            color: isDone ? C.muted : areaColor,
+            border: `1px solid ${isDone ? C.border : `${areaColor}25`}`,
+            textTransform: 'uppercase', letterSpacing: '0.04em',
+          }}>
             {AREA_LABELS[task.area]}
           </span>
-          <div
-            className="w-4 h-4 rounded-full flex items-center justify-center text-[7px] font-bold shrink-0"
-            style={{
-              background: isDone ? 'rgba(255,255,255,0.04)' : `linear-gradient(135deg, ${avatarColor}40, ${avatarColor}20)`,
-              color: isDone ? '#303030' : avatarColor,
-              border: `1px solid ${isDone ? 'rgba(255,255,255,0.05)' : `${avatarColor}40`}`,
-            }}
-          >
+          <div style={{
+            width: 16, height: 16, borderRadius: '50%',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 7, fontWeight: 800, flexShrink: 0,
+            background: isDone ? C.bg : `linear-gradient(135deg, ${avatarColor}30, ${avatarColor}15)`,
+            color: isDone ? C.muted : avatarColor,
+            border: `1px solid ${isDone ? C.border : `${avatarColor}35`}`,
+          }}>
             {initials}
           </div>
         </div>
@@ -186,60 +196,48 @@ function SprintHeader({ week, tasks }: { week: number; tasks: Task[] }) {
   const pct      = total > 0 ? Math.round((done / total) * 100) : 0
 
   return (
-    <div
-      className="px-4 py-3.5 flex flex-col gap-2.5"
-      style={{
-        borderRight: '1px solid rgba(255,255,255,0.05)',
-        borderBottom: '1px solid rgba(255,255,255,0.07)',
-        background: `linear-gradient(180deg, ${meta.color}08 0%, transparent 100%)`,
-      }}
-    >
-      {/* Top row: label + ring */}
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-2">
-          <div
-            className="w-2 h-2 rounded-full shrink-0"
-            style={{ backgroundColor: meta.color, boxShadow: `0 0 8px ${meta.color}` }}
-          />
+    <div style={{
+      padding: '12px 14px',
+      borderRight: `1px solid ${C.border}`,
+      borderBottom: `1px solid ${C.border}`,
+      background: `linear-gradient(180deg, ${meta.color}08 0%, transparent 100%)`,
+      borderTop: `3px solid ${meta.color}`,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+          <div style={{
+            width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+            backgroundColor: meta.color,
+          }} />
           <div>
-            <p className="text-[13px] font-bold leading-none" style={{ color: '#f5f5f5' }}>{meta.label}</p>
-            <p className="text-[10px] mt-0.5 leading-none" style={{ color: '#6b6b6b' }}>{meta.sub}</p>
+            <p style={{ fontSize: 13, fontWeight: 700, color: C.text, lineHeight: 1.2 }}>{meta.label}</p>
+            <p style={{ fontSize: 10, color: C.muted, marginTop: 1 }}>{meta.sub}</p>
           </div>
         </div>
-        <div className="relative shrink-0">
-          <ProgressRing value={done} max={total} color={meta.color} size={38} />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-[9px] font-bold tabular-nums" style={{ color: meta.color }}>{pct}%</span>
+        <div style={{ position: 'relative', flexShrink: 0 }}>
+          <ProgressRing value={done} max={total} color={meta.color} size={36} />
+          <div style={{
+            position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 8, fontWeight: 800, color: meta.color,
+          }}>
+            {pct}%
           </div>
         </div>
       </div>
-
-      {/* Progress bar */}
-      <div className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
-        <div
-          className="h-full rounded-full"
-          style={{
-            width: `${pct}%`,
-            background: `linear-gradient(90deg, ${meta.color}, ${meta.color}88)`,
-            transition: 'width 0.7s cubic-bezier(0.4,0,0.2,1)',
-          }}
-        />
+      <div style={{ height: 3, backgroundColor: C.border, borderRadius: 2, overflow: 'hidden', marginBottom: 7 }}>
+        <div style={{
+          height: '100%', width: `${pct}%`,
+          background: `linear-gradient(90deg, ${meta.color}, ${meta.color}88)`,
+          borderRadius: 2, transition: 'width 0.7s ease',
+        }} />
       </div>
-
-      {/* Stats row */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <span className="text-[10px] font-bold tabular-nums" style={{ color: meta.color }}>
-            {done}/{total}
-          </span>
-          {inProg > 0 && (
-            <span className="text-[9px] font-medium" style={{ color: '#3b82f6' }}>◷{inProg}</span>
-          )}
-          {revision > 0 && (
-            <span className="text-[9px] font-medium" style={{ color: '#f59e0b' }}>⟳{revision}</span>
-          )}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: meta.color }}>{done}/{total}</span>
+          {inProg > 0 && <span style={{ fontSize: 9, color: '#3b82f6' }}>◷{inProg}</span>}
+          {revision > 0 && <span style={{ fontSize: 9, color: '#f59e0b' }}>⟳{revision}</span>}
         </div>
-        <span className="text-[9px]" style={{ color: '#585858' }}>{meta.owner}</span>
+        <span style={{ fontSize: 9, color: C.muted }}>{meta.owner}</span>
       </div>
     </div>
   )
@@ -252,54 +250,43 @@ function ClientLabel({ client, tasks }: { client: { id: string; name: string; co
   const pct   = total > 0 ? Math.round((done / total) * 100) : 0
 
   return (
-    <div
-      className="px-4 py-4 sticky left-0 flex flex-col justify-between"
-      style={{
-        borderRight: '1px solid rgba(255,255,255,0.05)',
-        backgroundColor: '#0f0f0f',
-        borderTop: `2px solid ${client.color}`,
-        minHeight: '100%',
-      }}
-    >
-      {/* Client name */}
+    <div style={{
+      padding: '14px 14px',
+      position: 'sticky', left: 0,
+      borderRight: `1px solid ${C.border}`,
+      backgroundColor: C.card,
+      borderTop: `3px solid ${client.color}`,
+      display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+      minHeight: '100%',
+    }}>
       <div>
-        <div className="flex items-center gap-2 mb-1">
-          <div
-            className="w-2 h-2 rounded-full shrink-0"
-            style={{ backgroundColor: client.color, boxShadow: `0 0 6px ${client.color}` }}
-          />
-          <span className="text-[13px] font-bold leading-tight" style={{ color: '#f5f5f5' }}>
-            {client.name}
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 3 }}>
+          <div style={{
+            width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+            backgroundColor: client.color,
+          }} />
+          <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{client.name}</span>
         </div>
-        <p className="text-[10px] ml-4" style={{ color: '#6b6b6b' }}>
-          {done}/{total} tareas
-        </p>
+        <p style={{ fontSize: 10, color: C.muted, paddingLeft: 15 }}>{done}/{total} tareas</p>
       </div>
-
-      {/* Mini progress */}
-      <div className="mt-3">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-[9px] font-bold" style={{ color: client.color }}>{pct}%</span>
+      <div style={{ marginTop: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+          <span style={{ fontSize: 9, fontWeight: 700, color: client.color }}>{pct}%</span>
         </div>
-        <div className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
-          <div
-            className="h-full rounded-full"
-            style={{
-              width: `${pct}%`,
-              backgroundColor: client.color,
-              transition: 'width 0.7s cubic-bezier(0.4,0,0.2,1)',
-            }}
-          />
+        <div style={{ height: 3, backgroundColor: C.border, borderRadius: 2, overflow: 'hidden' }}>
+          <div style={{
+            height: '100%', width: `${pct}%`,
+            backgroundColor: client.color,
+            borderRadius: 2, transition: 'width 0.7s ease',
+          }} />
         </div>
-        {/* Per-sprint dots */}
-        <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+        <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
           {WEEKS.map(w => {
             const wt = tasks.filter(t => t.week === w)
             if (wt.length === 0) return null
             const wd = wt.filter(t => t.status === 'completado').length
             return (
-              <span key={w} className="text-[8px] font-bold" style={{ color: SPRINT_META[w].color }}>
+              <span key={w} style={{ fontSize: 8, fontWeight: 700, color: SPRINT_META[w].color }}>
                 S{w}·{wd}/{wt.length}
               </span>
             )
@@ -312,9 +299,9 @@ function ClientLabel({ client, tasks }: { client: { id: string; name: string; co
 
 // ── Cell ──────────────────────────────────────────────────────────
 function SprintCell({
-  clientId, week, tasks, onOpen,
+  week, tasks, onOpen,
 }: {
-  clientId: string; week: number; tasks: Task[]; onOpen?: (t: Task) => void
+  week: number; tasks: Task[]; onOpen?: (t: Task) => void
 }) {
   const [expanded, setExpanded] = useState(false)
   const meta        = SPRINT_META[week]
@@ -325,71 +312,53 @@ function SprintCell({
 
   if (tasks.length === 0) {
     return (
-      <div
-        className="px-3 py-3 flex items-center justify-center"
-        style={{
-          borderRight: '1px solid rgba(255,255,255,0.04)',
-          minHeight: 100,
-        }}
-      >
-        <span className="text-[10px]" style={{ color: '#1e1e1e' }}>—</span>
+      <div style={{
+        borderRight: `1px solid ${C.border}`,
+        minHeight: 100, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <span style={{ fontSize: 10, color: C.border }}>—</span>
       </div>
     )
   }
 
   return (
-    <div
-      className="px-3 py-3 flex flex-col gap-2"
-      style={{
-        borderRight: '1px solid rgba(255,255,255,0.04)',
-        borderTop: `2px solid ${meta.color}28`,
-        minHeight: 100,
-      }}
-    >
-      {/* Cell header */}
-      <div className="flex items-center justify-between">
-        <span className="text-[9px] font-bold" style={{ color: meta.color }}>
-          {tasks.length} tareas
-        </span>
-        {done > 0 && (
-          <span className="text-[9px] font-medium" style={{ color: '#22c55e' }}>✓{done}</span>
-        )}
+    <div style={{
+      padding: '10px 10px',
+      borderRight: `1px solid ${C.border}`,
+      borderTop: `2px solid ${meta.color}22`,
+      minHeight: 100, display: 'flex', flexDirection: 'column', gap: 6,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 9, fontWeight: 700, color: meta.color }}>{tasks.length} tareas</span>
+        {done > 0 && <span style={{ fontSize: 9, color: '#10b981' }}>✓{done}</span>}
       </div>
-
-      {/* Task cards */}
-      <div className="flex flex-col gap-1.5">
-        {visible.map(task => (
-          <TaskCard key={task.id} task={task} onOpen={onOpen} />
-        ))}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+        {visible.map(task => <TaskCard key={task.id} task={task} onOpen={onOpen} />)}
       </div>
-
-      {/* Expand / collapse */}
       {hidden > 0 && !expanded && (
         <button
           onClick={() => setExpanded(true)}
-          className="flex items-center justify-center gap-1 py-1.5 rounded-lg text-[9px] font-bold w-full"
           style={{
-            color: meta.color,
-            backgroundColor: `${meta.color}08`,
-            border: `1px solid ${meta.color}20`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
+            padding: '5px 0', borderRadius: 6, fontSize: 9, fontWeight: 700, width: '100%',
+            color: meta.color, backgroundColor: `${meta.color}08`,
+            border: `1px solid ${meta.color}20`, cursor: 'pointer',
           }}
         >
-          <ChevronDown size={9} />
-          +{hidden} más
+          <ChevronDown size={9} />+{hidden} más
         </button>
       )}
       {expanded && tasks.length > MAX_VISIBLE && (
         <button
           onClick={() => setExpanded(false)}
-          className="flex items-center justify-center gap-1 py-1.5 rounded-lg text-[9px] font-bold w-full"
           style={{
-            color: '#6b6b6b',
-            backgroundColor: 'rgba(255,255,255,0.03)',
-            border: '1px solid rgba(255,255,255,0.07)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
+            padding: '5px 0', borderRadius: 6, fontSize: 9, fontWeight: 700, width: '100%',
+            color: C.muted, backgroundColor: C.bg,
+            border: `1px solid ${C.border}`, cursor: 'pointer',
           }}
         >
-          <ChevronUp size={9} />
-          colapsar
+          <ChevronUp size={9} />colapsar
         </button>
       )}
     </div>
@@ -418,99 +387,89 @@ export function TimelinePage() {
     allTasks.some(t => t.client_id === c.id),
   )
 
+  const selectStyle = (active: boolean): React.CSSProperties => ({
+    fontSize: 12, fontWeight: active ? 600 : 400, cursor: 'pointer', outline: 'none',
+    padding: '5px 10px', borderRadius: 8,
+    border: `1px solid ${active ? '#6366F1' : C.border}`,
+    backgroundColor: active ? '#EEF2FF' : C.card,
+    color: active ? '#4F46E5' : C.sub,
+  })
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div
-          className="w-8 h-8 rounded-full border-2 animate-spin"
-          style={{ borderColor: '#f5a623', borderTopColor: 'transparent' }}
-        />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200, backgroundColor: C.bg }}>
+        <div className="w-7 h-7 rounded-full border-2 border-transparent border-t-current animate-spin" style={{ color: '#6366F1' }} />
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col h-full" style={{ backgroundColor: '#0f0f0f' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', backgroundColor: C.bg }}>
 
-      {/* ── Filter toolbar ────────────────────────────────────────── */}
-      <div className="filter-toolbar">
-
-        {/* Área */}
-        <select
-          className={`filter-select ${areaFilter ? 'has-value' : ''}`}
-          value={areaFilter}
-          onChange={e => setAreaFilter(e.target.value)}
-        >
+      {/* ── Filter toolbar ─────────────────────────────────────────── */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+        padding: '10px 16px',
+        backgroundColor: C.card, borderBottom: `1px solid ${C.border}`,
+      }}>
+        <select style={selectStyle(!!areaFilter)} value={areaFilter} onChange={e => setAreaFilter(e.target.value)}>
           <option value="">Todas las áreas</option>
           {AREA_LIST.map(a => <option key={a} value={a}>{AREA_LABELS[a]}</option>)}
         </select>
 
-        {/* Equipo */}
-        <select
-          className={`filter-select ${assigneeFilter ? 'has-value' : ''}`}
-          value={assigneeFilter}
-          onChange={e => setAssigneeFilter(e.target.value)}
-        >
+        <select style={selectStyle(!!assigneeFilter)} value={assigneeFilter} onChange={e => setAssigneeFilter(e.target.value)}>
           <option value="">Todo el equipo</option>
           {ASSIGNEES.map(n => <option key={n} value={n}>{n}</option>)}
         </select>
 
-        {/* Cliente */}
-        <select
-          className={`filter-select ${clientFilter ? 'has-value' : ''}`}
-          value={clientFilter}
-          onChange={e => setClientFilter(e.target.value)}
-        >
+        <select style={selectStyle(!!clientFilter)} value={clientFilter} onChange={e => setClientFilter(e.target.value)}>
           <option value="">Todos los clientes</option>
           {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
 
         {hasFilters && (
           <button
-            className="filter-clear"
             onClick={() => { setAreaFilter(''); setAssigneeFilter(''); setClientFilter('') }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600,
+              padding: '5px 10px', borderRadius: 8, cursor: 'pointer',
+              backgroundColor: '#FEF2F2', color: '#DC2626',
+              border: '1px solid #FCA5A5',
+            }}
           >
-            <X size={10} strokeWidth={3} />
-            Limpiar
+            <X size={10} strokeWidth={3} />Limpiar
           </button>
         )}
-
-        <span className="filter-count">{tasks.length} tareas</span>
+        <span style={{ fontSize: 11, color: C.muted, marginLeft: 'auto', fontWeight: 500 }}>
+          {tasks.length} tareas
+        </span>
       </div>
 
       {/* ── Grid ──────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-auto">
+      <div style={{ flex: 1, overflow: 'auto' }}>
         <div style={{ minWidth: 1000 }}>
 
           {/* Column headers */}
-          <div
-            className="grid sticky top-0 z-10"
-            style={{
-              gridTemplateColumns: '200px repeat(4, 1fr)',
-              backgroundColor: '#0f0f0f',
-              borderBottom: '1px solid rgba(255,255,255,0.07)',
-            }}
-          >
-            {/* Client column header */}
-            <div
-              className="px-4 py-4 flex flex-col justify-end"
-              style={{ borderRight: '1px solid rgba(255,255,255,0.05)' }}
-            >
-              <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#585858' }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '200px repeat(4, 1fr)',
+            position: 'sticky', top: 0, zIndex: 10,
+            backgroundColor: C.headerBg,
+            borderBottom: `1px solid ${C.border}`,
+          }}>
+            <div style={{
+              padding: '12px 14px', borderRight: `1px solid ${C.border}`,
+              display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+            }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Cliente
               </span>
-              <p className="text-[9px] mt-0.5" style={{ color: '#222222' }}>
+              <p style={{ fontSize: 9, color: C.border, marginTop: 2 }}>
                 {activeClients.length} activos
               </p>
             </div>
-
-            {/* Sprint headers */}
             {WEEKS.map(w => (
-              <SprintHeader
-                key={w}
-                week={w}
-                tasks={tasks.filter(t => t.week === w)}
-              />
+              <SprintHeader key={w} week={w} tasks={tasks.filter(t => t.week === w)} />
             ))}
           </div>
 
@@ -520,17 +479,16 @@ export function TimelinePage() {
             return (
               <div
                 key={client.id}
-                className="grid"
                 style={{
+                  display: 'grid',
                   gridTemplateColumns: '200px repeat(4, 1fr)',
-                  borderBottom: '1px solid rgba(255,255,255,0.05)',
+                  borderBottom: `1px solid ${C.border}`,
                 }}
               >
                 <ClientLabel client={client} tasks={clientTasks} />
                 {WEEKS.map(week => (
                   <SprintCell
                     key={week}
-                    clientId={client.id}
                     week={week}
                     tasks={clientTasks.filter(t => t.week === week)}
                     onOpen={openTaskDetail}
@@ -541,12 +499,12 @@ export function TimelinePage() {
           })}
 
           {activeClients.length === 0 && (
-            <div
-              className="flex flex-col items-center justify-center py-20"
-              style={{ color: '#585858' }}
-            >
-              <p className="text-sm font-medium">Sin resultados</p>
-              <p className="text-xs mt-1">Prueba ajustando los filtros</p>
+            <div style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+              justifyContent: 'center', padding: '80px 20px', color: C.muted,
+            }}>
+              <p style={{ fontSize: 14, fontWeight: 600, color: C.sub }}>Sin resultados</p>
+              <p style={{ fontSize: 12, marginTop: 4 }}>Ajusta los filtros para ver tareas</p>
             </div>
           )}
         </div>
