@@ -2,9 +2,14 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { X, ChevronDown, AlertTriangle } from 'lucide-react'
 import { useClients } from '../../hooks/useClients'
+import { useCampaignsByClient } from '../../hooks/useCampaigns'
 import { useCreateTask } from '../../hooks/useTasks'
-import type { Area, Priority, TaskStatus, TaskTipo, Deliverables } from '../../types'
-import { AREA_COLORS, AREA_LABELS } from '../../lib/constants'
+import type { Area, Priority, TaskStatus, TaskTipo, Etapa, MiniStatus, Deliverables } from '../../types'
+import {
+  AREA_COLORS, AREA_LABELS,
+  ETAPA_LABELS, ETAPA_COLORS, ETAPA_ORDER,
+  MINI_STATUS_LABELS, MINI_STATUS_COLORS, MINI_STATUS_ORDER,
+} from '../../lib/constants'
 import { getSprintDateRange } from '../../lib/dates'
 
 const ASSIGNEES = [
@@ -41,27 +46,40 @@ const SPRINT_SUBS: Record<number, string> = {
 interface TaskModalProps {
   onClose: () => void
   defaultClientId?: string
+  defaultCampaignId?: string
 }
 
-export function TaskModal({ onClose, defaultClientId }: TaskModalProps) {
+export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskModalProps) {
   const { data: clients } = useClients()
   const createTask = useCreateTask()
 
-  const [title,       setTitle]       = useState('')
-  const [description, setDescription] = useState('')
-  const [clientId,    setClientId]    = useState(defaultClientId || '')
-  const [area,        setArea]        = useState<Area>('copy')
-  const [assignee,    setAssignee]    = useState('Alejandro')
-  const [priority,    setPriority]    = useState<Priority>('media')
-  const [status,      setStatus]      = useState<TaskStatus>('pendiente')
-  const [week,        setWeek]        = useState(1)
-  const [tipo,        setTipo]        = useState<TaskTipo>('nuevo')
-  const [problema,    setProblema]    = useState('')
+  const [title,        setTitle]        = useState('')
+  const [description,  setDescription]  = useState('')
+  const [clientId,     setClientId]     = useState(defaultClientId || '')
+  const [campaignId,   setCampaignId]   = useState(defaultCampaignId || '')
+  const [area,         setArea]         = useState<Area>('copy')
+  const [assignee,     setAssignee]     = useState('Alejandro')
+  const [priority,     setPriority]     = useState<Priority>('media')
+  const [status,       setStatus]       = useState<TaskStatus>('pendiente')
+  const [week,         setWeek]         = useState(1)
+  const [tipo,         setTipo]         = useState<TaskTipo>('nuevo')
+  const [problema,     setProblema]     = useState('')
+  const [etapa,        setEtapa]        = useState<Etapa | ''>('')
+  const [miniStatus,   setMiniStatus]   = useState<MiniStatus | ''>('')
+  const [dueDate,      setDueDate]      = useState('')
   const [deliverables, setDeliverables] = useState<Deliverables>({})
   const [showDeliverables, setShowDeliverables] = useState(false)
 
+  // Load campaigns for selected client
+  const { data: campaigns } = useCampaignsByClient(clientId || undefined)
+
   const assigneeInfo = ASSIGNEES.find(a => a.name === assignee)
   const relevantDeliverables = DELIVERABLE_DEFS.filter(d => d.areas.includes(area))
+
+  const handleClientChange = (val: string) => {
+    setClientId(val)
+    setCampaignId('') // reset campaign when client changes
+  }
 
   const setDeliverable = (key: keyof Deliverables, val: number) => {
     setDeliverables(prev => {
@@ -79,6 +97,7 @@ export function TaskModal({ onClose, defaultClientId }: TaskModalProps) {
       title,
       description: description || undefined,
       client_id: clientId || undefined,
+      campaign_id: campaignId || undefined,
       area,
       assignee,
       priority,
@@ -86,6 +105,9 @@ export function TaskModal({ onClose, defaultClientId }: TaskModalProps) {
       week,
       tipo,
       problema: problema || undefined,
+      etapa: etapa || undefined,
+      mini_status: miniStatus || undefined,
+      due_date: dueDate || undefined,
       source: 'manual',
       deliverables: hasDeliverables ? deliverables : undefined,
     })
@@ -115,10 +137,7 @@ export function TaskModal({ onClose, defaultClientId }: TaskModalProps) {
         {/* Header */}
         <div
           className="flex items-center justify-between px-5 py-3.5 shrink-0"
-          style={{
-            borderBottom: '1px solid #E6E9EF',
-            backgroundColor: '#FFFFFF',
-          }}
+          style={{ borderBottom: '1px solid #E6E9EF', backgroundColor: '#FFFFFF' }}
         >
           <div>
             <h2 className="text-sm font-semibold" style={{ color: '#1F2128' }}>Nueva tarea</h2>
@@ -161,19 +180,75 @@ export function TaskModal({ onClose, defaultClientId }: TaskModalProps) {
             />
           </div>
 
-          {/* 2-col grid */}
+          {/* Cliente + Campaña */}
           <div className="grid grid-cols-2 gap-3">
-
-            {/* Cliente */}
             <div>
               <label className="block text-xs font-semibold mb-1.5" style={{ color: '#676879' }}>Cliente</label>
-              <select value={clientId} onChange={e => setClientId(e.target.value)} className="px-3 py-2 rounded-lg text-sm" style={fieldStyle}>
-                <option value="" style={{ backgroundColor: '#FFFFFF' }}>Sin cliente</option>
-                {clients?.map(c => <option key={c.id} value={c.id} style={{ backgroundColor: '#FFFFFF' }}>{c.name}</option>)}
+              <select value={clientId} onChange={e => handleClientChange(e.target.value)} className="px-3 py-2 rounded-lg text-sm" style={fieldStyle}>
+                <option value="">Sin cliente</option>
+                {clients?.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
 
-            {/* Área */}
+            <div>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#676879' }}>Campaña</label>
+              <select
+                value={campaignId}
+                onChange={e => setCampaignId(e.target.value)}
+                disabled={!clientId}
+                className="px-3 py-2 rounded-lg text-xs"
+                style={{ ...fieldStyle, opacity: clientId ? 1 : 0.5 }}
+              >
+                <option value="">Sin campaña</option>
+                {campaigns?.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* Etapa + Mini Status */}
+          {campaignId && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#676879' }}>Etapa</label>
+                <select
+                  value={etapa}
+                  onChange={e => setEtapa(e.target.value as Etapa | '')}
+                  className="px-3 py-2 rounded-lg text-xs font-semibold"
+                  style={{
+                    ...fieldStyle,
+                    color: etapa ? ETAPA_COLORS[etapa as Etapa] : '#9699A6',
+                    borderColor: etapa ? `${ETAPA_COLORS[etapa as Etapa]}40` : '#E6E9EF',
+                  }}
+                >
+                  <option value="">Sin etapa</option>
+                  {ETAPA_ORDER.map(e => (
+                    <option key={e} value={e}>{ETAPA_LABELS[e]}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: '#676879' }}>Mini status</label>
+                <select
+                  value={miniStatus}
+                  onChange={e => setMiniStatus(e.target.value as MiniStatus | '')}
+                  className="px-3 py-2 rounded-lg text-xs font-semibold"
+                  style={{
+                    ...fieldStyle,
+                    color: miniStatus ? MINI_STATUS_COLORS[miniStatus as MiniStatus] : '#9699A6',
+                  }}
+                >
+                  <option value="">Sin estado</option>
+                  {MINI_STATUS_ORDER.map(s => (
+                    <option key={s} value={s}>{MINI_STATUS_LABELS[s]}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
+          {/* Área + Prioridad + Status + Tipo */}
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold mb-1.5" style={{ color: '#676879' }}>Área</label>
               <select
@@ -190,34 +265,33 @@ export function TaskModal({ onClose, defaultClientId }: TaskModalProps) {
                 }}
               >
                 {(Object.entries(AREA_LABELS) as [Area, string][]).map(([v, l]) => (
-                  <option key={v} value={v} style={{ backgroundColor: '#FFFFFF', color: AREA_COLORS[v] }}>{l}</option>
+                  <option key={v} value={v}>{l}</option>
                 ))}
               </select>
             </div>
 
-            {/* Prioridad */}
             <div>
               <label className="block text-xs font-semibold mb-1.5" style={{ color: '#676879' }}>Prioridad</label>
               <select
                 value={priority}
                 onChange={e => setPriority(e.target.value as Priority)}
                 className="px-3 py-2 rounded-lg text-xs font-semibold"
-                style={{ ...fieldStyle }}
+                style={fieldStyle}
               >
+                <option value="maxima">🔴 Máxima</option>
                 <option value="alta">Alta</option>
                 <option value="media">Media</option>
                 <option value="baja">Baja</option>
               </select>
             </div>
 
-            {/* Status */}
             <div>
               <label className="block text-xs font-semibold mb-1.5" style={{ color: '#676879' }}>Status</label>
               <select
                 value={status}
                 onChange={e => setStatus(e.target.value as TaskStatus)}
                 className="px-3 py-2 rounded-lg text-xs font-semibold"
-                style={{ ...fieldStyle }}
+                style={fieldStyle}
               >
                 <option value="pendiente">Pendiente</option>
                 <option value="en_progreso">En Progreso</option>
@@ -226,23 +300,34 @@ export function TaskModal({ onClose, defaultClientId }: TaskModalProps) {
               </select>
             </div>
 
-            {/* Tipo */}
             <div>
               <label className="block text-xs font-semibold mb-1.5" style={{ color: '#676879' }}>Tipo</label>
               <select
                 value={tipo}
                 onChange={e => setTipo(e.target.value as TaskTipo)}
                 className="px-3 py-2 rounded-lg text-xs font-semibold"
-                style={{ ...fieldStyle }}
+                style={fieldStyle}
               >
                 <option value="nuevo">Nuevo</option>
                 <option value="pendiente_anterior">Pendiente anterior</option>
-                <option value="urgente">Urgente</option>
+                <option value="urgente">🚨 Urgente</option>
               </select>
             </div>
           </div>
 
-          {/* Sprint week — visual selector with dates */}
+          {/* Fecha límite */}
+          <div>
+            <label className="block text-xs font-semibold mb-1.5" style={{ color: '#676879' }}>Fecha límite</label>
+            <input
+              type="date"
+              value={dueDate}
+              onChange={e => setDueDate(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg text-sm"
+              style={fieldStyle}
+            />
+          </div>
+
+          {/* Sprint week */}
           <div>
             <label className="block text-xs font-semibold mb-2" style={{ color: '#676879' }}>Sprint</label>
             <div className="grid grid-cols-4 gap-1.5">
@@ -299,7 +384,6 @@ export function TaskModal({ onClose, defaultClientId }: TaskModalProps) {
                 </button>
               ))}
             </div>
-            {/* Smart warning */}
             {assigneeInfo && !assigneeInfo.areas.includes(area) && (
               <p className="text-[10px] mt-1.5 px-1" style={{ color: '#F59E0B' }}>
                 <AlertTriangle size={10} style={{ display: 'inline', verticalAlign: 'middle' }} /> {assignee} normalmente cubre {assigneeInfo.areas.join(', ')}, no <strong>{AREA_LABELS[area]}</strong>.
@@ -319,7 +403,7 @@ export function TaskModal({ onClose, defaultClientId }: TaskModalProps) {
             />
           </div>
 
-          {/* Entregables — collapsible */}
+          {/* Entregables */}
           <div>
             <button
               type="button"
@@ -381,7 +465,7 @@ export function TaskModal({ onClose, defaultClientId }: TaskModalProps) {
             )}
           </div>
 
-          {/* Footer buttons */}
+          {/* Footer */}
           <div className="pt-2 flex gap-2">
             <button
               type="button"
@@ -395,11 +479,7 @@ export function TaskModal({ onClose, defaultClientId }: TaskModalProps) {
               type="submit"
               disabled={createTask.isPending || !title.trim()}
               className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold disabled:opacity-50"
-              style={{
-                background: '#6366F1',
-                color: '#FFFFFF',
-                boxShadow: '0 0 16px rgba(99,102,241,0.2)',
-              }}
+              style={{ background: '#6366F1', color: '#FFFFFF', boxShadow: '0 0 16px rgba(99,102,241,0.2)' }}
             >
               {createTask.isPending ? 'Creando…' : 'Crear tarea'}
             </button>

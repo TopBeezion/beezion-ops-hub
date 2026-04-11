@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, List, Kanban, CalendarDays, Settings, ChevronLeft, ChevronRight, Zap, ChevronDown, Rocket, Flame } from 'lucide-react'
+import { LayoutDashboard, List, Kanban, CalendarDays, Settings, ChevronLeft, ChevronRight, Zap, ChevronDown, Rocket, Flame, AlertTriangle } from 'lucide-react'
 import { useClients } from '../../hooks/useClients'
 
 interface SidebarProps {
@@ -9,12 +9,13 @@ interface SidebarProps {
 }
 
 const NAV_ITEMS = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/', exact: true },
-  { id: 'campaigns', label: 'Campañas', icon: Rocket, path: '/campaigns' },
-  { id: 'backlog', label: 'Backlog', icon: List, path: '/backlog' },
-  { id: 'kanban', label: 'Kanban', icon: Kanban, path: '/kanban' },
-  { id: 'timeline', label: 'Timeline', icon: CalendarDays, path: '/timeline' },
-  { id: 'settings', label: 'Configuración', icon: Settings, path: '/settings' },
+  { id: 'dashboard',  label: 'Dashboard',    icon: LayoutDashboard, path: '/',          accent: null },
+  { id: 'bomberos',   label: '🔥 Bomberos',  icon: Flame,           path: '/bomberos',  accent: '#E2445C' },
+  { id: 'campaigns',  label: 'Campañas',     icon: Rocket,          path: '/campaigns', accent: null },
+  { id: 'backlog',    label: 'Backlog',      icon: List,            path: '/backlog',   accent: null },
+  { id: 'kanban',     label: 'Kanban',       icon: Kanban,          path: '/kanban',    accent: null },
+  { id: 'timeline',   label: 'Timeline',     icon: CalendarDays,    path: '/timeline',  accent: null },
+  { id: 'settings',   label: 'Configuración',icon: Settings,        path: '/settings',  accent: null },
 ]
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {

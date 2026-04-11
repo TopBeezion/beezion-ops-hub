@@ -1,0 +1,377 @@
+import { useState, useMemo } from 'react'
+import { useTasks } from '../hooks/useTasks'
+import { useClients } from '../hooks/useClients'
+import { useOutletContext } from 'react-router-dom'
+import { useUpdateTask } from '../hooks/useTasks'
+import type { Task, Client, TaskStatus } from '../types'
+import { STATUS_LABELS, STATUS_COLORS, ASSIGNEE_COLORS, PRIORITY_COLORS } from '../lib/constants'
+import {
+  Flame, CheckCircle2, Clock, AlertTriangle, ChevronDown,
+  Circle, RefreshCw, User, Calendar,
+} from 'lucide-react'
+
+// ─── Design tokens ────────────────────────────────────────────────────────────
+const C = {
+  bg: '#FFF5F5',
+  card: '#FFFFFF',
+  border: '#E6E9EF',
+  text: '#1F2128',
+  sub: '#676879',
+  muted: '#9699A6',
+  red: '#E2445C',
+  orange: '#FDAB3D',
+  green: '#00C875',
+  blue: '#579BFC',
+}
+
+function StatusBadge({ status, onClick }: { status: TaskStatus; onClick?: (e: React.MouseEvent) => void }) {
+  const color = STATUS_COLORS[status]
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 4,
+        fontSize: 11, fontWeight: 700,
+        color, backgroundColor: `${color}15`,
+        padding: '3px 8px', borderRadius: 6, border: `1px solid ${color}30`,
+        cursor: onClick ? 'pointer' : 'default',
+      }}
+    >
+      <Circle size={6} fill={color} color={color} />
+      {STATUS_LABELS[status]}
+      {onClick && <ChevronDown size={10} />}
+    </button>
+  )
+}
+
+const STATUS_CYCLE: TaskStatus[] = ['pendiente', 'en_progreso', 'revision', 'completado']
+
+function BomberoRow({ task, onClick, onStatusChange }: {
+  task: Task
+  onClick?: () => void
+  onStatusChange: (id: string, status: TaskStatus) => void
+}) {
+  const clientColor = (task.client as Client & { color: string })?.color || C.red
+  const priorityColor = PRIORITY_COLORS[task.priority]
+  const assigneeColor = ASSIGNEE_COLORS[task.assignee] || C.muted
+
+  const cycleStatus = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    const cur = STATUS_CYCLE.indexOf(task.status)
+    const next = STATUS_CYCLE[(cur + 1) % STATUS_CYCLE.length]
+    onStatusChange(task.id, next)
+  }
+
+  const isCompleted = task.status === 'completado'
+
+  return (
+    <div
+      className="flex items-center gap-4 px-5 py-4 hover:bg-red-50 transition-colors cursor-pointer"
+      style={{
+        borderBottom: `1px solid ${C.border}`,
+        borderLeft: `4px solid ${task.tipo === 'urgente' ? C.red : C.orange}`,
+        opacity: isCompleted ? 0.5 : 1,
+      }}
+      onClick={onClick}
+    >
+      {/* Priority dot */}
+      <div style={{
+        width: 10, height: 10, borderRadius: '50%',
+        backgroundColor: priorityColor, flexShrink: 0,
+        boxShadow: `0 0 6px ${priorityColor}60`,
+      }} />
+
+      {/* Title + client */}
+      <div className="flex-1 min-w-0">
+        <p style={{
+          fontSize: 14, fontWeight: 600, color: C.text,
+          textDecoration: isCompleted ? 'line-through' : 'none',
+        }} className="truncate">
+          {task.title}
+        </p>
+        <div className="flex items-center gap-2 mt-1">
+          {task.client && (
+            <span style={{
+              fontSize: 11, fontWeight: 700,
+              color: clientColor,
+              backgroundColor: `${clientColor}15`,
+              padding: '1px 7px', borderRadius: 4,
+            }}>
+              {(task.client as Client).name}
+            </span>
+          )}
+          {task.problema && (
+            <span style={{ fontSize: 11, color: C.muted }} className="truncate max-w-xs">
+              {task.problema}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Type badge */}
+      <span style={{
+        fontSize: 10, fontWeight: 700,
+        color: task.tipo === 'urgente' ? C.red : C.orange,
+        backgroundColor: task.tipo === 'urgente' ? `${C.red}12` : `${C.orange}12`,
+        padding: '2px 8px', borderRadius: 6,
+        border: `1px solid ${task.tipo === 'urgente' ? C.red : C.orange}30`,
+        flexShrink: 0,
+      }}>
+        {task.tipo === 'urgente' ? '🚨 URG' : '⏳ PREV'}
+      </span>
+
+      {/* Assignee */}
+      <div
+        style={{
+          width: 28, height: 28, borderRadius: '50%',
+          backgroundColor: `${assigneeColor}20`, color: assigneeColor,
+          fontSize: 10, fontWeight: 700,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          border: `1px solid ${assigneeColor}30`, flexShrink: 0,
+        }}
+        title={task.assignee}
+      >
+        {task.assignee.slice(0, 2).toUpperCase()}
+      </div>
+
+      {/* Status cycle */}
+      <StatusBadge status={task.status} onClick={cycleStatus} />
+    </div>
+  )
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
+export function BomberosPage() {
+  const { data: tasks = [], isLoading } = useTasks()
+  const { data: clients = [] } = useClients()
+  const updateTask = useUpdateTask()
+  const ctx = useOutletContext<{ openTaskDetail?: (task: Task) => void }>()
+
+  const [filterClient, setFilterClient] = useState('')
+  const [filterAssignee, setFilterAssignee] = useState('')
+  const [showResolved, setShowResolved] = useState(false)
+
+  const bomberos = useMemo(() => tasks
+    .filter(t => t.tipo === 'urgente' || (t.tipo === 'pendiente_anterior' && t.priority === 'alta'))
+    .filter(t => !filterClient || t.client_id === filterClient)
+    .filter(t => !filterAssignee || t.assignee === filterAssignee)
+    .filter(t => showResolved || t.status !== 'completado')
+    .sort((a, b) => {
+      if (a.tipo === 'urgente' && b.tipo !== 'urgente') return -1
+      if (a.tipo !== 'urgente' && b.tipo === 'urgente') return 1
+      return 0
+    }),
+  [tasks, filterClient, filterAssignee, showResolved])
+
+  const stats = useMemo(() => ({
+    total: bomberos.length + (showResolved ? 0 : tasks.filter(t =>
+      (t.tipo === 'urgente' || (t.tipo === 'pendiente_anterior' && t.priority === 'alta')) && t.status === 'completado'
+    ).length),
+    urgentes: tasks.filter(t => t.tipo === 'urgente').length,
+    prevPendientes: tasks.filter(t => t.tipo === 'pendiente_anterior' && t.priority === 'alta').length,
+    resueltos: tasks.filter(t =>
+      (t.tipo === 'urgente' || (t.tipo === 'pendiente_anterior' && t.priority === 'alta')) && t.status === 'completado'
+    ).length,
+  }), [tasks, bomberos.length, showResolved])
+
+  const assignees = useMemo(() => [...new Set(tasks.map(t => t.assignee))].sort(), [tasks])
+
+  const handleStatusChange = (id: string, status: TaskStatus) => {
+    updateTask.mutate({ id, status })
+  }
+
+  return (
+    <div className="min-h-screen" style={{ backgroundColor: C.bg }}>
+
+      {/* Header */}
+      <div style={{
+        background: 'linear-gradient(135deg, #E2445C 0%, #C0392B 100%)',
+        padding: '24px 28px',
+      }}>
+        <div className="flex items-center gap-3 mb-4">
+          <div style={{
+            width: 44, height: 44, borderRadius: 12,
+            backgroundColor: 'rgba(255,255,255,0.2)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Flame size={22} color="#FFFFFF" />
+          </div>
+          <div>
+            <h1 style={{ fontSize: 22, fontWeight: 800, color: '#FFFFFF' }}>🔥 Bomberos</h1>
+            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)' }}>
+              Centro de control de incendios operativos — revisión diaria
+            </p>
+          </div>
+        </div>
+
+        {/* Stats row */}
+        <div className="flex gap-3">
+          {[
+            { label: 'Total incendios', value: stats.total, icon: AlertTriangle, color: '#FFF' },
+            { label: 'Urgentes',        value: stats.urgentes, icon: Flame, color: '#FFD700' },
+            { label: 'Prev. pendientes', value: stats.prevPendientes, icon: Clock, color: '#FFB347' },
+            { label: 'Resueltos hoy',   value: stats.resueltos, icon: CheckCircle2, color: '#90EE90' },
+          ].map(({ label, value, icon: Icon, color }) => (
+            <div key={label} style={{
+              backgroundColor: 'rgba(255,255,255,0.15)',
+              borderRadius: 10, padding: '10px 16px',
+              backdropFilter: 'blur(4px)',
+            }}>
+              <div className="flex items-center gap-2">
+                <Icon size={14} color={color} />
+                <span style={{ fontSize: 20, fontWeight: 800, color: '#FFFFFF' }}>{value}</span>
+              </div>
+              <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', marginTop: 2 }}>{label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div style={{
+        backgroundColor: C.card, borderBottom: `1px solid ${C.border}`,
+        padding: '12px 28px', display: 'flex', gap: 12, alignItems: 'center',
+      }}>
+        <select
+          value={filterClient}
+          onChange={e => setFilterClient(e.target.value)}
+          style={{
+            fontSize: 12, fontWeight: 600,
+            border: `1px solid ${C.border}`, borderRadius: 8,
+            padding: '6px 12px', backgroundColor: '#FFFFFF', color: C.sub,
+            outline: 'none',
+          }}
+        >
+          <option value="">Todos los clientes</option>
+          {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+
+        <select
+          value={filterAssignee}
+          onChange={e => setFilterAssignee(e.target.value)}
+          style={{
+            fontSize: 12, fontWeight: 600,
+            border: `1px solid ${C.border}`, borderRadius: 8,
+            padding: '6px 12px', backgroundColor: '#FFFFFF', color: C.sub,
+            outline: 'none',
+          }}
+        >
+          <option value="">Todo el equipo</option>
+          {assignees.map(a => <option key={a} value={a}>{a}</option>)}
+        </select>
+
+        <button
+          onClick={() => setShowResolved(v => !v)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            fontSize: 12, fontWeight: 600,
+            border: `1px solid ${showResolved ? C.green : C.border}`,
+            borderRadius: 8, padding: '6px 12px',
+            backgroundColor: showResolved ? `${C.green}15` : '#FFFFFF',
+            color: showResolved ? C.green : C.sub,
+            cursor: 'pointer',
+          }}
+        >
+          <CheckCircle2 size={12} />
+          {showResolved ? 'Ocultar resueltos' : 'Mostrar resueltos'}
+        </button>
+
+        <div className="flex-1" />
+
+        <span style={{ fontSize: 12, color: C.muted }}>
+          {bomberos.length} incendio{bomberos.length !== 1 ? 's' : ''} visible{bomberos.length !== 1 ? 's' : ''}
+        </span>
+
+        <button
+          onClick={() => updateTask.mutate}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            fontSize: 12, fontWeight: 600,
+            border: `1px solid ${C.border}`, borderRadius: 8, padding: '6px 12px',
+            backgroundColor: '#FFFFFF', color: C.sub, cursor: 'pointer',
+          }}
+        >
+          <RefreshCw size={12} />
+          Actualizar
+        </button>
+      </div>
+
+      {/* List */}
+      <div style={{ maxWidth: 1100, margin: '24px auto', padding: '0 28px' }}>
+        {isLoading ? (
+          <div className="flex justify-center py-20">
+            <div className="w-8 h-8 rounded-full border-2 border-transparent border-t-current animate-spin" style={{ color: C.red }} />
+          </div>
+        ) : bomberos.length === 0 ? (
+          <div style={{
+            backgroundColor: C.card, borderRadius: 12,
+            border: `1px solid ${C.border}`,
+            padding: '60px 40px', textAlign: 'center',
+          }}>
+            <CheckCircle2 size={48} color={C.green} style={{ margin: '0 auto 16px' }} />
+            <p style={{ fontSize: 20, fontWeight: 700, color: C.text }}>¡Sin incendios activos!</p>
+            <p style={{ fontSize: 14, color: C.sub, marginTop: 8 }}>
+              {filterClient || filterAssignee ? 'No hay incendios con los filtros aplicados.' : 'El equipo está operando sin urgencias. Buen trabajo.'}
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Urgentes */}
+            {bomberos.filter(t => t.tipo === 'urgente').length > 0 && (
+              <div style={{
+                backgroundColor: C.card, borderRadius: 12,
+                border: `1px solid #E2445C30`, overflow: 'hidden', marginBottom: 16,
+              }}>
+                <div style={{ padding: '12px 20px', backgroundColor: '#E2445C08', borderBottom: `1px solid #E2445C20` }}>
+                  <div className="flex items-center gap-2">
+                    <Flame size={14} color={C.red} />
+                    <span style={{ fontSize: 13, fontWeight: 700, color: C.red }}>
+                      URGENTES ({bomberos.filter(t => t.tipo === 'urgente').length})
+                    </span>
+                  </div>
+                </div>
+                {bomberos
+                  .filter(t => t.tipo === 'urgente')
+                  .map(task => (
+                    <BomberoRow
+                      key={task.id}
+                      task={task}
+                      onClick={() => ctx?.openTaskDetail?.(task)}
+                      onStatusChange={handleStatusChange}
+                    />
+                  ))}
+              </div>
+            )}
+
+            {/* Prev-pendientes de alta prioridad */}
+            {bomberos.filter(t => t.tipo === 'pendiente_anterior').length > 0 && (
+              <div style={{
+                backgroundColor: C.card, borderRadius: 12,
+                border: `1px solid #FDAB3D30`, overflow: 'hidden',
+              }}>
+                <div style={{ padding: '12px 20px', backgroundColor: '#FDAB3D08', borderBottom: `1px solid #FDAB3D20` }}>
+                  <div className="flex items-center gap-2">
+                    <Clock size={14} color={C.orange} />
+                    <span style={{ fontSize: 13, fontWeight: 700, color: C.orange }}>
+                      PENDIENTES ANTERIORES — PRIORIDAD ALTA ({bomberos.filter(t => t.tipo === 'pendiente_anterior').length})
+                    </span>
+                  </div>
+                </div>
+                {bomberos
+                  .filter(t => t.tipo === 'pendiente_anterior')
+                  .map(task => (
+                    <BomberoRow
+                      key={task.id}
+                      task={task}
+                      onClick={() => ctx?.openTaskDetail?.(task)}
+                      onStatusChange={handleStatusChange}
+                    />
+                  ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  )
+}

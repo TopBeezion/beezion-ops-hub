@@ -8,6 +8,7 @@ import { BacklogPage } from './pages/BacklogPage'
 import { KanbanPage } from './pages/KanbanPage'
 import { TimelinePage } from './pages/TimelinePage'
 import { CampaignsPage } from './pages/CampaignsPage'
+import { BomberosPage } from './pages/BomberosPage'
 import { ClientDetailPage } from './pages/ClientDetailPage'
 import { SettingsPage } from './pages/SettingsPage'
 
@@ -35,6 +36,7 @@ function App() {
           >
             <Route path="/" element={<DashboardPage />} />
             <Route path="/campaigns" element={<CampaignsPage />} />
+            <Route path="/bomberos" element={<BomberosPage />} />
             <Route path="/backlog" element={<BacklogPage />} />
             <Route path="/kanban" element={<KanbanPage />} />
             <Route path="/timeline" element={<TimelinePage />} />

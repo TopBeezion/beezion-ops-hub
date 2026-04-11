@@ -22,7 +22,24 @@ export function useCampaigns(filters?: CampaignFilters) {
   })
 }
 
-export function useCampaignsByClient() {
+export function useCampaignsByClient(clientId?: string) {
+  return useQuery<Campaign[]>({
+    queryKey: ['campaigns', 'by-client-id', clientId],
+    queryFn: async () => {
+      if (!clientId) return []
+      const { data, error } = await supabase
+        .from('campaigns')
+        .select('*, client:clients(*)')
+        .eq('client_id', clientId)
+        .order('name')
+      if (error) throw error
+      return data ?? []
+    },
+    enabled: !!clientId,
+  })
+}
+
+export function useCampaignsGroupedByClient() {
   return useQuery<Record<string, Campaign[]>>({
     queryKey: ['campaigns', 'by-client'],
     queryFn: async () => {
