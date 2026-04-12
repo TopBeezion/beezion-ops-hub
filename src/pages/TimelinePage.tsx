@@ -30,12 +30,8 @@ const AREA_LIST   = ['copy', 'trafico', 'tech', 'admin'] as const
 const ASSIGNEES   = ['Alejandro', 'Alec', 'Jose', 'Luisa', 'Paula', 'David', 'Johan', 'Felipe']
 
 const ASSIGNEE_INITIALS: Record<string, string> = {
-  Alejandro: 'AL', Alec: 'AC', Paula: 'PL', 'Jose Luis': 'JL',
-  'Editor 1': 'E1', 'Editor 2': 'E2', 'Editor 3': 'E3',
-}
-const ASSIGNEE_COLORS: Record<string, string> = {
-  Alejandro: '#8b5cf6', Alec: '#f5a623', Paula: '#ec4899',
-  'Jose Luis': '#3b82f6', 'Editor 1': '#06b6d4', 'Editor 2': '#10b981', 'Editor 3': '#f97316',
+  Alejandro: 'AL', Alec: 'AC', Jose: 'JO', Luisa: 'LU',
+  Paula: 'PL', David: 'DA', Johan: 'JH', Felipe: 'FE',
 }
 
 // ── Progress Ring ─────────────────────────────────────────────────

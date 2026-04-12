@@ -4,8 +4,8 @@ import { useNotifications, useMeetingTaskWatcher } from '../../hooks/useNotifica
 import { AREA_COLORS } from '../../lib/constants'
 
 const ASSIGNEE_COLORS: Record<string, string> = {
-  Alejandro: '#8b5cf6', Alec: '#f5a623', Paula: '#ec4899',
-  'Jose Luis': '#3b82f6', 'Editor 1': '#06b6d4', 'Editor 2': '#10b981', 'Editor 3': '#f97316',
+  Alejandro: '#8b5cf6', Alec: '#f5a623', Jose: '#3b82f6',
+  Luisa: '#ef4444', Paula: '#ec4899', David: '#06b6d4', Johan: '#10b981', Felipe: '#f97316',
 }
 
 export function NotificationBell({ onOpenTask }: { onOpenTask?: (taskId: string) => void }) {
