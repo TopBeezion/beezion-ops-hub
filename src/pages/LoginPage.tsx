@@ -90,18 +90,37 @@ export function LoginPage() {
         }}>
           {/* Logo */}
           <div style={{ marginBottom: 36, textAlign: 'center' }}>
-            <img
-              src="/beezion-logo.svg"
-              alt="Beezion"
-              style={{ height: 52, width: 'auto', marginBottom: 10 }}
-            />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 6 }}>
+              <div style={{
+                width: 38, height: 38, borderRadius: 10, flexShrink: 0,
+                background: 'linear-gradient(135deg, #F5A623 0%, #E8971A 100%)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 4px 12px rgba(245,166,35,0.4)',
+              }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <polygon points="12,2 22,7 22,17 12,22 2,17 2,7" fill="white" opacity="0.9"/>
+                  <polygon points="12,6 18,9.5 18,16.5 12,20 6,16.5 6,9.5" fill="#F5A623"/>
+                  <circle cx="12" cy="13" r="3" fill="white"/>
+                </svg>
+              </div>
+              <span style={{
+                fontSize: 32,
+                fontWeight: 900,
+                color: '#1A1D27',
+                letterSpacing: '-1px',
+                lineHeight: 1,
+                fontFamily: "'Arial Black', 'Helvetica Neue', Arial, sans-serif",
+              }}>
+                beezi<span style={{ color: '#F5A623' }}>o</span>n
+              </span>
+            </div>
             <p style={{
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: 700,
               color: '#9699B0',
-              letterSpacing: '0.15em',
+              letterSpacing: '0.18em',
               textTransform: 'uppercase',
-              marginTop: 4,
+              marginTop: 2,
             }}>
               Operaciones
             </p>

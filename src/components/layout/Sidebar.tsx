@@ -217,14 +217,24 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                   onClick={handleSignOut}
                   title="Cerrar sesión"
                   style={{
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    color: '#C0C3D0', padding: 3, borderRadius: 5, flexShrink: 0,
-                    transition: 'color 0.15s',
+                    background: '#F5F6FA', border: '1px solid #E8EAF0', cursor: 'pointer',
+                    color: '#9699B0', padding: '4px 7px', borderRadius: 6, flexShrink: 0,
+                    transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 4,
+                    fontSize: 10, fontWeight: 600,
                   }}
-                  onMouseEnter={e => (e.currentTarget.style.color = '#E2445C')}
-                  onMouseLeave={e => (e.currentTarget.style.color = '#C0C3D0')}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.backgroundColor = '#FEF2F4'
+                    e.currentTarget.style.borderColor = '#FECDD3'
+                    e.currentTarget.style.color = '#E2445C'
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.backgroundColor = '#F5F6FA'
+                    e.currentTarget.style.borderColor = '#E8EAF0'
+                    e.currentTarget.style.color = '#9699B0'
+                  }}
                 >
-                  <LogOut size={13} />
+                  <LogOut size={11} />
+                  <span>Salir</span>
                 </button>
               </>
             )}

@@ -17,13 +17,14 @@ import {
 import { getSprintDateRange, formatFullDate } from '../../lib/dates'
 
 const ASSIGNEES = [
-  { name: 'Alejandro', role: 'CEO · Copy & Estrategia',              color: '#8b5cf6', areas: ['copy'] },
-  { name: 'Alec',      role: 'COO · Head Tech & Paid Media',          color: '#f5a623', areas: ['tech', 'trafico'] },
-  { name: 'Paula',     role: 'Aux. Marketing · Producción · Admin',   color: '#ec4899', areas: ['copy', 'admin'] },
-  { name: 'Jose Luis', role: 'Trafficker Digital',                    color: '#3b82f6', areas: ['trafico'] },
-  { name: 'Editor 1',  role: 'Edición de Video',                     color: '#06b6d4', areas: ['copy'] },
-  { name: 'Editor 2',  role: 'Edición de Video',                     color: '#10b981', areas: ['copy'] },
-  { name: 'Editor 3',  role: 'Edición de Video',                     color: '#f97316', areas: ['copy'] },
+  { name: 'Alejandro', role: 'CEO · Copy · Estrategia',           color: '#8b5cf6', areas: ['copy', 'trafico', 'tech', 'admin'] },
+  { name: 'Alec',      role: 'Head of Paid · Estrategia',         color: '#f5a623', areas: ['trafico', 'tech'] },
+  { name: 'Jose',      role: 'Trafficker',                        color: '#3b82f6', areas: ['trafico'] },
+  { name: 'Luisa',     role: 'Copywriter',                        color: '#ef4444', areas: ['copy'] },
+  { name: 'Paula',     role: 'Aux. Marketing · Grabaciones',      color: '#ec4899', areas: ['copy', 'admin'] },
+  { name: 'David',     role: 'Editor',                            color: '#06b6d4', areas: ['copy'] },
+  { name: 'Johan',     role: 'Editor',                            color: '#10b981', areas: ['copy'] },
+  { name: 'Felipe',    role: 'Editor',                            color: '#f97316', areas: ['copy'] },
 ]
 
 const SPRINT_COLORS: Record<number, string> = {
@@ -389,7 +390,7 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
               <p className="flex items-center gap-1 text-[10px] mt-1.5 px-1" style={{ color: '#F59E0B' }}>
                 <AlertTriangle size={10} /> {assignee} normalmente no trabaja en el área de <strong>{AREA_LABELS[area]}</strong>.
                 {area === 'copy' && ' Para copy, considera: Alejandro, Paula o Editores.'}
-                {area === 'trafico' && ' Para tráfico, considera: Alec o Jose Luis.'}
+                {area === 'trafico' && ' Para tráfico, considera: Alec o Jose.'}
                 {area === 'tech' && ' Para tech, considera: Alec.'}
                 {area === 'admin' && ' Para admin, considera: Paula.'}
               </p>

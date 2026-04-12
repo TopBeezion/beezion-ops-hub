@@ -13,13 +13,14 @@ import {
 import { getSprintDateRange } from '../../lib/dates'
 
 const ASSIGNEES = [
-  { name: 'Alejandro', role: 'CEO · Copy & Estrategia',             color: '#8b5cf6', areas: ['copy'] },
-  { name: 'Alec',      role: 'COO · Head Tech & Paid Media',         color: '#f5a623', areas: ['tech', 'trafico'] },
-  { name: 'Paula',     role: 'Aux. Marketing · Producción · Admin',  color: '#ec4899', areas: ['copy', 'admin'] },
-  { name: 'Jose Luis', role: 'Trafficker Digital',                   color: '#3b82f6', areas: ['trafico'] },
-  { name: 'Editor 1',  role: 'Edición de Video',                    color: '#06b6d4', areas: ['copy'] },
-  { name: 'Editor 2',  role: 'Edición de Video',                    color: '#10b981', areas: ['copy'] },
-  { name: 'Editor 3',  role: 'Edición de Video',                    color: '#f97316', areas: ['copy'] },
+  { name: 'Alejandro', role: 'CEO · Copy · Estrategia',             color: '#8b5cf6', areas: ['copy', 'trafico', 'tech', 'admin'] },
+  { name: 'Alec',      role: 'Head of Paid · Estrategia',           color: '#f5a623', areas: ['trafico', 'tech'] },
+  { name: 'Jose',      role: 'Trafficker',                          color: '#3b82f6', areas: ['trafico'] },
+  { name: 'Luisa',     role: 'Copywriter',                          color: '#ef4444', areas: ['copy'] },
+  { name: 'Paula',     role: 'Aux. Marketing · Grabaciones',        color: '#ec4899', areas: ['copy', 'admin'] },
+  { name: 'David',     role: 'Editor',                              color: '#06b6d4', areas: ['copy'] },
+  { name: 'Johan',     role: 'Editor',                              color: '#10b981', areas: ['copy'] },
+  { name: 'Felipe',    role: 'Editor',                              color: '#f97316', areas: ['copy'] },
 ]
 
 const DELIVERABLE_DEFS: { key: keyof Deliverables; label: string; color: string; areas: Area[] }[] = [
