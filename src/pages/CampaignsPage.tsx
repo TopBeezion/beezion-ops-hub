@@ -531,79 +531,123 @@ export function CampaignsPage() {
 
       {/* ── Top filter bar ── */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: '10px',
-        padding: '12px 20px', backgroundColor: '#FFFFFF',
-        borderBottom: '1px solid #E6E9EF', flexWrap: 'wrap',
+        backgroundColor: '#FFFFFF',
+        borderBottom: '1px solid #E6E9EF',
       }}>
-        {/* Client tabs */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-          {[{ id: 'all', name: 'Todos', color: '#6366F1' }, ...clients].map(c => (
-            <button
-              key={c.id}
-              onClick={() => setActiveClient(c.id)}
-              style={{
-                padding: '5px 12px', borderRadius: '99px', fontSize: '12px', fontWeight: 600,
-                cursor: 'pointer', transition: 'all 0.15s',
-                backgroundColor: activeClient === c.id ? '#6366F1' : '#F3F4F6',
-                color: activeClient === c.id ? '#fff' : '#374151',
-                border: activeClient === c.id ? '1px solid #6366F1' : '1px solid #E5E7EB',
-              }}
-            >
-              {c.id !== 'all' && (
-                <span style={{
-                  display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%',
-                  backgroundColor: (c as any).color || '#9CA3AF',
-                  marginRight: '5px', verticalAlign: 'middle',
-                }} />
-              )}
-              {c.name}
-            </button>
-          ))}
+        {/* Row 1: client chips */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap',
+          padding: '10px 20px 8px',
+        }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.05em', marginRight: 4 }}>
+            Cliente
+          </span>
+          {[{ id: 'all', name: 'Todos', color: '#6366F1' }, ...clients].map(c => {
+            const isActive = activeClient === c.id
+            const clientColor = (c as any).color || '#6366F1'
+            return (
+              <button
+                key={c.id}
+                onClick={() => setActiveClient(c.id)}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  padding: '4px 11px', borderRadius: '99px', fontSize: '12px', fontWeight: 600,
+                  cursor: 'pointer', transition: 'all 0.15s',
+                  backgroundColor: isActive ? (c.id === 'all' ? '#6366F1' : clientColor) : '#F3F4F6',
+                  color: isActive ? '#fff' : '#374151',
+                  border: `1.5px solid ${isActive ? (c.id === 'all' ? '#6366F1' : clientColor) : '#E5E7EB'}`,
+                  boxShadow: isActive ? `0 2px 6px ${c.id === 'all' ? '#6366F140' : clientColor + '40'}` : 'none',
+                }}
+              >
+                {c.id !== 'all' && (
+                  <span style={{
+                    display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%',
+                    backgroundColor: isActive ? 'rgba(255,255,255,0.7)' : clientColor,
+                    flexShrink: 0,
+                  }} />
+                )}
+                {c.name}
+              </button>
+            )
+          })}
+
+          {/* Stats pill — right side */}
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#00C875' }}>
+              {campaigns.filter(c => c.status === 'activa').length} activas
+            </span>
+            <span style={{ width: 1, height: 14, backgroundColor: '#E6E9EF' }} />
+            <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 500 }}>
+              {campaigns.length} campañas
+            </span>
+          </div>
         </div>
 
-        <div style={{ height: '20px', width: '1px', backgroundColor: '#E6E9EF' }} />
-
-        {/* Type filter */}
-        <select
-          value={filterType}
-          onChange={e => setFilterType(e.target.value)}
-          style={{
-            padding: '5px 10px', borderRadius: '8px', fontSize: '12px',
-            border: '1px solid #E6E9EF', color: filterType ? '#1F2128' : '#9CA3AF',
-            backgroundColor: filterType ? '#F0F3FF' : '#F6F7FB', cursor: 'pointer', outline: 'none',
-          }}
-        >
-          <option value="">Tipo</option>
-          <option value="nueva_campana">Nueva Campaña</option>
-          <option value="iteracion">Iteración</option>
-          <option value="refresh">Refresh</option>
-          <option value="bombero">Bombero</option>
-        </select>
-
-        {/* Status filter */}
-        <select
-          value={filterStatus}
-          onChange={e => setFilterStatus(e.target.value)}
-          style={{
-            padding: '5px 10px', borderRadius: '8px', fontSize: '12px',
-            border: '1px solid #E6E9EF', color: filterStatus ? '#1F2128' : '#9CA3AF',
-            backgroundColor: filterStatus ? '#F0F3FF' : '#F6F7FB', cursor: 'pointer', outline: 'none',
-          }}
-        >
-          <option value="">Estado</option>
-          <option value="activa">Activa</option>
-          <option value="pausada">Pausada</option>
-          <option value="desactivada">Desactivada</option>
-        </select>
-
-        {/* Stats */}
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ fontSize: '12px', color: '#9CA3AF', fontWeight: 500 }}>
-            {visibleCampaigns.length} {visibleCampaigns.length === 1 ? 'campaña' : 'campañas'}
+        {/* Row 2: type + status chips */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 20px 10px', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.05em', marginRight: 2 }}>
+            Tipo
           </span>
-          <span style={{ fontSize: '12px', color: '#00C875', fontWeight: 600 }}>
-            {visibleCampaigns.filter(c => c.status === 'activa').length} activas
+          {[
+            { value: '', label: 'Todos' },
+            { value: 'nueva_campana', label: 'Nueva Campaña' },
+            { value: 'iteracion', label: 'Iteración' },
+            { value: 'refresh', label: 'Refresh' },
+            { value: 'bombero', label: '🔥 Bombero' },
+          ].map(({ value, label }) => (
+            <button
+              key={value}
+              onClick={() => setFilterType(filterType === value ? '' : value)}
+              style={{
+                padding: '3px 9px', borderRadius: 99, fontSize: 11, fontWeight: 600,
+                cursor: 'pointer', transition: 'all 0.15s',
+                backgroundColor: filterType === value ? '#6366F1' : '#F3F4F6',
+                color: filterType === value ? '#fff' : '#6B7280',
+                border: `1px solid ${filterType === value ? '#6366F1' : '#E5E7EB'}`,
+              }}
+            >
+              {label}
+            </button>
+          ))}
+
+          <span style={{ width: 1, height: 14, backgroundColor: '#E6E9EF', margin: '0 4px' }} />
+
+          <span style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.05em', marginRight: 2 }}>
+            Estado
           </span>
+          {[
+            { value: '', label: 'Todos' },
+            { value: 'activa', label: 'Activa', color: '#00C875' },
+            { value: 'pausada', label: 'Pausada', color: '#FDAB3D' },
+            { value: 'desactivada', label: 'Desactivada', color: '#C4C4C4' },
+          ].map(({ value, label, color }) => (
+            <button
+              key={value}
+              onClick={() => setFilterStatus(filterStatus === value ? '' : value)}
+              style={{
+                padding: '3px 9px', borderRadius: 99, fontSize: 11, fontWeight: 600,
+                cursor: 'pointer', transition: 'all 0.15s',
+                backgroundColor: filterStatus === value ? (color || '#6366F1') : '#F3F4F6',
+                color: filterStatus === value ? '#fff' : '#6B7280',
+                border: `1px solid ${filterStatus === value ? (color || '#6366F1') : '#E5E7EB'}`,
+              }}
+            >
+              {label}
+            </button>
+          ))}
+
+          {(filterType || filterStatus) && (
+            <button
+              onClick={() => { setFilterType(''); setFilterStatus('') }}
+              style={{
+                padding: '3px 8px', borderRadius: 99, fontSize: 10, fontWeight: 600,
+                cursor: 'pointer', color: '#9CA3AF',
+                backgroundColor: '#F3F4F6', border: '1px solid #E5E7EB',
+              }}
+            >
+              ✕ Limpiar
+            </button>
+          )}
         </div>
       </div>
 
