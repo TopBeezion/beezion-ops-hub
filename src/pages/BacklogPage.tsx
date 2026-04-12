@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Search, Plus, ChevronRight, ListFilter, X } from 'lucide-react'
+import { Search, Plus, X } from 'lucide-react'
 import { useTasks, useUpdateTask, useUpdateTaskStatus } from '../hooks/useTasks'
 import { useClients } from '../hooks/useClients'
 import { useCampaigns } from '../hooks/useCampaigns'
@@ -11,7 +11,7 @@ import {
   CAMPAIGN_TYPE_COLORS,
 } from '../lib/constants'
 
-// ─── Design tokens ────────────────────────────────────────────────────────────
+// ─── Design tokens ─────────────────────────────────────────────────────────
 const C = {
   bg: '#F0F2F8',
   surface: '#FFFFFF',
@@ -23,30 +23,54 @@ const C = {
   accent: '#6366F1',
 }
 
-const PRIORITY_CYCLE: Priority[] = ['baja', 'media', 'alta']
 const STATUS_CYCLE: TaskStatus[] = ['pendiente', 'en_progreso', 'revision', 'completado']
-const TEAM_MEMBERS = ['Alejandro', 'Alec', 'Paula', 'Jose Luis', 'Editor 1', 'Editor 2', 'Editor 3']
+const PRIORITY_CYCLE: Priority[] = ['baja', 'media', 'alta']
 
-const ASSIGNEE_COLORS: Record<string, string> = {
-  Alejandro: '#8b5cf6', Alec: '#f59e0b', Paula: '#ec4899',
-  'Jose Luis': '#3b82f6', 'Editor 1': '#06b6d4', 'Editor 2': '#10b981', 'Editor 3': '#f97316',
-}
+const ASSIGNEES = [
+  { name: 'Alejandro', color: '#8B5CF6' },
+  { name: 'Luisa',     color: '#EC4899' },
+  { name: 'Jose Luis', color: '#3B82F6' },
+  { name: 'Alec',      color: '#F59E0B' },
+  { name: 'Editor 1',  color: '#06B6D4' },
+  { name: 'Editor 2',  color: '#10B981' },
+  { name: 'Editor 3',  color: '#F97316' },
+]
 
-type GroupByOption = 'none' | 'campaign' | 'client' | 'status' | 'assignee' | 'priority' | 'area'
+type GroupByOption = 'campaign' | 'client' | 'assignee' | 'status' | 'none'
 
-// ─── Pill badge ───────────────────────────────────────────────────────────────
+// ─── Pill badge ─────────────────────────────────────────────────────────────
 function Pill({ label, color }: { label: string; color: string }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center',
-      padding: '2px 10px', borderRadius: 20,
-      fontSize: 11, fontWeight: 600,
+      padding: '2px 9px', borderRadius: 20,
+      fontSize: 10, fontWeight: 700,
       color, backgroundColor: `${color}18`,
-      border: `1px solid ${color}30`,
+      border: `1px solid ${color}28`,
       whiteSpace: 'nowrap',
     }}>
       {label}
     </span>
+  )
+}
+
+// ─── Toggle chip ─────────────────────────────────────────────────────────────
+function Chip({ label, active, color, onClick }: { label: string; active: boolean; color: string; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: 'inline-flex', alignItems: 'center',
+        padding: '5px 12px', borderRadius: 20,
+        fontSize: 11, fontWeight: 600,
+        cursor: 'pointer', border: 'none', transition: 'all 0.12s',
+        backgroundColor: active ? color : C.surface,
+        color: active ? '#fff' : C.sub,
+        boxShadow: active ? `0 2px 8px ${color}40` : `inset 0 0 0 1px ${C.border}`,
+      }}
+    >
+      {label}
+    </button>
   )
 }
 
@@ -57,75 +81,102 @@ export function BacklogPage() {
   const updateStatus = useUpdateTaskStatus()
   const ctx = useOutletContext<{ openNewTask?: () => void; openTaskDetail?: (t: Task) => void }>()
 
-  const [search, setSearch] = useState('')
-  const [filters, setFilters] = useState<TaskFilters>({})
-  const [groupBy, setGroupBy] = useState<GroupByOption>('campaign')
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
+  // ─── Filter state ─────────────────────────────────────────────────────────
+  const [search, setSearch]         = useState('')
+  const [activeEtapas, setEtapas]   = useState<Etapa[]>([])
+  const [activePersons, setPersons] = useState<string[]>([])
+  const [activeClients, setClients] = useState<string[]>([])
+  const [activeStatuses, setStats]  = useState<TaskStatus[]>([])
+  const [groupBy, setGroupBy]       = useState<GroupByOption>('campaign')
+  const [collapsedGroups, setCollapsed] = useState<Set<string>>(new Set())
+  const [hoveredRow, setHoveredRow] = useState<string | null>(null)
 
+  const [filters] = useState<TaskFilters>({})
   const { data: tasks = [], isLoading } = useTasks(filters)
 
-  const filteredTasks = search
-    ? tasks.filter(t => t.title.toLowerCase().includes(search.toLowerCase()))
-    : tasks
+  // ─── Toggle helpers ────────────────────────────────────────────────────────
+  const toggleArr = <T,>(arr: T[], set: (v: T[]) => void, val: T) =>
+    set(arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val])
 
-  const activeFilterCount = Object.values(filters).filter(Boolean).length + (search ? 1 : 0)
+  const hasFilters = search || activeEtapas.length || activePersons.length || activeClients.length || activeStatuses.length
+  const clearAll = () => { setSearch(''); setEtapas([]); setPersons([]); setClients([]); setStats([]) }
 
-  const setFilter = (key: keyof TaskFilters, value: string | number | undefined) => {
-    setFilters(f => ({ ...f, [key]: value || undefined }))
+  // ─── Filtering ─────────────────────────────────────────────────────────────
+  const filtered = tasks.filter(t => {
+    if (search && !t.title.toLowerCase().includes(search.toLowerCase())) return false
+    if (activeEtapas.length && !(activeEtapas as string[]).includes(t.etapa ?? '')) return false
+    if (activePersons.length && !activePersons.includes(t.assignee ?? '')) return false
+    if (activeClients.length && !activeClients.includes(t.client_id ?? '')) return false
+    if (activeStatuses.length && !activeStatuses.includes(t.status)) return false
+    return true
+  })
+
+  // ─── Grouping ──────────────────────────────────────────────────────────────
+  const getKey = (t: Task): string => {
+    if (groupBy === 'campaign') return t.campaign_id ?? 'unassigned'
+    if (groupBy === 'client')   return t.client_id ?? 'unassigned'
+    if (groupBy === 'assignee') return t.assignee ?? 'unassigned'
+    if (groupBy === 'status')   return t.status
+    return 'all'
   }
 
-  const clearFilters = () => { setFilters({}); setSearch('') }
-
-  // ─── Grouping ─────────────────────────────────────────────────────────────
-  const getGroupKey = (task: Task): string => {
-    switch (groupBy) {
-      case 'campaign': return task.campaign_id || 'unassigned'
-      case 'status': return task.status
-      case 'client': return task.client_id || 'unassigned'
-      case 'assignee': return task.assignee || 'unassigned'
-      case 'priority': return task.priority
-      case 'area': return task.area
-      default: return 'all'
+  const getGroupMeta = (key: string): { label: string; color: string; sub?: string } => {
+    if (groupBy === 'campaign') {
+      const cam = campaigns.find(c => c.id === key)
+      const cl  = clients.find(c => c.id === cam?.client_id)
+      return {
+        label: cam ? `${cl?.name ?? ''} — ${cam.name}` : 'Sin campaña',
+        color: cam ? (CAMPAIGN_TYPE_COLORS[cam.type as keyof typeof CAMPAIGN_TYPE_COLORS] ?? C.accent) : C.muted,
+        sub: cl?.name,
+      }
     }
+    if (groupBy === 'client') {
+      const cl = clients.find(c => c.id === key)
+      return { label: cl?.name ?? 'Sin cliente', color: cl?.color ?? C.muted }
+    }
+    if (groupBy === 'assignee') {
+      const a = ASSIGNEES.find(a => a.name === key)
+      return { label: key === 'unassigned' ? 'Sin asignar' : key, color: a?.color ?? C.muted }
+    }
+    if (groupBy === 'status') {
+      return { label: STATUS_LABELS[key as TaskStatus] ?? key, color: STATUS_COLORS[key as TaskStatus] ?? C.muted }
+    }
+    return { label: 'Todas', color: C.accent }
   }
 
-  const grouped = groupBy === 'none'
-    ? [{ key: 'all', label: '', tasks: filteredTasks, color: C.accent }]
-    : Object.entries(
-        filteredTasks.reduce((acc, task) => {
-          const key = getGroupKey(task)
-          if (!acc[key]) acc[key] = []
-          acc[key].push(task)
-          return acc
-        }, {} as Record<string, Task[]>)
-      ).map(([key, tasks]) => {
-        let label = key
-        let color = '#9699B0'
-        if (groupBy === 'campaign') {
-          const cam = campaigns.find(c => c.id === key)
-          const client = cam ? clients.find(cl => cl.id === cam.client_id) : null
-          label = cam ? `${client?.name ?? ''} — ${cam.name}` : 'Sin campaña'
-          color = cam ? (CAMPAIGN_TYPE_COLORS[cam.type as keyof typeof CAMPAIGN_TYPE_COLORS] ?? C.accent) : '#9699B0'
-        } else if (groupBy === 'status') {
-          label = STATUS_LABELS[key as TaskStatus] ?? key
-          color = STATUS_COLORS[key as TaskStatus] ?? '#9699B0'
-        } else if (groupBy === 'client') {
-          const client = clients.find(c => c.id === key)
-          label = client?.name ?? 'Sin cliente'
-          color = client?.color ?? '#9699B0'
-        } else if (groupBy === 'assignee') {
-          label = key === 'unassigned' ? 'Sin asignar' : key
-          color = ASSIGNEE_COLORS[key] ?? '#9699B0'
-        } else if (groupBy === 'priority') {
-          label = PRIORITY_LABELS[key as Priority] ?? key
-          color = PRIORITY_COLORS[key as Priority] ?? '#9699B0'
-        } else if (groupBy === 'area') {
-          label = AREA_LABELS[key as Area] ?? key
-          color = AREA_COLORS[key as Area] ?? '#9699B0'
-        }
-        return { key, label, tasks, color }
-      })
+  const grouped = Object.entries(
+    filtered.reduce((acc, t) => {
+      const k = getKey(t)
+      if (!acc[k]) acc[k] = []
+      acc[k].push(t)
+      return acc
+    }, {} as Record<string, Task[]>)
+  ).map(([key, tasks]) => ({ key, tasks, ...getGroupMeta(key) }))
 
+  const flatItems = (groupBy === 'none'
+    ? [{ isHeader: false as const, key: 'all-header-placeholder', label: '', color: C.accent, tasks: filtered }]
+    : grouped
+  ).flatMap(({ key, label, color, tasks: groupTasks }) => [
+    ...(groupBy !== 'none' ? [{
+      isHeader: true as const,
+      key: `header-${key}`,
+      groupKey: key,
+      label,
+      color,
+      count: groupTasks.length,
+    }] : []),
+    ...groupTasks
+      .filter(() => groupBy === 'none' || !collapsedGroups.has(key))
+      .map(task => ({ isHeader: false as const, key: task.id, task })),
+  ])
+
+  const toggleGroup = (k: string) => {
+    const next = new Set(collapsedGroups)
+    next.has(k) ? next.delete(k) : next.add(k)
+    setCollapsed(next)
+  }
+
+  // ─── Actions ───────────────────────────────────────────────────────────────
   const cycleStatus = (task: Task) => {
     const next = STATUS_CYCLE[(STATUS_CYCLE.indexOf(task.status) + 1) % STATUS_CYCLE.length]
     updateStatus.mutate({ id: task.id, status: next })
@@ -134,201 +185,238 @@ export function BacklogPage() {
     const next = PRIORITY_CYCLE[(PRIORITY_CYCLE.indexOf(task.priority) + 1) % PRIORITY_CYCLE.length]
     updateTask.mutate({ id: task.id, priority: next })
   }
-  const toggleGroup = (key: string) => {
-    const next = new Set(collapsedGroups)
-    next.has(key) ? next.delete(key) : next.add(key)
-    setCollapsedGroups(next)
-  }
 
-  // ─── Render helpers ───────────────────────────────────────────────────────
+  // ─── Render helpers ────────────────────────────────────────────────────────
   const renderClient = (clientId?: string) => {
-    const client = clients.find(c => c.id === clientId)
-    if (!client) return <span style={{ color: C.muted }}>—</span>
+    const cl = clients.find(c => c.id === clientId)
+    if (!cl) return <span style={{ color: C.muted }}>—</span>
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: client.color, flexShrink: 0 }} />
-        <span style={{ color: C.text, fontSize: 12, fontWeight: 500 }}>{client.name}</span>
+        <div style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: cl.color, flexShrink: 0 }} />
+        <span style={{ color: C.text, fontSize: 12, fontWeight: 500 }}>{cl.name}</span>
       </div>
     )
   }
 
   const renderCampaign = (campaign?: Task['campaign']) => {
     if (!campaign) return <span style={{ color: C.muted }}>—</span>
-    const color = CAMPAIGN_TYPE_COLORS[campaign.type as keyof typeof CAMPAIGN_TYPE_COLORS] ?? '#9699B0'
+    const color = CAMPAIGN_TYPE_COLORS[campaign.type as keyof typeof CAMPAIGN_TYPE_COLORS] ?? C.muted
     return <Pill label={campaign.name} color={color} />
   }
 
   const renderAssignee = (assignee?: string) => {
     if (!assignee) return <span style={{ color: C.muted }}>—</span>
-    const color = ASSIGNEE_COLORS[assignee] ?? '#9699B0'
-    const initials = assignee.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+    const a = ASSIGNEES.find(x => x.name === assignee)
+    const color = a?.color ?? C.muted
+    const ini = assignee.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
         <div style={{
           width: 24, height: 24, borderRadius: '50%',
           backgroundColor: color, color: '#fff',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 10, fontWeight: 700, flexShrink: 0,
-        }}>{initials}</div>
-        <span style={{ color: C.sub, fontSize: 12 }}>{assignee}</span>
+          fontSize: 9, fontWeight: 800, flexShrink: 0,
+        }}>{ini}</div>
+        <span style={{ color: C.sub, fontSize: 12, fontWeight: 500 }}>{assignee}</span>
       </div>
     )
   }
 
-  // ─── Filter select helper ─────────────────────────────────────────────────
-  const FilterSelect = ({ value, onChange, placeholder, children }: {
-    value: string; onChange: (v: string) => void; placeholder: string; children: React.ReactNode
-  }) => {
-    const active = !!value
-    return (
-      <select
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        style={{
-          padding: '6px 10px', borderRadius: 8, fontSize: 12, fontWeight: active ? 600 : 400,
-          border: `1px solid ${active ? C.accent : C.border}`,
-          backgroundColor: active ? '#EEF2FF' : C.surface,
-          color: active ? C.accent : C.sub,
-          outline: 'none', cursor: 'pointer', appearance: 'auto',
-        }}
-      >
-        <option value="">{placeholder}</option>
-        {children}
-      </select>
-    )
-  }
-
-  // ─── Flat items for rendering ─────────────────────────────────────────────
-  const flatItems = grouped.flatMap(({ key, label, tasks: groupTasks, color }) => [
-    ...(groupBy !== 'none' ? [{ isHeader: true as const, key: `header-${key}`, label, groupKey: key, color, count: groupTasks.length }] : []),
-    ...groupTasks
-      .filter(() => groupBy === 'none' || !collapsedGroups.has(key))
-      .map(task => ({ isHeader: false as const, key: task.id, task })),
-  ])
+  // ─── Divider ───────────────────────────────────────────────────────────────
+  const Divider = () => <div style={{ width: 1, height: 36, backgroundColor: C.border, alignSelf: 'center', flexShrink: 0 }} />
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', backgroundColor: C.bg }}>
 
-      {/* ── Page Header ────────────────────────────────────────────────────── */}
-      <div style={{
-        backgroundColor: C.surface,
-        borderBottom: `1px solid ${C.border}`,
-        padding: '16px 24px 12px',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <div>
-            <h1 style={{ fontSize: 18, fontWeight: 800, color: C.text, letterSpacing: '-0.3px' }}>
+      {/* ── HEADER ───────────────────────────────────────────────────────── */}
+      <div style={{ backgroundColor: C.surface, borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+
+        {/* Title row */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 24px 10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <h1 style={{ fontSize: 19, fontWeight: 800, color: C.text, margin: 0, letterSpacing: '-0.4px' }}>
               Backlog
             </h1>
-            <p style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>
-              {filteredTasks.length} {filteredTasks.length === 1 ? 'tarea' : 'tareas'}
-              {activeFilterCount > 0 && ` · ${activeFilterCount} filtro${activeFilterCount > 1 ? 's' : ''} activo${activeFilterCount > 1 ? 's' : ''}`}
-            </p>
+            <span style={{
+              fontSize: 11, fontWeight: 700,
+              backgroundColor: '#EEF2FF', color: C.accent,
+              padding: '2px 10px', borderRadius: 20,
+              border: `1px solid ${C.accent}20`,
+            }}>
+              {filtered.length} tareas
+            </span>
+            {hasFilters && (
+              <button onClick={clearAll} style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                color: '#DC2626', backgroundColor: '#FEF2F2',
+                border: '1px solid #FCA5A5', borderRadius: 20, padding: '2px 10px',
+              }}>
+                <X size={10} /> Limpiar filtros
+              </button>
+            )}
           </div>
-          {ctx?.openNewTask && (
-            <button
-              onClick={ctx.openNewTask}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '8px 16px', borderRadius: 10,
-                backgroundColor: C.accent, color: '#fff',
-                border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#4F46E5')}
-              onMouseLeave={e => (e.currentTarget.style.backgroundColor = C.accent)}
-            >
-              <Plus size={15} strokeWidth={2.5} />
-              Nueva tarea
-            </button>
-          )}
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {/* Group by */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 2,
+              padding: 4, borderRadius: 10,
+              border: `1px solid ${C.border}`, backgroundColor: C.bg,
+            }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: C.muted, padding: '2px 8px' }}>AGRUPAR</span>
+              {([['campaign', 'Campaña'], ['client', 'Cliente'], ['assignee', 'Responsable'], ['status', 'Estado']] as [GroupByOption, string][]).map(([opt, lbl]) => (
+                <button key={opt} onClick={() => setGroupBy(opt)} style={{
+                  padding: '4px 10px', borderRadius: 7, fontSize: 11, fontWeight: 600,
+                  cursor: 'pointer', border: 'none', transition: 'all 0.12s',
+                  backgroundColor: groupBy === opt ? C.accent : 'transparent',
+                  color: groupBy === opt ? '#fff' : C.muted,
+                }}>
+                  {lbl}
+                </button>
+              ))}
+            </div>
+
+            {ctx?.openNewTask && (
+              <button
+                onClick={ctx.openNewTask}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '7px 16px', borderRadius: 10,
+                  backgroundColor: C.accent, color: '#fff',
+                  border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                  boxShadow: `0 2px 8px ${C.accent}35`,
+                }}
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#4F46E5')}
+                onMouseLeave={e => (e.currentTarget.style.backgroundColor = C.accent)}
+              >
+                <Plus size={14} strokeWidth={2.5} /> Nueva tarea
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* ── Filter Bar ───────────────────────────────────────────────────── */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        {/* ── FILTER BAR ──────────────────────────────────────────────────── */}
+        <div style={{
+          borderTop: `1px solid ${C.border}`,
+          padding: '10px 24px 12px',
+          display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-start',
+        }}>
+
           {/* Search */}
-          <div style={{ position: 'relative' }}>
+          <div style={{ position: 'relative', alignSelf: 'center' }}>
             <Search size={13} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: C.muted }} />
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Buscar tareas..."
+              placeholder="Buscar tarea..."
               style={{
-                paddingLeft: 30, paddingRight: 10, paddingTop: 6, paddingBottom: 6,
-                borderRadius: 8, fontSize: 12, outline: 'none',
-                border: `1px solid ${search ? C.accent : C.border}`,
+                paddingLeft: 30, paddingRight: 12, paddingTop: 6, paddingBottom: 6,
+                borderRadius: 10, border: `1px solid ${search ? C.accent : C.border}`,
                 backgroundColor: search ? '#EEF2FF' : C.bg,
-                color: C.text, width: 180,
+                color: C.text, fontSize: 12, outline: 'none', width: 190,
               }}
             />
           </div>
 
-          <div style={{ width: 1, height: 20, backgroundColor: C.border }} />
+          <Divider />
 
-          <FilterSelect value={filters.client_id || ''} onChange={v => setFilter('client_id', v)} placeholder="Cliente">
-            {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </FilterSelect>
-
-          <FilterSelect value={filters.area || ''} onChange={v => setFilter('area', v)} placeholder="Área">
-            {(['copy', 'trafico', 'tech', 'admin'] as Area[]).map(a => (
-              <option key={a} value={a}>{AREA_LABELS[a]}</option>
-            ))}
-          </FilterSelect>
-
-          <FilterSelect value={filters.assignee || ''} onChange={v => setFilter('assignee', v)} placeholder="Asignado">
-            {TEAM_MEMBERS.map(m => <option key={m} value={m}>{m}</option>)}
-          </FilterSelect>
-
-          <FilterSelect value={filters.status || ''} onChange={v => setFilter('status', v)} placeholder="Estado">
-            {(['pendiente', 'en_progreso', 'revision', 'completado'] as TaskStatus[]).map(s => (
-              <option key={s} value={s}>{STATUS_LABELS[s]}</option>
-            ))}
-          </FilterSelect>
-
-          <FilterSelect value={filters.priority || ''} onChange={v => setFilter('priority', v)} placeholder="Prioridad">
-            {(['baja', 'media', 'alta'] as Priority[]).map(p => (
-              <option key={p} value={p}>{PRIORITY_LABELS[p]}</option>
-            ))}
-          </FilterSelect>
-
-          <FilterSelect value={filters.etapa || ''} onChange={v => setFilter('etapa', v)} placeholder="Etapa">
-            {ETAPA_ORDER.map(e => <option key={e} value={e}>{ETAPA_LABELS[e]}</option>)}
-          </FilterSelect>
-
-          <div style={{ width: 1, height: 20, backgroundColor: C.border }} />
-
-          {/* Group by */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <ListFilter size={13} style={{ color: C.muted }} />
-            <FilterSelect value={groupBy} onChange={v => setGroupBy(v as GroupByOption)} placeholder="">
-              <option value="none">Sin agrupar</option>
-              <option value="campaign">Campaña</option>
-              <option value="client">Cliente</option>
-              <option value="status">Estado</option>
-              <option value="assignee">Asignado</option>
-              <option value="priority">Prioridad</option>
-              <option value="area">Área</option>
-            </FilterSelect>
+          {/* Etapa */}
+          <div>
+            <p style={{ fontSize: 9, fontWeight: 800, color: C.muted, margin: '0 0 5px', letterSpacing: '0.1em' }}>ETAPA</p>
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+              {ETAPA_ORDER.map(key => (
+                <Chip
+                  key={key}
+                  label={ETAPA_LABELS[key]}
+                  active={activeEtapas.includes(key)}
+                  color={ETAPA_COLORS[key]}
+                  onClick={() => toggleArr(activeEtapas, setEtapas, key)}
+                />
+              ))}
+            </div>
           </div>
 
-          {/* Clear filters */}
-          {activeFilterCount > 0 && (
-            <button
-              onClick={clearFilters}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 4,
-                padding: '6px 10px', borderRadius: 8,
-                backgroundColor: '#FEF2F2', color: '#DC2626',
-                border: '1px solid #FCA5A5', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-              }}
-            >
-              <X size={12} />
-              Limpiar
-            </button>
-          )}
+          <Divider />
+
+          {/* Responsable — avatars */}
+          <div>
+            <p style={{ fontSize: 9, fontWeight: 800, color: C.muted, margin: '0 0 5px', letterSpacing: '0.1em' }}>RESPONSABLE</p>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {ASSIGNEES.map(({ name, color }) => {
+                const active = activePersons.includes(name)
+                const ini = name.split(' ').map(n => n[0]).join('').slice(0, 2)
+                return (
+                  <button
+                    key={name}
+                    onClick={() => toggleArr(activePersons, setPersons, name)}
+                    title={name}
+                    style={{
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+                      padding: '4px 8px', borderRadius: 10,
+                      cursor: 'pointer', border: 'none',
+                      backgroundColor: active ? `${color}15` : 'transparent',
+                      outline: active ? `2px solid ${color}` : `1px solid ${C.border}`,
+                      transition: 'all 0.12s',
+                    }}
+                  >
+                    <div style={{
+                      width: 28, height: 28, borderRadius: '50%',
+                      backgroundColor: active ? color : `${color}28`,
+                      color: active ? '#fff' : color,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 10, fontWeight: 800,
+                    }}>
+                      {ini}
+                    </div>
+                    <span style={{ fontSize: 9, fontWeight: 700, color: active ? color : C.muted }}>
+                      {name.split(' ')[0]}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          <Divider />
+
+          {/* Cliente */}
+          <div>
+            <p style={{ fontSize: 9, fontWeight: 800, color: C.muted, margin: '0 0 5px', letterSpacing: '0.1em' }}>CLIENTE</p>
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+              {clients.map(cl => (
+                <Chip
+                  key={cl.id}
+                  label={cl.name}
+                  active={activeClients.includes(cl.id)}
+                  color={cl.color}
+                  onClick={() => toggleArr(activeClients, setClients, cl.id)}
+                />
+              ))}
+            </div>
+          </div>
+
+          <Divider />
+
+          {/* Estado */}
+          <div>
+            <p style={{ fontSize: 9, fontWeight: 800, color: C.muted, margin: '0 0 5px', letterSpacing: '0.1em' }}>ESTADO</p>
+            <div style={{ display: 'flex', gap: 4 }}>
+              {(['pendiente', 'en_progreso', 'revision', 'completado'] as TaskStatus[]).map(key => (
+                <Chip
+                  key={key}
+                  label={STATUS_LABELS[key]}
+                  active={activeStatuses.includes(key)}
+                  color={STATUS_COLORS[key]}
+                  onClick={() => toggleArr(activeStatuses, setStats, key)}
+                />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* ── Content ─────────────────────────────────────────────────────────── */}
+      {/* ── CONTENT ──────────────────────────────────────────────────────── */}
       {isLoading ? (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
           <div style={{ textAlign: 'center' }}>
@@ -340,79 +428,66 @@ export function BacklogPage() {
             <p style={{ color: C.sub, fontSize: 13 }}>Cargando tareas...</p>
           </div>
         </div>
-      ) : filteredTasks.length === 0 ? (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
-          <div style={{ textAlign: 'center' }}>
-            <p style={{ color: C.sub, fontSize: 14, fontWeight: 600 }}>No hay tareas</p>
-            <p style={{ color: C.muted, fontSize: 12, marginTop: 4 }}>Ajusta los filtros o crea una nueva tarea</p>
-          </div>
+      ) : filtered.length === 0 ? (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, flexDirection: 'column', gap: 8 }}>
+          <span style={{ fontSize: 32 }}>🔍</span>
+          <p style={{ color: C.sub, fontSize: 14, fontWeight: 600, margin: 0 }}>No hay tareas con estos filtros</p>
+          <button onClick={clearAll} style={{ color: C.accent, fontSize: 12, background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline' }}>
+            Limpiar filtros
+          </button>
         </div>
       ) : (
         <div style={{ flex: 1, overflow: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-            {/* ── Table Header ──────────────────────────────────────────────── */}
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+
+            {/* Table header */}
             <thead style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: C.surface, borderBottom: `1px solid ${C.border}` }}>
               <tr>
-                {[
-                  { label: 'TAREA', width: 300 },
-                  { label: 'CLIENTE', width: 120 },
-                  { label: 'CAMPAÑA', width: 190 },
-                  { label: 'ESTADO', width: 120 },
-                  { label: 'PRIORIDAD', width: 100 },
-                  { label: 'ÁREA', width: 100 },
-                  { label: 'ASIGNADO', width: 140 },
-                  { label: 'ETAPA', width: 100 },
-                  { label: 'FECHA', width: 90 },
-                  { label: 'SPRINT', width: 70 },
-                ].map(col => (
-                  <th
-                    key={col.label}
-                    style={{
-                      padding: '10px 16px', textAlign: 'left',
-                      fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
-                      color: C.muted, width: col.width, whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {col.label}
+                {([
+                  ['TAREA', 300], ['CLIENTE', 110], ['CAMPAÑA', 180],
+                  ['ESTADO', 115], ['PRIORIDAD', 95], ['ÁREA', 90],
+                  ['ETAPA', 110], ['RESPONSABLE', 130], ['SPRINT', 70],
+                ] as [string, number][]).map(([l, w]) => (
+                  <th key={l} style={{
+                    padding: '8px 14px', textAlign: 'left',
+                    fontSize: 9, fontWeight: 800, letterSpacing: '0.09em',
+                    color: C.muted, width: w, whiteSpace: 'nowrap',
+                  }}>
+                    {l}
                   </th>
                 ))}
               </tr>
             </thead>
 
-            {/* ── Table Body ────────────────────────────────────────────────── */}
+            {/* Table body */}
             <tbody>
               {flatItems.map(item => {
                 if (item.isHeader) {
                   const isCollapsed = collapsedGroups.has(item.groupKey)
                   return (
-                    <tr key={item.key} style={{ backgroundColor: `${item.color}08` }}>
-                      <td colSpan={10} style={{ padding: '0' }}>
+                    <tr key={item.key}>
+                      <td colSpan={9} style={{ padding: 0 }}>
                         <button
                           onClick={() => toggleGroup(item.groupKey)}
                           style={{
                             display: 'flex', alignItems: 'center', gap: 8,
-                            width: '100%', padding: '9px 16px',
-                            background: 'none', border: 'none', cursor: 'pointer',
+                            width: '100%', padding: '8px 14px',
+                            background: `${item.color}09`, border: 'none',
                             borderLeft: `3px solid ${item.color}`,
                             borderBottom: `1px solid ${item.color}20`,
+                            cursor: 'pointer',
                           }}
                         >
-                          <ChevronRight
-                            size={14}
-                            style={{
-                              color: item.color,
-                              transform: isCollapsed ? 'rotate(0deg)' : 'rotate(90deg)',
-                              transition: 'transform 0.15s',
-                            }}
-                          />
-                          <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>
-                            {item.label}
-                          </span>
                           <span style={{
-                            marginLeft: 4, fontSize: 11, fontWeight: 600,
-                            color: item.color, backgroundColor: `${item.color}18`,
-                            padding: '1px 8px', borderRadius: 12,
-                            border: `1px solid ${item.color}30`,
+                            fontSize: 14, color: item.color, display: 'inline-block',
+                            transform: isCollapsed ? 'rotate(0deg)' : 'rotate(90deg)',
+                            transition: '0.15s',
+                          }}>›</span>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{item.label}</span>
+                          <span style={{
+                            fontSize: 10, fontWeight: 700, color: item.color,
+                            backgroundColor: `${item.color}18`, padding: '1px 8px',
+                            borderRadius: 20, border: `1px solid ${item.color}28`,
                           }}>
                             {item.count}
                           </span>
@@ -427,43 +502,38 @@ export function BacklogPage() {
                   <tr
                     key={item.key}
                     onClick={() => ctx?.openTaskDetail?.(task)}
+                    onMouseEnter={() => setHoveredRow(task.id)}
+                    onMouseLeave={() => setHoveredRow(null)}
                     style={{
-                      backgroundColor: C.surface,
+                      backgroundColor: hoveredRow === task.id ? '#F4F5FF' : C.surface,
                       borderBottom: `1px solid ${C.borderLight}`,
-                      cursor: 'pointer',
-                      transition: 'background-color 0.1s',
+                      cursor: 'pointer', transition: 'background 0.08s',
                     }}
-                    onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#F5F6FF')}
-                    onMouseLeave={e => (e.currentTarget.style.backgroundColor = C.surface)}
                   >
                     {/* Tarea */}
-                    <td style={{ padding: '10px 16px', maxWidth: 300 }}>
-                      <span style={{
-                        color: C.text, fontSize: 13, fontWeight: 500,
-                        display: '-webkit-box', WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical', overflow: 'hidden',
-                      }}>
+                    <td style={{ padding: '9px 14px', maxWidth: 300 }}>
+                      <span style={{ color: C.text, fontWeight: 500, fontSize: 12, lineHeight: 1.4 }}>
                         {task.title}
                       </span>
                     </td>
 
                     {/* Cliente */}
-                    <td style={{ padding: '10px 16px' }}>
+                    <td style={{ padding: '9px 14px' }}>
                       {renderClient(task.client_id)}
                     </td>
 
                     {/* Campaña */}
-                    <td style={{ padding: '10px 16px', maxWidth: 190 }}>
+                    <td style={{ padding: '9px 14px', maxWidth: 180 }}>
                       {renderCampaign(task.campaign)}
                     </td>
 
                     {/* Estado */}
-                    <td style={{ padding: '10px 16px' }} onClick={e => e.stopPropagation()}>
+                    <td style={{ padding: '9px 14px' }} onClick={e => e.stopPropagation()}>
                       <button
                         onClick={() => cycleStatus(task)}
                         style={{
-                          padding: '3px 10px', borderRadius: 20,
-                          fontSize: 11, fontWeight: 600, cursor: 'pointer', border: 'none',
+                          padding: '3px 10px', borderRadius: 20, fontSize: 10, fontWeight: 700,
+                          cursor: 'pointer', border: 'none',
                           backgroundColor: `${STATUS_COLORS[task.status]}18`,
                           color: STATUS_COLORS[task.status],
                           outline: `1px solid ${STATUS_COLORS[task.status]}35`,
@@ -474,61 +544,49 @@ export function BacklogPage() {
                     </td>
 
                     {/* Prioridad */}
-                    <td style={{ padding: '10px 16px' }} onClick={e => e.stopPropagation()}>
+                    <td style={{ padding: '9px 14px' }} onClick={e => e.stopPropagation()}>
                       <button
                         onClick={() => cyclePriority(task)}
                         style={{
-                          display: 'flex', alignItems: 'center', gap: 5,
-                          padding: '3px 10px', borderRadius: 20,
-                          fontSize: 11, fontWeight: 600, cursor: 'pointer', border: 'none',
+                          display: 'flex', alignItems: 'center', gap: 4,
+                          padding: '3px 10px', borderRadius: 20, fontSize: 10, fontWeight: 700,
+                          cursor: 'pointer', border: 'none',
                           backgroundColor: `${PRIORITY_COLORS[task.priority]}18`,
                           color: PRIORITY_COLORS[task.priority],
                           outline: `1px solid ${PRIORITY_COLORS[task.priority]}35`,
                         }}
                       >
-                        <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: PRIORITY_COLORS[task.priority] }} />
+                        <span style={{ fontSize: 7 }}>●</span>
                         {PRIORITY_LABELS[task.priority]}
                       </button>
                     </td>
 
                     {/* Área */}
-                    <td style={{ padding: '10px 16px' }}>
+                    <td style={{ padding: '9px 14px' }}>
                       <Pill label={AREA_LABELS[task.area]} color={AREA_COLORS[task.area]} />
                     </td>
 
-                    {/* Asignado */}
-                    <td style={{ padding: '10px 16px' }}>
-                      {renderAssignee(task.assignee)}
-                    </td>
-
                     {/* Etapa */}
-                    <td style={{ padding: '10px 16px' }}>
+                    <td style={{ padding: '9px 14px' }}>
                       {task.etapa
-                        ? <Pill label={ETAPA_LABELS[task.etapa].split(' ')[0]} color={ETAPA_COLORS[task.etapa]} />
+                        ? <Pill label={ETAPA_LABELS[task.etapa]} color={ETAPA_COLORS[task.etapa]} />
                         : <span style={{ color: C.muted }}>—</span>
                       }
                     </td>
 
-                    {/* Fecha */}
-                    <td style={{ padding: '10px 16px' }}>
-                      {task.due_date ? (
-                        <span style={{
-                          fontSize: 11, fontWeight: 600,
-                          color: new Date(task.due_date) < new Date() ? '#E2445C' : C.sub,
-                        }}>
-                          {new Date(task.due_date).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })}
-                        </span>
-                      ) : <span style={{ color: C.muted }}>—</span>}
+                    {/* Responsable */}
+                    <td style={{ padding: '9px 14px' }}>
+                      {renderAssignee(task.assignee)}
                     </td>
 
                     {/* Sprint */}
-                    <td style={{ padding: '10px 16px' }}>
+                    <td style={{ padding: '9px 14px' }}>
                       {task.week ? (
                         <span style={{
                           padding: '3px 8px', borderRadius: 8,
-                          fontSize: 11, fontWeight: 700,
+                          fontSize: 10, fontWeight: 700,
                           backgroundColor: '#EEF2FF', color: C.accent,
-                          border: `1px solid ${C.accent}30`,
+                          border: `1px solid ${C.accent}25`,
                         }}>
                           S{task.week}
                         </span>
