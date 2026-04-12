@@ -148,15 +148,29 @@ export const CLIENT_COLORS: Record<string, string> = {
 
 // ── Team members ──────────────────────────────────────────────
 export const TEAM_MEMBERS = [
-  'Alejandro', 'Alec', 'Paula', 'Jose Luis',
-  'David', 'Johan', 'Felipe', 'Luisa', 'TBD',
+  'Alejandro', 'Alec', 'Jose', 'Luisa',
+  'Paula', 'David', 'Johan', 'Felipe', 'TBD',
 ]
+
+// Cargos del equipo
+export const TEAM_ROLES: Record<string, string> = {
+  Alejandro: 'CEO · Copy · Estrategia',
+  Alec: 'Head of Paid · Estrategia',
+  Jose: 'Trafficker',
+  Luisa: 'Copywriter',
+  Felipe: 'Editor',
+  Johan: 'Editor',
+  David: 'Editor',
+  Paula: 'Aux. Marketing · Grabaciones',
+  TBD: 'Por definir',
+}
 
 export const ASSIGNEE_COLORS: Record<string, string> = {
   Alejandro: '#8B5CF6',
   Alec: '#F59E0B',
+  Jose: '#3B82F6',
+  'Jose Luis': '#3B82F6', // alias legacy
   Paula: '#EC4899',
-  'Jose Luis': '#3B82F6',
   David: '#06B6D4',
   Johan: '#10B981',
   Felipe: '#F97316',

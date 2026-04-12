@@ -4,7 +4,7 @@ import { useClients } from '../hooks/useClients'
 import { useCampaigns } from '../hooks/useCampaigns'
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import type { Task, Client, Area } from '../types'
-import { AREA_LABELS, AREA_COLORS, ASSIGNEE_COLORS, TEAM_MEMBERS } from '../lib/constants'
+import { AREA_LABELS, AREA_COLORS, ASSIGNEE_COLORS, TEAM_MEMBERS, TEAM_ROLES } from '../lib/constants'
 import {
   Flame, Zap, CheckCircle2, Clock, TrendingUp,
   Users, BarChart3, ChevronRight, Circle, Layers, Activity,
@@ -232,6 +232,7 @@ function MemberChip({ name, active, onClick }: { name: string; active: boolean; 
   return (
     <button
       onClick={onClick}
+      title={TEAM_ROLES[name] || name}
       style={{
         display: 'flex', alignItems: 'center', gap: 6,
         padding: '5px 10px 5px 6px',

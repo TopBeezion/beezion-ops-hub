@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useClients, useUpdateClient, useCreateClient } from '../hooks/useClients'
 import { useTeam } from '../hooks/useTeam'
 import { useTasks } from '../hooks/useTasks'
-import { AREA_COLORS, AREA_LABELS, ASSIGNEE_COLORS } from '../lib/constants'
+import { AREA_COLORS, AREA_LABELS, ASSIGNEE_COLORS, TEAM_ROLES } from '../lib/constants'
 
 // ─── Tokens ───────────────────────────────────────────────────────────────────
 const C = {
@@ -362,15 +362,18 @@ export function SettingsPage() {
                     </div>
                   )}
 
-                  {/* Role badge */}
+                  {/* Role / cargo badge */}
                   <span style={{
                     fontSize: 11, padding: '3px 10px', borderRadius: 6,
-                    backgroundColor: member.role === 'admin' ? `${C.accent}12` : C.bg,
-                    color: member.role === 'admin' ? C.accent : C.sub,
-                    border: `1px solid ${member.role === 'admin' ? `${C.accent}25` : C.border}`,
-                    fontWeight: 600,
+                    backgroundColor: (member.role === 'admin' || member.name === 'Alejandro' || member.name === 'Alec')
+                      ? `${C.accent}12` : C.bg,
+                    color: (member.role === 'admin' || member.name === 'Alejandro' || member.name === 'Alec')
+                      ? C.accent : C.sub,
+                    border: `1px solid ${(member.role === 'admin' || member.name === 'Alejandro' || member.name === 'Alec')
+                      ? `${C.accent}25` : C.border}`,
+                    fontWeight: 600, whiteSpace: 'nowrap',
                   }}>
-                    {member.role}
+                    {TEAM_ROLES[member.name] || member.role}
                   </span>
                 </div>
               )
