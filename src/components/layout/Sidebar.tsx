@@ -1,7 +1,9 @@
 import { useState } from 'react'
-import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, List, Kanban, CalendarDays, Settings, ChevronLeft, ChevronRight, Zap, ChevronDown, Rocket, Flame, AlertTriangle } from 'lucide-react'
+import { NavLink, useNavigate } from 'react-router-dom'
+import { LayoutDashboard, List, Kanban, CalendarDays, Settings, ChevronLeft, ChevronRight, Zap, ChevronDown, Rocket, Flame, LogOut } from 'lucide-react'
 import { useClients } from '../../hooks/useClients'
+import { useAuth } from '../../hooks/useAuth'
+import { ASSIGNEE_COLORS } from '../../lib/constants'
 
 interface SidebarProps {
   collapsed: boolean
@@ -20,9 +22,16 @@ const NAV_ITEMS = [
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const { data: clients } = useClients()
+  const { user, signOut } = useAuth()
+  const navigate = useNavigate()
   const [clientsOpen, setClientsOpen] = useState(true)
 
   const toggleClientsSection = () => setClientsOpen(o => !o)
+
+  const handleSignOut = () => {
+    signOut()
+    navigate('/login')
+  }
 
   return (
     <div
@@ -179,6 +188,55 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         )}
       </nav>
 
+      {/* User + Logout */}
+      {user && (
+        <div style={{ borderTop: '1px solid #3E4450', padding: '10px 8px' }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '6px 8px', borderRadius: 8,
+            backgroundColor: '#1E222A',
+          }}>
+            {/* Avatar */}
+            <div style={{
+              width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
+              backgroundColor: `${ASSIGNEE_COLORS[user.name] || '#6366F1'}25`,
+              color: ASSIGNEE_COLORS[user.name] || '#6366F1',
+              fontSize: 10, fontWeight: 800,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              border: `1.5px solid ${ASSIGNEE_COLORS[user.name] || '#6366F1'}40`,
+            }}>
+              {user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+            </div>
+
+            {!collapsed && (
+              <>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: '#E0E2EC', margin: 0 }} className="truncate">
+                    {user.name}
+                  </p>
+                  <p style={{ fontSize: 9, color: '#5A5E72', margin: 0 }} className="truncate">
+                    {user.email}
+                  </p>
+                </div>
+                <button
+                  onClick={handleSignOut}
+                  title="Cerrar sesión"
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    color: '#5A5E72', padding: 4, borderRadius: 5,
+                    flexShrink: 0, transition: 'color 0.15s',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.color = '#E2445C')}
+                  onMouseLeave={e => (e.currentTarget.style.color = '#5A5E72')}
+                >
+                  <LogOut size={13} />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Collapse Toggle Button */}
       <div
         className="px-2 py-3 border-t flex items-center justify-center"
@@ -186,18 +244,10 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       >
         <button
           onClick={onToggle}
-          className="p-1.5 rounded-md transition-colors duration-150 group"
-          style={{
-            color: '#C8CCD3',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.color = '#FFFFFF'
-            e.currentTarget.style.backgroundColor = '#3E4450'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.color = '#C8CCD3'
-            e.currentTarget.style.backgroundColor = 'transparent'
-          }}
+          className="p-1.5 rounded-md transition-colors duration-150"
+          style={{ color: '#C8CCD3' }}
+          onMouseEnter={e => { e.currentTarget.style.color = '#FFFFFF'; e.currentTarget.style.backgroundColor = '#3E4450' }}
+          onMouseLeave={e => { e.currentTarget.style.color = '#C8CCD3'; e.currentTarget.style.backgroundColor = 'transparent' }}
         >
           {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
         </button>

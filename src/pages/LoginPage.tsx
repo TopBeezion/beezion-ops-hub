@@ -2,63 +2,50 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
-import { Mail, ArrowRight, CheckCircle2, Loader2 } from 'lucide-react'
+import { Mail, ArrowRight, Loader2 } from 'lucide-react'
 
 export function LoginPage() {
-  const { session, signInWithMagicLink, loading } = useAuth()
+  const { user, signIn, loading } = useAuth()
   const [email, setEmail] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [sent, setSent] = useState(false)
 
-  if (!loading && session) {
-    return <Navigate to="/" replace />
-  }
+  if (!loading && user) return <Navigate to="/" replace />
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     if (!email.trim()) return
     setError('')
     setSubmitting(true)
-
-    const { error } = await signInWithMagicLink(email)
-    if (error) {
-      setError(error)
-    } else {
-      setSent(true)
-    }
+    const { error } = await signIn(email)
+    if (error) setError(error)
     setSubmitting(false)
   }
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '100vh',
-        backgroundColor: '#0A0A0F',
-        backgroundImage: 'radial-gradient(ellipse at 50% 0%, rgba(99,102,241,0.12) 0%, transparent 60%)',
-      }}
-    >
-      <div style={{ width: '100%', maxWidth: 380, padding: '0 24px' }}>
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      minHeight: '100vh', backgroundColor: '#0A0A0F',
+      backgroundImage: 'radial-gradient(ellipse at 50% 0%, rgba(245,166,35,0.08) 0%, transparent 55%)',
+    }}>
+      <div style={{ width: '100%', maxWidth: 360, padding: '0 24px' }}>
 
         {/* Logo */}
-        <div style={{ marginBottom: 36, textAlign: 'center' }}>
+        <div style={{ marginBottom: 32, textAlign: 'center' }}>
           <div style={{
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            width: 48, height: 48, borderRadius: 14,
+            width: 52, height: 52, borderRadius: 16,
             backgroundColor: '#F5A623',
-            marginBottom: 16,
-            boxShadow: '0 8px 24px rgba(245,166,35,0.3)',
+            marginBottom: 14,
+            boxShadow: '0 8px 28px rgba(245,166,35,0.35)',
           }}>
-            <span style={{ fontSize: 22, fontWeight: 900, color: '#0A0A0F' }}>B</span>
+            <span style={{ fontSize: 24, fontWeight: 900, color: '#0A0A0F' }}>B</span>
           </div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#F0F1F8', margin: 0 }}>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: '#F0F1F8', margin: 0 }}>
             Beezion Ops Hub
           </h1>
-          <p style={{ fontSize: 13, color: '#5A5E72', marginTop: 6 }}>
-            Acceso exclusivo para el equipo Beezion
+          <p style={{ fontSize: 12, color: '#3D4055', marginTop: 5 }}>
+            Solo para el equipo interno
           </p>
         </div>
 
@@ -68,137 +55,98 @@ export function LoginPage() {
           border: '1px solid #1E1E2E',
           borderRadius: 16,
           padding: '28px 24px',
-          boxShadow: '0 24px 64px rgba(0,0,0,0.4)',
+          boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
         }}>
+          <p style={{ fontSize: 13, color: '#5A5E72', margin: '0 0 20px', lineHeight: 1.5 }}>
+            Ingresa tu correo corporativo para acceder
+          </p>
 
-          {sent ? (
-            /* ── Estado: correo enviado ── */
-            <div style={{ textAlign: 'center' }}>
-              <div style={{
-                width: 56, height: 56, borderRadius: '50%',
-                backgroundColor: 'rgba(16,185,129,0.12)',
-                border: '1px solid rgba(16,185,129,0.25)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                margin: '0 auto 16px',
+          <form onSubmit={handleSubmit}>
+            {/* Email input */}
+            <div style={{ marginBottom: 14 }}>
+              <label style={{
+                display: 'block', fontSize: 10, fontWeight: 700,
+                color: '#3D4055', marginBottom: 7,
+                textTransform: 'uppercase', letterSpacing: '0.07em',
               }}>
-                <CheckCircle2 size={26} color="#10B981" />
-              </div>
-              <h2 style={{ fontSize: 16, fontWeight: 700, color: '#F0F1F8', margin: '0 0 8px' }}>
-                Revisa tu correo
-              </h2>
-              <p style={{ fontSize: 13, color: '#5A5E72', lineHeight: 1.6, margin: '0 0 20px' }}>
-                Enviamos un enlace de acceso a<br />
-                <strong style={{ color: '#9699B0' }}>{email}</strong>
-              </p>
-              <p style={{ fontSize: 11, color: '#3D4055' }}>
-                El enlace expira en 1 hora. Revisa también spam.
-              </p>
-              <button
-                onClick={() => { setSent(false); setEmail('') }}
-                style={{
-                  marginTop: 20, fontSize: 12, color: '#5A5E72',
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  textDecoration: 'underline',
-                }}
-              >
-                Usar otro correo
-              </button>
-            </div>
-          ) : (
-            /* ── Estado: formulario ── */
-            <>
-              <h2 style={{ fontSize: 15, fontWeight: 600, color: '#D0D2E0', margin: '0 0 6px' }}>
-                Iniciar sesión
-              </h2>
-              <p style={{ fontSize: 12, color: '#3D4055', margin: '0 0 20px' }}>
-                Sin contraseña — te enviamos un enlace directo
-              </p>
-
-              <form onSubmit={handleSubmit}>
-                <div style={{ marginBottom: 14 }}>
-                  <label style={{
-                    display: 'block', fontSize: 11, fontWeight: 600,
-                    color: '#5A5E72', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em',
-                  }}>
-                    Correo corporativo
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <Mail
-                      size={14} color="#3D4055"
-                      style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }}
-                    />
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={e => { setEmail(e.target.value); setError('') }}
-                      required
-                      autoFocus
-                      placeholder="tucorreo@beezion.com"
-                      style={{
-                        width: '100%', padding: '10px 12px 10px 34px',
-                        backgroundColor: '#0D0D14',
-                        border: `1px solid ${error ? '#E2445C40' : '#1E1E2E'}`,
-                        borderRadius: 8, fontSize: 13, color: '#F0F1F8',
-                        outline: 'none', boxSizing: 'border-box',
-                        transition: 'border-color 0.2s',
-                      }}
-                      onFocus={e => (e.target.style.borderColor = '#6366F160')}
-                      onBlur={e => (e.target.style.borderColor = error ? '#E2445C40' : '#1E1E2E')}
-                    />
-                  </div>
-                </div>
-
-                {error && (
-                  <div style={{
-                    padding: '8px 12px', borderRadius: 7, marginBottom: 14,
-                    backgroundColor: 'rgba(226,68,92,0.1)',
-                    border: '1px solid rgba(226,68,92,0.25)',
-                  }}>
-                    <p style={{ fontSize: 12, color: '#E2445C', margin: 0 }}>{error}</p>
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={submitting || !email.trim()}
+                Correo corporativo
+              </label>
+              <div style={{ position: 'relative' }}>
+                <Mail size={13} color="#3D4055" style={{
+                  position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)',
+                }} />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => { setEmail(e.target.value); setError('') }}
+                  required
+                  autoFocus
+                  placeholder="tucorreo@beezion.com"
                   style={{
-                    width: '100%', padding: '11px 16px',
-                    borderRadius: 8, fontSize: 13, fontWeight: 700,
-                    color: '#0A0A0F',
-                    backgroundColor: submitting || !email.trim() ? '#3D4055' : '#F5A623',
-                    border: 'none', cursor: submitting || !email.trim() ? 'not-allowed' : 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                    transition: 'all 0.2s',
-                    boxShadow: submitting || !email.trim() ? 'none' : '0 4px 14px rgba(245,166,35,0.3)',
+                    width: '100%', padding: '10px 12px 10px 32px',
+                    backgroundColor: '#0D0D14',
+                    border: `1.5px solid ${error ? 'rgba(226,68,92,0.5)' : '#1E1E2E'}`,
+                    borderRadius: 9, fontSize: 13, color: '#F0F1F8',
+                    outline: 'none', boxSizing: 'border-box',
+                    transition: 'border-color 0.15s',
                   }}
-                >
-                  {submitting ? (
-                    <>
-                      <Loader2 size={14} style={{ animation: 'spin 0.8s linear infinite' }} />
-                      Enviando enlace...
-                    </>
-                  ) : (
-                    <>
-                      Enviar enlace de acceso
-                      <ArrowRight size={14} />
-                    </>
-                  )}
-                </button>
-              </form>
-            </>
-          )}
+                  onFocus={e => { if (!error) e.target.style.borderColor = 'rgba(245,166,35,0.4)' }}
+                  onBlur={e => { if (!error) e.target.style.borderColor = '#1E1E2E' }}
+                />
+              </div>
+            </div>
+
+            {/* Error */}
+            {error && (
+              <div style={{
+                padding: '9px 12px', borderRadius: 8, marginBottom: 14,
+                backgroundColor: 'rgba(226,68,92,0.08)',
+                border: '1px solid rgba(226,68,92,0.2)',
+              }}>
+                <p style={{ fontSize: 12, color: '#E2445C', margin: 0 }}>
+                  {error}
+                </p>
+              </div>
+            )}
+
+            {/* Botón */}
+            <button
+              type="submit"
+              disabled={submitting || !email.trim()}
+              style={{
+                width: '100%', padding: '11px 16px',
+                borderRadius: 9, fontSize: 13, fontWeight: 700,
+                color: '#0A0A0F',
+                backgroundColor: !email.trim() ? '#1E1E2E' : '#F5A623',
+                border: 'none',
+                cursor: !email.trim() || submitting ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                transition: 'all 0.2s',
+                boxShadow: email.trim() && !submitting ? '0 4px 16px rgba(245,166,35,0.3)' : 'none',
+              }}
+            >
+              {submitting ? (
+                <>
+                  <Loader2 size={14} style={{ animation: 'spin 0.7s linear infinite' }} />
+                  Verificando...
+                </>
+              ) : (
+                <>
+                  Entrar
+                  <ArrowRight size={14} />
+                </>
+              )}
+            </button>
+          </form>
         </div>
 
-        <p style={{ textAlign: 'center', fontSize: 11, color: '#2A2A3A', marginTop: 20 }}>
-          Solo accesible para el equipo interno de Beezion
+        <p style={{ textAlign: 'center', fontSize: 10, color: '#1E1E2E', marginTop: 18 }}>
+          Acceso restringido · Beezion © 2026
         </p>
       </div>
 
       <style>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
     </div>
   )

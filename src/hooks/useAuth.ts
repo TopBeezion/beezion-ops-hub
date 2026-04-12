@@ -1,66 +1,49 @@
-import { useEffect, useState } from 'react'
-import type { Session, User } from '@supabase/supabase-js'
+import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 
+export interface BeezionUser {
+  name: string
+  email: string
+  role: string
+}
+
+const STORAGE_KEY = 'beezion_user'
+
 export function useAuth() {
-  const [session, setSession] = useState<Session | null>(null)
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<BeezionUser | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-    })
-
-    return () => subscription.unsubscribe()
+    const stored = localStorage.getItem(STORAGE_KEY)
+    if (stored) {
+      try { setUser(JSON.parse(stored)) } catch {}
+    }
+    setLoading(false)
   }, [])
 
-  // Magic link — verifica que el email esté en team_members antes de enviar
-  const signInWithMagicLink = async (email: string) => {
-    // 1. Verificar que el correo esté autorizado en team_members
-    const { data, error: lookupError } = await supabase
+  // Verificar email contra team_members y entrar directo
+  const signIn = async (email: string): Promise<{ error: string | null }> => {
+    const clean = email.toLowerCase().trim()
+
+    const { data, error } = await supabase
       .from('team_members')
-      .select('id')
-      .eq('email', email.toLowerCase().trim())
+      .select('name, email, role')
+      .eq('email', clean)
       .maybeSingle()
 
-    if (lookupError) return { error: 'Error al verificar el correo. Intenta de nuevo.' }
-    if (!data) return { error: 'Este correo no está autorizado. Usa tu correo @beezion.com.' }
+    if (error) return { error: 'Error de conexión. Intenta de nuevo.' }
+    if (!data)  return { error: 'Correo no autorizado. Usa tu correo @beezion.com.' }
 
-    // 2. Enviar magic link
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email.toLowerCase().trim(),
-      options: {
-        shouldCreateUser: false, // solo usuarios ya registrados en Supabase Auth
-      },
-    })
-
-    if (error) {
-      // Si el usuario no existe en Auth aún, crearlo automáticamente
-      if (error.message.includes('not found') || error.message.includes('Signups not allowed')) {
-        const { error: error2 } = await supabase.auth.signInWithOtp({
-          email: email.toLowerCase().trim(),
-          options: { shouldCreateUser: true },
-        })
-        if (error2) return { error: 'No se pudo enviar el correo. Intenta de nuevo.' }
-        return { error: null }
-      }
-      return { error: 'No se pudo enviar el correo. Intenta de nuevo.' }
-    }
-
+    const beezionUser: BeezionUser = { name: data.name, email: data.email, role: data.role }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(beezionUser))
+    setUser(beezionUser)
     return { error: null }
   }
 
-  const signOut = async () => {
-    await supabase.auth.signOut()
+  const signOut = () => {
+    localStorage.removeItem(STORAGE_KEY)
+    setUser(null)
   }
 
-  return { session, user, loading, signInWithMagicLink, signOut }
+  return { user, loading, signIn, signOut }
 }
