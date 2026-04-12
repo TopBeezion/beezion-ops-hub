@@ -464,10 +464,10 @@ export function BacklogPage() {
               </tr>
             </thead>
             <tbody>
-              {grouped.map(({ key, label, tasks: groupTasks }) => [
+              {grouped.flatMap(({ key, label, tasks: groupTasks }) => [
                 // Group header (if grouped)
                 ...(groupBy !== 'none' ? [{
-                  isHeader: true,
+                  isHeader: true as const,
                   key: `header-${key}`,
                   label,
                   groupKey: key,
@@ -477,10 +477,11 @@ export function BacklogPage() {
                 ...groupTasks
                   .filter(() => groupBy === 'none' || !collapsedGroups.has(key))
                   .map(task => ({
-                    isHeader: false,
+                    isHeader: false as const,
+                    key: task.id,
                     task,
                   })),
-              ]).map((item: any) => {
+              ]).map((item) => {
                 if (item.isHeader) {
                   const borderColor = groupBy === 'status'
                     ? STATUS_COLORS[item.groupKey as TaskStatus]
