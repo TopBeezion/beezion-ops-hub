@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useTasks, useUpdateTaskStatus } from '../hooks/useTasks'
 import { useClients } from '../hooks/useClients'
-import { useTeam } from '../hooks/useTeam'
 import { useOutletContext } from 'react-router-dom'
 import {
   DndContext,
@@ -18,7 +17,6 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import {
   GripVertical,
-  Filter,
   Clock,
   AlertTriangle,
 } from 'lucide-react'
@@ -29,6 +27,66 @@ import {
   PRIORITY_COLORS,
   ASSIGNEE_COLORS,
 } from '../lib/constants'
+
+const KANBAN_ASSIGNEES = [
+  { name: 'Alejandro', color: '#8B5CF6' },
+  { name: 'Alec',      color: '#F59E0B' },
+  { name: 'Jose',      color: '#3B82F6' },
+  { name: 'Luisa',     color: '#EF4444' },
+  { name: 'Paula',     color: '#EC4899' },
+  { name: 'David',     color: '#06B6D4' },
+  { name: 'Johan',     color: '#10B981' },
+  { name: 'Felipe',    color: '#F97316' },
+]
+
+function FilterChip({ label, active, color, onClick }: { label: string; active: boolean; color: string; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: 'inline-flex', alignItems: 'center',
+        padding: '4px 11px', borderRadius: 20,
+        fontSize: 11, fontWeight: 600,
+        cursor: 'pointer', border: 'none', transition: 'all 0.12s',
+        backgroundColor: active ? color : '#F8F9FC',
+        color: active ? '#fff' : '#5A5E72',
+        boxShadow: active ? `0 2px 8px ${color}40` : `inset 0 0 0 1px #E4E7F0`,
+      }}
+    >
+      {label}
+    </button>
+  )
+}
+
+function AvatarChip({ name, color, active, onClick }: { name: string; color: string; active: boolean; onClick: () => void }) {
+  const ini = name.slice(0, 2).toUpperCase()
+  return (
+    <button
+      onClick={onClick}
+      title={name}
+      style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+        padding: '4px 8px', borderRadius: 10,
+        cursor: 'pointer', border: 'none', transition: 'all 0.12s',
+        backgroundColor: active ? `${color}15` : 'transparent',
+        outline: active ? `2px solid ${color}` : `1px solid #E4E7F0`,
+      }}
+    >
+      <div style={{
+        width: 26, height: 26, borderRadius: '50%',
+        backgroundColor: active ? color : `${color}28`,
+        color: active ? '#fff' : color,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 9, fontWeight: 800,
+      }}>
+        {ini}
+      </div>
+      <span style={{ fontSize: 9, fontWeight: 700, color: active ? color : '#9699B0' }}>
+        {name.split(' ')[0]}
+      </span>
+    </button>
+  )
+}
 
 const COLUMNS: { id: TaskStatus; label: string; color: string }[] = [
   { id: 'pendiente', label: 'Pendiente', color: '#C4C4C4' },
@@ -259,7 +317,6 @@ function KanbanColumn({ column, tasks, onOpenDetail }: KanbanColumnProps) {
 export function KanbanPage() {
   const { data: tasks = [] } = useTasks()
   const { data: clients = [] } = useClients()
-  const { data: team = [] } = useTeam()
   const { openTaskDetail } = useOutletContext<{
     openNewTask: () => void
     openTaskDetail: (task: Task) => void
@@ -267,19 +324,25 @@ export function KanbanPage() {
 
   const updateTaskStatus = useUpdateTaskStatus()
 
-  const [filterClient, setFilterClient] = useState<string>('')
-  const [filterArea, setFilterArea] = useState<string>('')
-  const [filterAssignee, setFilterAssignee] = useState<string>('')
+  const [filterClients, setFilterClients] = useState<string[]>([])
+  const [filterAreas, setFilterAreas] = useState<string[]>([])
+  const [filterAssignees, setFilterAssignees] = useState<string[]>([])
   const [draggedTask, setDraggedTask] = useState<Task | null>(null)
+
+  const toggle = <T,>(arr: T[], val: T) =>
+    arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val]
+
+  const hasFilters = filterClients.length > 0 || filterAreas.length > 0 || filterAssignees.length > 0
+  const clearFilters = () => { setFilterClients([]); setFilterAreas([]); setFilterAssignees([]) }
 
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
-      if (filterClient && task.client_id !== filterClient) return false
-      if (filterArea && task.area !== filterArea) return false
-      if (filterAssignee && task.assignee !== filterAssignee) return false
+      if (filterClients.length && !filterClients.includes(task.client_id ?? '')) return false
+      if (filterAreas.length && !filterAreas.includes(task.area ?? '')) return false
+      if (filterAssignees.length && !filterAssignees.includes(task.assignee ?? '')) return false
       return true
     })
-  }, [tasks, filterClient, filterArea, filterAssignee])
+  }, [tasks, filterClients, filterAreas, filterAssignees])
 
   const tasksByStatus: Record<TaskStatus, Task[]> = useMemo(() => {
     const grouped: Record<TaskStatus, Task[]> = {
@@ -326,54 +389,65 @@ export function KanbanPage() {
       style={{ backgroundColor: '#F6F7FB' }}
     >
       {/* Filter Bar */}
-      <div
-        className="px-5 py-3 border-b flex items-center gap-3 flex-wrap"
-        style={{ borderColor: '#E4E7F0', backgroundColor: '#FFFFFF' }}
-      >
-        <div className="flex items-center gap-2 mr-2">
-          <Filter size={14} style={{ color: '#9699B0' }} />
-          <span style={{ fontSize: 12, fontWeight: 600, color: '#9699B0' }}>Filtrar:</span>
+      <div style={{ borderBottom: '1px solid #E4E7F0', backgroundColor: '#FFFFFF', padding: '10px 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {/* Row 1: clients + assignees */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 9, fontWeight: 800, color: '#9699B0', letterSpacing: '0.1em', marginRight: 2 }}>CLIENTE</span>
+          {clients.map(cl => (
+            <FilterChip
+              key={cl.id}
+              label={cl.name}
+              active={filterClients.includes(cl.id)}
+              color={cl.color}
+              onClick={() => setFilterClients(toggle(filterClients, cl.id))}
+            />
+          ))}
+
+          <div style={{ width: 1, height: 28, backgroundColor: '#E4E7F0', margin: '0 4px' }} />
+
+          <span style={{ fontSize: 9, fontWeight: 800, color: '#9699B0', letterSpacing: '0.1em', marginRight: 2 }}>RESPONSABLE</span>
+          {KANBAN_ASSIGNEES.map(({ name, color }) => (
+            <AvatarChip
+              key={name}
+              name={name}
+              color={color}
+              active={filterAssignees.includes(name)}
+              onClick={() => setFilterAssignees(toggle(filterAssignees, name))}
+            />
+          ))}
         </div>
 
-        <select
-          value={filterClient}
-          onChange={(e) => setFilterClient(e.target.value)}
-          className="text-sm rounded-lg border transition-colors"
-          style={{ backgroundColor: '#F8F9FC', borderColor: '#E4E7F0', color: '#1A1D27', fontSize: 12, padding: '5px 10px' }}
-        >
-          <option value="">Todos los clientes</option>
-          {clients.map((client) => (
-            <option key={client.id} value={client.id}>{client.name}</option>
-          ))}
-        </select>
-
-        <select
-          value={filterArea}
-          onChange={(e) => setFilterArea(e.target.value)}
-          className="text-sm rounded-lg border transition-colors"
-          style={{ backgroundColor: '#F8F9FC', borderColor: '#E4E7F0', color: '#1A1D27', fontSize: 12, padding: '5px 10px' }}
-        >
-          <option value="">Todas las áreas</option>
+        {/* Row 2: areas + count + clear */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 9, fontWeight: 800, color: '#9699B0', letterSpacing: '0.1em', marginRight: 2 }}>ÁREA</span>
           {(Object.entries(AREA_LABELS) as [string, string][]).map(([key, label]) => (
-            <option key={key} value={key}>{label}</option>
+            <FilterChip
+              key={key}
+              label={label}
+              active={filterAreas.includes(key)}
+              color={AREA_COLORS[key as Area] ?? '#6366F1'}
+              onClick={() => setFilterAreas(toggle(filterAreas, key))}
+            />
           ))}
-        </select>
 
-        <select
-          value={filterAssignee}
-          onChange={(e) => setFilterAssignee(e.target.value)}
-          className="text-sm rounded-lg border transition-colors"
-          style={{ backgroundColor: '#F8F9FC', borderColor: '#E4E7F0', color: '#1A1D27', fontSize: 12, padding: '5px 10px' }}
-        >
-          <option value="">Todos los asignados</option>
-          {team.map((member) => (
-            <option key={member.id} value={member.name}>{member.name}</option>
-          ))}
-        </select>
+          <span style={{ fontSize: 11, color: '#9699B0', marginLeft: 'auto', fontWeight: 500 }}>
+            {totalTasks} tareas
+          </span>
 
-        <span style={{ fontSize: 11, color: '#9699B0', marginLeft: 'auto', fontWeight: 500 }}>
-          {totalTasks} tareas
-        </span>
+          {hasFilters && (
+            <button
+              onClick={clearFilters}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                color: '#DC2626', backgroundColor: '#FEF2F2',
+                border: '1px solid #FCA5A5', borderRadius: 20, padding: '3px 10px',
+              }}
+            >
+              ✕ Limpiar
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Kanban Columns */}

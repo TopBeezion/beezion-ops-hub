@@ -28,12 +28,13 @@ const PRIORITY_CYCLE: Priority[] = ['baja', 'media', 'alta']
 
 const ASSIGNEES = [
   { name: 'Alejandro', color: '#8B5CF6' },
-  { name: 'Luisa',     color: '#EC4899' },
-  { name: 'Jose Luis', color: '#3B82F6' },
   { name: 'Alec',      color: '#F59E0B' },
-  { name: 'Editor 1',  color: '#06B6D4' },
-  { name: 'Editor 2',  color: '#10B981' },
-  { name: 'Editor 3',  color: '#F97316' },
+  { name: 'Jose',      color: '#3B82F6' },
+  { name: 'Luisa',     color: '#EF4444' },
+  { name: 'Paula',     color: '#EC4899' },
+  { name: 'David',     color: '#06B6D4' },
+  { name: 'Johan',     color: '#10B981' },
+  { name: 'Felipe',    color: '#F97316' },
 ]
 
 type GroupByOption = 'campaign' | 'client' | 'assignee' | 'status' | 'none'
