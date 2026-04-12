@@ -169,7 +169,6 @@ export const ASSIGNEE_COLORS: Record<string, string> = {
   Alejandro: '#8B5CF6',
   Alec: '#F59E0B',
   Jose: '#3B82F6',
-  'Jose Luis': '#3B82F6', // alias legacy
   Paula: '#EC4899',
   David: '#06B6D4',
   Johan: '#10B981',
