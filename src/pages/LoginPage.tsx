@@ -4,58 +4,6 @@ import { Navigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { ArrowRight, Loader2 } from 'lucide-react'
 
-// ─── Beezion Logo SVG ─────────────────────────────────────────────────────────
-function BeezionLogo({ size = 48 }: { size?: number }) {
-  return (
-    <svg width={size * 4.2} height={size} viewBox="0 0 200 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-      {/* "beezi" */}
-      <text
-        x="0" y="38"
-        fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
-        fontSize="42"
-        fontWeight="800"
-        fill="#111111"
-        letterSpacing="-1"
-      >
-        beezi
-      </text>
-      {/* Hexagon "o" */}
-      <g transform="translate(126, 6)">
-        <polygon
-          points="18,2 34,11 34,29 18,38 2,29 2,11"
-          fill="#F5A623"
-          stroke="none"
-        />
-        <text
-          x="18" y="28"
-          fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
-          fontSize="22"
-          fontWeight="900"
-          fill="white"
-          textAnchor="middle"
-        >o</text>
-      </g>
-      {/* "n" */}
-      <text
-        x="163" y="38"
-        fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
-        fontSize="42"
-        fontWeight="800"
-        fill="#111111"
-        letterSpacing="-1"
-      >
-        n
-      </text>
-      {/* Bee icon above "i" */}
-      <g transform="translate(112, 0)">
-        <ellipse cx="6" cy="3" rx="3" ry="2" fill="#F5A623" />
-        <line x1="2" y1="2" x2="0" y2="0" stroke="#111" strokeWidth="1" />
-        <line x1="10" y1="2" x2="12" y2="0" stroke="#111" strokeWidth="1" />
-      </g>
-    </svg>
-  )
-}
-
 // ─── Hexagon background pattern ───────────────────────────────────────────────
 function HexPattern() {
   return (
@@ -142,21 +90,18 @@ export function LoginPage() {
         }}>
           {/* Logo */}
           <div style={{ marginBottom: 36, textAlign: 'center' }}>
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: 12,
-            }}>
-              <BeezionLogo size={40} />
-            </div>
+            <img
+              src="/beezion-logo.svg"
+              alt="Beezion"
+              style={{ height: 52, width: 'auto', marginBottom: 10 }}
+            />
             <p style={{
-              fontSize: 13,
-              fontWeight: 600,
+              fontSize: 12,
+              fontWeight: 700,
               color: '#9699B0',
-              letterSpacing: '0.12em',
+              letterSpacing: '0.15em',
               textTransform: 'uppercase',
-              marginTop: 6,
+              marginTop: 4,
             }}>
               Operaciones
             </p>
