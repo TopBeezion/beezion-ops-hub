@@ -4,11 +4,13 @@ import {
 } from 'lucide-react'
 import { useTasks, useUpdateTask, useUpdateTaskStatus } from '../hooks/useTasks'
 import { useClients } from '../hooks/useClients'
+import { useCampaigns } from '../hooks/useCampaigns'
 import { useOutletContext } from 'react-router-dom'
 import type { Task, Area, Priority, TaskStatus, TaskFilters, Etapa } from '../types'
 import {
   AREA_LABELS, AREA_COLORS, STATUS_LABELS, STATUS_COLORS,
   PRIORITY_LABELS, PRIORITY_COLORS, ETAPA_LABELS, ETAPA_COLORS, ETAPA_ORDER,
+  CAMPAIGN_TYPE_COLORS,
 } from '../lib/constants'
 
 const PRIORITY_CYCLE: Priority[] = ['baja', 'media', 'alta']
@@ -26,10 +28,11 @@ const ASSIGNEE_COLORS: Record<string, string> = {
   'Editor 3': '#f97316',
 }
 
-type GroupByOption = 'none' | 'status' | 'client' | 'assignee' | 'priority' | 'area'
+type GroupByOption = 'none' | 'campaign' | 'client' | 'status' | 'assignee' | 'priority' | 'area'
 
 export function BacklogPage() {
   const { data: clients = [] } = useClients()
+  const { data: campaigns = [] } = useCampaigns()
   const updateTask = useUpdateTask()
   const updateStatus = useUpdateTaskStatus()
   const ctx = useOutletContext<{ openNewTask?: () => void; openTaskDetail?: (t: Task) => void }>()
@@ -37,7 +40,7 @@ export function BacklogPage() {
   // Filter state
   const [search, setSearch] = useState('')
   const [filters, setFilters] = useState<TaskFilters>({})
-  const [groupBy, setGroupBy] = useState<GroupByOption>('none')
+  const [groupBy, setGroupBy] = useState<GroupByOption>('campaign')
 
   // Collapsed groups
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
@@ -67,6 +70,8 @@ export function BacklogPage() {
   // Grouping logic
   const getGroupKey = (task: Task): string => {
     switch (groupBy) {
+      case 'campaign':
+        return task.campaign_id || 'unassigned'
       case 'status':
         return task.status
       case 'client':
@@ -83,7 +88,7 @@ export function BacklogPage() {
   }
 
   const grouped = groupBy === 'none'
-    ? [{ key: 'all', label: '', tasks: filteredTasks }]
+    ? [{ key: 'all', label: '', tasks: filteredTasks, color: '#6366F1' }]
     : Object.entries(
       filteredTasks.reduce((acc, task) => {
         const key = getGroupKey(task)
@@ -93,15 +98,30 @@ export function BacklogPage() {
       }, {} as Record<string, Task[]>)
     ).map(([key, tasks]) => {
       let label = key
-      if (groupBy === 'status') label = STATUS_LABELS[key as TaskStatus]
-      else if (groupBy === 'client') {
+      let color = '#D1D5DB'
+      if (groupBy === 'campaign') {
+        const cam = campaigns.find(c => c.id === key)
+        const client = cam ? clients.find(cl => cl.id === cam.client_id) : null
+        label = cam ? `${client?.name || ''} — ${cam.name}` : 'Sin campaña'
+        color = cam ? CAMPAIGN_TYPE_COLORS[cam.type] : '#D1D5DB'
+      } else if (groupBy === 'status') {
+        label = STATUS_LABELS[key as TaskStatus]
+        color = STATUS_COLORS[key as TaskStatus]
+      } else if (groupBy === 'client') {
         const client = clients.find(c => c.id === key)
         label = client?.name || 'Sin cliente'
-      } else if (groupBy === 'assignee') label = key === 'unassigned' ? 'Sin asignar' : key
-      else if (groupBy === 'priority') label = PRIORITY_LABELS[key as Priority]
-      else if (groupBy === 'area') label = AREA_LABELS[key as Area]
+        color = client?.color || '#D1D5DB'
+      } else if (groupBy === 'assignee') {
+        label = key === 'unassigned' ? 'Sin asignar' : key
+      } else if (groupBy === 'priority') {
+        label = PRIORITY_LABELS[key as Priority]
+        color = PRIORITY_COLORS[key as Priority]
+      } else if (groupBy === 'area') {
+        label = AREA_LABELS[key as Area]
+        color = AREA_COLORS[key as Area]
+      }
 
-      return { key, label, tasks }
+      return { key, label, tasks, color }
     })
 
   const cycleStatus = async (task: Task) => {
@@ -318,9 +338,10 @@ export function BacklogPage() {
             fontSize: 12, fontWeight: groupBy !== 'none' ? 600 : 400,
           }}
         >
-          <option value="none">Agrupar por</option>
-          <option value="status">Estado</option>
+          <option value="none">Sin agrupar</option>
+          <option value="campaign">📣 Campaña</option>
           <option value="client">Cliente</option>
+          <option value="status">Estado</option>
           <option value="assignee">Asignado</option>
           <option value="priority">Prioridad</option>
           <option value="area">Área</option>
@@ -389,11 +410,14 @@ export function BacklogPage() {
           <table className="task-table w-full text-sm border-collapse">
             <thead className="sticky top-0 z-10" style={{ backgroundColor: '#FFFFFF', borderBottom: '1px solid #ECEDF2' }}>
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: '#9699B0', width: '300px', letterSpacing: '0.04em' }}>
+                <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: '#9699B0', width: '280px', letterSpacing: '0.04em' }}>
                   TAREA
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: '#9699B0', width: '140px', letterSpacing: '0.04em' }}>
+                <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: '#9699B0', width: '110px', letterSpacing: '0.04em' }}>
                   CLIENTE
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: '#9699B0', width: '180px', letterSpacing: '0.04em' }}>
+                  CAMPAÑA
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold tracking-wider" style={{ color: '#9699B0', width: '110px', letterSpacing: '0.04em' }}>
                   ESTADO
@@ -447,7 +471,7 @@ export function BacklogPage() {
 
                   return (
                     <tr key={item.key} style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #ECEDF2' }}>
-                      <td colSpan={9} className="px-6 py-3">
+                      <td colSpan={10} className="px-6 py-3">
                         <button
                           onClick={() => toggleGroupCollapsed(item.groupKey)}
                           className="group-header flex items-center gap-2 w-full font-semibold text-sm hover:opacity-80 transition-opacity"
@@ -496,6 +520,31 @@ export function BacklogPage() {
                     {/* Client */}
                     <td className="px-6 py-4">
                       {renderClientBadge(task.client_id)}
+                    </td>
+
+                    {/* Campaign */}
+                    <td className="px-6 py-4">
+                      {task.campaign_id ? (() => {
+                        const camp = campaigns.find(c => c.id === task.campaign_id)
+                        if (!camp) return <span style={{ color: '#9699A6' }}>—</span>
+                        const color = CAMPAIGN_TYPE_COLORS[camp.type as keyof typeof CAMPAIGN_TYPE_COLORS] ?? '#9699A6'
+                        return (
+                          <span style={{
+                            fontSize: 11, fontWeight: 600,
+                            color,
+                            backgroundColor: `${color}18`,
+                            padding: '3px 8px', borderRadius: 6,
+                            border: `1px solid ${color}30`,
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            display: 'inline-block',
+                            maxWidth: '160px',
+                          }} title={camp.name}>
+                            {camp.name}
+                          </span>
+                        )
+                      })() : <span style={{ color: '#9699A6' }}>—</span>}
                     </td>
 
                     {/* Status */}
