@@ -386,23 +386,33 @@ function NewCampaignModal({
           </div>
 
           <div>
-            <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '6px' }}>
+            <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '8px' }}>
               Tipo
             </label>
-            <select
-              value={type}
-              onChange={e => setType(e.target.value as CampaignType)}
-              style={{
-                width: '100%', padding: '9px 12px', borderRadius: '8px',
-                border: '1px solid #E6E9EF', fontSize: '13px', color: '#1F2128',
-                outline: 'none', cursor: 'pointer', backgroundColor: '#fff', boxSizing: 'border-box',
-              }}
-            >
-              <option value="nueva_campana">Nueva Campaña</option>
-              <option value="iteracion">Iteración</option>
-              <option value="refresh">Refresh</option>
-              <option value="bombero">🔥 Bombero</option>
-            </select>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {([
+                { value: 'nueva_campana' as CampaignType, label: 'Nueva Campaña', color: '#6366F1' },
+                { value: 'iteracion' as CampaignType,     label: 'Iteración',     color: '#3B82F6' },
+                { value: 'refresh' as CampaignType,       label: 'Refresh',       color: '#F59E0B' },
+                { value: 'bombero' as CampaignType,       label: '🔥 Bombero',    color: '#EF4444' },
+              ]).map(({ value, label, color }) => {
+                const active = type === value
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setType(value)}
+                    style={{
+                      padding: '6px 13px', borderRadius: 20, fontSize: 12, fontWeight: 700,
+                      cursor: 'pointer', border: 'none', transition: 'all 0.12s',
+                      backgroundColor: active ? color : `${color}12`,
+                      color: active ? '#fff' : color,
+                      boxShadow: active ? `0 2px 8px ${color}40` : `inset 0 0 0 1.5px ${color}35`,
+                    }}
+                  >{label}</button>
+                )
+              })}
+            </div>
           </div>
 
           <div>

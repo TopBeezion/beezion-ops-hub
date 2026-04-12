@@ -3,7 +3,7 @@ import { useTasks } from '../hooks/useTasks'
 import { useClients } from '../hooks/useClients'
 import { useOutletContext } from 'react-router-dom'
 import type { Task } from '../types'
-import { AREA_COLORS, AREA_LABELS, STATUS_COLORS, STATUS_LABELS } from '../lib/constants'
+import { AREA_COLORS, AREA_LABELS, STATUS_COLORS, STATUS_LABELS, ASSIGNEE_COLORS } from '../lib/constants'
 import { X, ChevronDown, ChevronUp, Zap } from 'lucide-react'
 
 // ─── Design tokens ─────────────────────────────────────────────────────────────
@@ -21,13 +21,13 @@ const WEEKS = [1, 2, 3, 4] as const
 
 const SPRINT_META: Record<number, { label: string; sub: string; color: string; owner: string }> = {
   1: { label: 'Sprint 1', sub: 'Copy & Briefs',       color: '#8b5cf6', owner: 'Alejandro · Editores' },
-  2: { label: 'Sprint 2', sub: 'Producción & Diseño',  color: '#ec4899', owner: 'Paula · Jose Luis' },
+  2: { label: 'Sprint 2', sub: 'Producción & Diseño',  color: '#ec4899', owner: 'Paula · Editores' },
   3: { label: 'Sprint 3', sub: 'Dev & Setup',           color: '#3b82f6', owner: 'Alec · Paula' },
-  4: { label: 'Sprint 4', sub: 'Launch & Optim.',       color: '#22c55e', owner: 'Alec · Jose Luis' },
+  4: { label: 'Sprint 4', sub: 'Launch & Optim.',       color: '#22c55e', owner: 'Alec · Jose' },
 }
 
 const AREA_LIST   = ['copy', 'trafico', 'tech', 'admin'] as const
-const ASSIGNEES   = ['Alejandro', 'Alec', 'Paula', 'Jose Luis', 'Editor 1', 'Editor 2', 'Editor 3']
+const ASSIGNEES   = ['Alejandro', 'Alec', 'Jose', 'Luisa', 'Paula', 'David', 'Johan', 'Felipe']
 
 const ASSIGNEE_INITIALS: Record<string, string> = {
   Alejandro: 'AL', Alec: 'AC', Paula: 'PL', 'Jose Luis': 'JL',
@@ -387,12 +387,12 @@ export function TimelinePage() {
     allTasks.some(t => t.client_id === c.id),
   )
 
-  const selectStyle = (active: boolean): React.CSSProperties => ({
-    fontSize: 12, fontWeight: active ? 600 : 400, cursor: 'pointer', outline: 'none',
-    padding: '5px 10px', borderRadius: 8,
-    border: `1px solid ${active ? '#6366F1' : C.border}`,
-    backgroundColor: active ? '#EEF2FF' : C.card,
-    color: active ? '#4F46E5' : C.sub,
+  const chipStyle = (active: boolean, color = '#6366F1'): React.CSSProperties => ({
+    padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600,
+    cursor: 'pointer', border: 'none', transition: 'all 0.12s',
+    backgroundColor: active ? color : `${color}12`,
+    color: active ? '#fff' : color,
+    boxShadow: active ? `0 2px 6px ${color}40` : `inset 0 0 0 1.5px ${color}35`,
   })
 
   if (isLoading) {
@@ -408,41 +408,79 @@ export function TimelinePage() {
 
       {/* ── Filter toolbar ─────────────────────────────────────────── */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+        display: 'flex', flexDirection: 'column', gap: 6,
         padding: '10px 16px',
         backgroundColor: C.card, borderBottom: `1px solid ${C.border}`,
       }}>
-        <select style={selectStyle(!!areaFilter)} value={areaFilter} onChange={e => setAreaFilter(e.target.value)}>
-          <option value="">Todas las áreas</option>
-          {AREA_LIST.map(a => <option key={a} value={a}>{AREA_LABELS[a]}</option>)}
-        </select>
+        {/* Row 1: Area + Cliente */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.04em', marginRight: 2 }}>Área</span>
+          <button onClick={() => setAreaFilter('')} style={chipStyle(!areaFilter)}>Todas</button>
+          {AREA_LIST.map(a => (
+            <button key={a} onClick={() => setAreaFilter(areaFilter === a ? '' : a)} style={chipStyle(areaFilter === a, AREA_COLORS[a])}>
+              {AREA_LABELS[a]}
+            </button>
+          ))}
 
-        <select style={selectStyle(!!assigneeFilter)} value={assigneeFilter} onChange={e => setAssigneeFilter(e.target.value)}>
-          <option value="">Todo el equipo</option>
-          {ASSIGNEES.map(n => <option key={n} value={n}>{n}</option>)}
-        </select>
+          <span style={{ width: 1, height: 14, backgroundColor: C.border, margin: '0 4px' }} />
 
-        <select style={selectStyle(!!clientFilter)} value={clientFilter} onChange={e => setClientFilter(e.target.value)}>
-          <option value="">Todos los clientes</option>
-          {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
+          <span style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.04em', marginRight: 2 }}>Cliente</span>
+          <button onClick={() => setClientFilter('')} style={chipStyle(!clientFilter)}>Todos</button>
+          {clients.map(c => (
+            <button key={c.id} onClick={() => setClientFilter(clientFilter === c.id ? '' : c.id)}
+              style={{ ...chipStyle(clientFilter === c.id, c.color), display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ width: 5, height: 5, borderRadius: '50%', backgroundColor: clientFilter === c.id ? 'rgba(255,255,255,0.7)' : c.color, display: 'inline-block' }} />
+              {c.name}
+            </button>
+          ))}
 
-        {hasFilters && (
-          <button
-            onClick={() => { setAreaFilter(''); setAssigneeFilter(''); setClientFilter('') }}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600,
-              padding: '5px 10px', borderRadius: 8, cursor: 'pointer',
-              backgroundColor: '#FEF2F2', color: '#DC2626',
-              border: '1px solid #FCA5A5',
-            }}
-          >
-            <X size={10} strokeWidth={3} />Limpiar
-          </button>
-        )}
-        <span style={{ fontSize: 11, color: C.muted, marginLeft: 'auto', fontWeight: 500 }}>
-          {tasks.length} tareas
-        </span>
+          <span style={{ fontSize: 11, color: C.muted, marginLeft: 'auto', fontWeight: 500 }}>{tasks.length} tareas</span>
+        </div>
+
+        {/* Row 2: Assignee */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.04em', marginRight: 2 }}>Persona</span>
+          <button onClick={() => setAssigneeFilter('')} style={chipStyle(!assigneeFilter)}>Todos</button>
+          {ASSIGNEES.map(name => {
+            const color = ASSIGNEE_COLORS[name] || '#9699B0'
+            const active = assigneeFilter === name
+            return (
+              <button key={name} onClick={() => setAssigneeFilter(active ? '' : name)} style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                padding: '3px 9px 3px 5px', borderRadius: 20, fontSize: 11, fontWeight: 600,
+                cursor: 'pointer', border: 'none', transition: 'all 0.12s',
+                backgroundColor: active ? color : `${color}12`,
+                color: active ? '#fff' : color,
+                boxShadow: active ? `0 2px 6px ${color}40` : `inset 0 0 0 1.5px ${color}35`,
+              }}>
+                <div style={{
+                  width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
+                  backgroundColor: active ? 'rgba(255,255,255,0.25)' : `${color}20`,
+                  color: active ? '#fff' : color,
+                  fontSize: 8, fontWeight: 800,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {name.slice(0, 2).toUpperCase()}
+                </div>
+                {name}
+              </button>
+            )
+          })}
+
+          {hasFilters && (
+            <button
+              onClick={() => { setAreaFilter(''); setAssigneeFilter(''); setClientFilter('') }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700,
+                padding: '4px 9px', borderRadius: 20, cursor: 'pointer', border: 'none',
+                backgroundColor: '#FEF2F2', color: '#DC2626',
+                boxShadow: 'inset 0 0 0 1.5px #FCA5A5',
+              }}
+            >
+              <X size={9} strokeWidth={3} /> Limpiar
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ── Grid ──────────────────────────────────────────────────── */}

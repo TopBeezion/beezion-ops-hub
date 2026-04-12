@@ -414,82 +414,102 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
             )}
           </div>
 
-          {/* ── Cliente + Campaña ── */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="flex items-center gap-1 mb-1.5" style={sectionLabel}>
-                <Tag size={9} /> Cliente
-              </label>
-              <select
-                value={clientId}
-                onChange={e => { setClientId(e.target.value); setCampaignId('') }}
-                className="px-3 py-2 rounded-lg text-sm w-full"
-                style={{ ...inputBase }}
-              >
-                <option value="">Sin cliente</option>
-                {clients.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="flex items-center gap-1 mb-1.5" style={sectionLabel}>
-                <Zap size={9} /> Campaña
-              </label>
-              <select
-                value={campaignId}
-                onChange={e => setCampaignId(e.target.value)}
-                disabled={!clientId}
-                className="px-3 py-2 rounded-lg text-xs w-full"
-                style={{ ...inputBase, opacity: clientId ? 1 : 0.5 }}
-              >
-                <option value="">Sin campaña</option>
-                {campaigns.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
+          {/* ── Cliente ── */}
+          <div>
+            <label className="flex items-center gap-1 mb-1.5" style={sectionLabel}><Tag size={9} /> Cliente</label>
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+              <button type="button" onClick={() => { setClientId(''); setCampaignId('') }} style={{
+                padding: '4px 10px', borderRadius: 20, fontSize: 10, fontWeight: 700,
+                cursor: 'pointer', border: 'none', transition: 'all 0.12s',
+                backgroundColor: !clientId ? '#6366F1' : '#F3F4F6',
+                color: !clientId ? '#fff' : '#9699A6',
+                boxShadow: !clientId ? '0 2px 6px #6366F140' : 'inset 0 0 0 1.5px #E5E7EB',
+              }}>Sin cliente</button>
+              {clients.map(c => {
+                const active = clientId === c.id
+                return (
+                  <button key={c.id} type="button" onClick={() => { setClientId(c.id); setCampaignId('') }} style={{
+                    display: 'flex', alignItems: 'center', gap: 4,
+                    padding: '4px 10px', borderRadius: 20, fontSize: 10, fontWeight: 700,
+                    cursor: 'pointer', border: 'none', transition: 'all 0.12s',
+                    backgroundColor: active ? c.color : `${c.color}12`,
+                    color: active ? '#fff' : c.color,
+                    boxShadow: active ? `0 2px 6px ${c.color}40` : `inset 0 0 0 1.5px ${c.color}35`,
+                  }}>
+                    <span style={{ width: 5, height: 5, borderRadius: '50%', backgroundColor: active ? 'rgba(255,255,255,0.7)' : c.color, display: 'inline-block' }} />
+                    {c.name}
+                  </button>
+                )
+              })}
             </div>
           </div>
 
+          {/* ── Campaña ── */}
+          {clientId && (
+            <div>
+              <label className="flex items-center gap-1 mb-1.5" style={sectionLabel}><Zap size={9} /> Campaña</label>
+              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                <button type="button" onClick={() => setCampaignId('')} style={{
+                  padding: '4px 10px', borderRadius: 20, fontSize: 10, fontWeight: 700,
+                  cursor: 'pointer', border: 'none', transition: 'all 0.12s',
+                  backgroundColor: !campaignId ? '#6366F1' : '#F3F4F6',
+                  color: !campaignId ? '#fff' : '#9699A6',
+                  boxShadow: !campaignId ? '0 2px 6px #6366F140' : 'inset 0 0 0 1.5px #E5E7EB',
+                }}>Sin campaña</button>
+                {campaigns.map(c => {
+                  const active = campaignId === c.id
+                  return (
+                    <button key={c.id} type="button" onClick={() => setCampaignId(c.id)} style={{
+                      padding: '4px 10px', borderRadius: 20, fontSize: 10, fontWeight: 700,
+                      cursor: 'pointer', border: 'none', transition: 'all 0.12s',
+                      backgroundColor: active ? '#6366F1' : '#EEF2FF',
+                      color: active ? '#fff' : '#4F46E5',
+                      boxShadow: active ? '0 2px 6px #6366F140' : 'inset 0 0 0 1.5px #C7D2FE',
+                    }}>{c.name}</button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
           {/* ── Etapa + Mini Status ── */}
           {(campaignId || etapa || miniStatus) && (
-            <div className="grid grid-cols-2 gap-3">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div>
-                <label className="flex items-center gap-1 mb-1.5" style={sectionLabel}>
-                  <Layers size={9} /> Etapa
-                </label>
-                <select
-                  value={etapa}
-                  onChange={e => setEtapa(e.target.value as Etapa | '')}
-                  className="px-3 py-2 rounded-lg text-xs font-semibold w-full"
-                  style={{
-                    ...inputBase,
-                    color: etapa ? ETAPA_COLORS[etapa as Etapa] : '#9699A6',
-                    backgroundColor: etapa ? `${ETAPA_COLORS[etapa as Etapa]}15` : '#FFFFFF',
-                    border: etapa ? `1px solid ${ETAPA_COLORS[etapa as Etapa]}30` : '1px solid #E6E9EF',
-                  }}
-                >
-                  <option value="">Sin etapa</option>
-                  {ETAPA_ORDER.map(e => <option key={e} value={e}>{ETAPA_LABELS[e]}</option>)}
-                </select>
+                <label className="flex items-center gap-1 mb-1.5" style={sectionLabel}><Layers size={9} /> Etapa</label>
+                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                  {['', ...ETAPA_ORDER].map(e => {
+                    const active = etapa === e
+                    const col = e ? ETAPA_COLORS[e as Etapa] : '#9699A6'
+                    return (
+                      <button key={e || '_none'} type="button" onClick={() => setEtapa(e as Etapa | '')} style={{
+                        padding: '3px 8px', borderRadius: 20, fontSize: 10, fontWeight: 700,
+                        cursor: 'pointer', border: 'none', transition: 'all 0.12s',
+                        backgroundColor: active ? col : `${col}12`,
+                        color: active ? '#fff' : col,
+                        boxShadow: active ? `0 2px 5px ${col}40` : `inset 0 0 0 1.5px ${col}35`,
+                      }}>{e ? ETAPA_LABELS[e as Etapa].split(' ')[0] : 'Ninguna'}</button>
+                    )
+                  })}
+                </div>
               </div>
               <div>
-                <label className="flex items-center gap-1 mb-1.5" style={sectionLabel}>
-                  <Tag size={9} /> Mini status
-                </label>
-                <select
-                  value={miniStatus}
-                  onChange={e => setMiniStatus(e.target.value as MiniStatus | '')}
-                  className="px-3 py-2 rounded-lg text-xs font-semibold w-full"
-                  style={{
-                    ...inputBase,
-                    color: miniStatus ? MINI_STATUS_COLORS[miniStatus as MiniStatus] : '#9699A6',
-                    backgroundColor: miniStatus ? `${MINI_STATUS_COLORS[miniStatus as MiniStatus]}15` : '#FFFFFF',
-                  }}
-                >
-                  <option value="">Sin estado</option>
-                  {MINI_STATUS_ORDER.map(s => <option key={s} value={s}>{MINI_STATUS_LABELS[s]}</option>)}
-                </select>
+                <label className="flex items-center gap-1 mb-1.5" style={sectionLabel}><Tag size={9} /> Mini status</label>
+                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                  {['', ...MINI_STATUS_ORDER].map(s => {
+                    const active = miniStatus === s
+                    const col = s ? MINI_STATUS_COLORS[s as MiniStatus] : '#9699A6'
+                    return (
+                      <button key={s || '_none'} type="button" onClick={() => setMiniStatus(s as MiniStatus | '')} style={{
+                        padding: '3px 8px', borderRadius: 20, fontSize: 10, fontWeight: 700,
+                        cursor: 'pointer', border: 'none', transition: 'all 0.12s',
+                        backgroundColor: active ? col : `${col}12`,
+                        color: active ? '#fff' : col,
+                        boxShadow: active ? `0 2px 5px ${col}40` : `inset 0 0 0 1.5px ${col}35`,
+                      }}>{s ? MINI_STATUS_LABELS[s as MiniStatus] : 'Ninguno'}</button>
+                    )
+                  })}
+                </div>
               </div>
             </div>
           )}
