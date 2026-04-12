@@ -2,8 +2,89 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
-import { Mail, ArrowRight, Loader2 } from 'lucide-react'
+import { ArrowRight, Loader2 } from 'lucide-react'
 
+// ─── Beezion Logo SVG ─────────────────────────────────────────────────────────
+function BeezionLogo({ size = 48 }: { size?: number }) {
+  return (
+    <svg width={size * 4.2} height={size} viewBox="0 0 200 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* "beezi" */}
+      <text
+        x="0" y="38"
+        fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+        fontSize="42"
+        fontWeight="800"
+        fill="#111111"
+        letterSpacing="-1"
+      >
+        beezi
+      </text>
+      {/* Hexagon "o" */}
+      <g transform="translate(126, 6)">
+        <polygon
+          points="18,2 34,11 34,29 18,38 2,29 2,11"
+          fill="#F5A623"
+          stroke="none"
+        />
+        <text
+          x="18" y="28"
+          fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+          fontSize="22"
+          fontWeight="900"
+          fill="white"
+          textAnchor="middle"
+        >o</text>
+      </g>
+      {/* "n" */}
+      <text
+        x="163" y="38"
+        fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+        fontSize="42"
+        fontWeight="800"
+        fill="#111111"
+        letterSpacing="-1"
+      >
+        n
+      </text>
+      {/* Bee icon above "i" */}
+      <g transform="translate(112, 0)">
+        <ellipse cx="6" cy="3" rx="3" ry="2" fill="#F5A623" />
+        <line x1="2" y1="2" x2="0" y2="0" stroke="#111" strokeWidth="1" />
+        <line x1="10" y1="2" x2="12" y2="0" stroke="#111" strokeWidth="1" />
+      </g>
+    </svg>
+  )
+}
+
+// ─── Hexagon background pattern ───────────────────────────────────────────────
+function HexPattern() {
+  return (
+    <svg
+      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.4 }}
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <defs>
+        <pattern id="hex" x="0" y="0" width="56" height="48" patternUnits="userSpaceOnUse">
+          <polygon
+            points="28,2 52,14 52,38 28,50 4,38 4,14"
+            fill="none"
+            stroke="#E8E9EF"
+            strokeWidth="1"
+          />
+          <polygon
+            points="56,2 80,14 80,38 56,50 32,38 32,14"
+            fill="none"
+            stroke="#E8E9EF"
+            strokeWidth="1"
+          />
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#hex)" />
+    </svg>
+  )
+}
+
+// ─── Main ─────────────────────────────────────────────────────────────────────
 export function LoginPage() {
   const { user, signIn, loading } = useAuth()
   const [email, setEmail] = useState('')
@@ -24,57 +105,100 @@ export function LoginPage() {
 
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      minHeight: '100vh', backgroundColor: '#0A0A0F',
-      backgroundImage: 'radial-gradient(ellipse at 50% 0%, rgba(245,166,35,0.08) 0%, transparent 55%)',
+      display: 'flex',
+      minHeight: '100vh',
+      backgroundColor: '#F7F8FC',
+      position: 'relative',
+      overflow: 'hidden',
     }}>
-      <div style={{ width: '100%', maxWidth: 360, padding: '0 24px' }}>
+      <HexPattern />
 
-        {/* Logo */}
-        <div style={{ marginBottom: 32, textAlign: 'center' }}>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            width: 52, height: 52, borderRadius: 16,
-            backgroundColor: '#F5A623',
-            marginBottom: 14,
-            boxShadow: '0 8px 28px rgba(245,166,35,0.35)',
-          }}>
-            <span style={{ fontSize: 24, fontWeight: 900, color: '#0A0A0F' }}>B</span>
-          </div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: '#F0F1F8', margin: 0 }}>
-            Beezion Ops Hub
-          </h1>
-          <p style={{ fontSize: 12, color: '#3D4055', marginTop: 5 }}>
-            Solo para el equipo interno
-          </p>
-        </div>
+      {/* Left panel — branding */}
+      <div style={{
+        display: 'none',
+        flex: 1,
+        background: 'linear-gradient(145deg, #1A1D27 0%, #12141E 100%)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 60,
+        position: 'relative',
+      }}
+        className="lg-panel"
+      />
 
-        {/* Card */}
+      {/* Center card */}
+      <div style={{
+        flex: 1,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '40px 24px',
+        position: 'relative',
+        zIndex: 1,
+      }}>
         <div style={{
-          backgroundColor: '#13131A',
-          border: '1px solid #1E1E2E',
-          borderRadius: 16,
-          padding: '28px 24px',
-          boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
+          width: '100%',
+          maxWidth: 420,
         }}>
-          <p style={{ fontSize: 13, color: '#5A5E72', margin: '0 0 20px', lineHeight: 1.5 }}>
-            Ingresa tu correo corporativo para acceder
-          </p>
+          {/* Logo */}
+          <div style={{ marginBottom: 36, textAlign: 'center' }}>
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 12,
+            }}>
+              <BeezionLogo size={40} />
+            </div>
+            <p style={{
+              fontSize: 13,
+              fontWeight: 600,
+              color: '#9699B0',
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
+              marginTop: 6,
+            }}>
+              Operaciones
+            </p>
+          </div>
 
-          <form onSubmit={handleSubmit}>
-            {/* Email input */}
-            <div style={{ marginBottom: 14 }}>
-              <label style={{
-                display: 'block', fontSize: 10, fontWeight: 700,
-                color: '#3D4055', marginBottom: 7,
-                textTransform: 'uppercase', letterSpacing: '0.07em',
-              }}>
-                Correo corporativo
-              </label>
-              <div style={{ position: 'relative' }}>
-                <Mail size={13} color="#3D4055" style={{
-                  position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)',
-                }} />
+          {/* Card */}
+          <div style={{
+            backgroundColor: '#FFFFFF',
+            borderRadius: 20,
+            padding: '36px 32px',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.04), 0 16px 48px rgba(0,0,0,0.08)',
+            border: '1px solid #ECEDF5',
+          }}>
+            <h2 style={{
+              fontSize: 20,
+              fontWeight: 700,
+              color: '#1A1D27',
+              margin: '0 0 6px',
+            }}>
+              Bienvenido 👋
+            </h2>
+            <p style={{
+              fontSize: 13,
+              color: '#9699B0',
+              margin: '0 0 28px',
+              lineHeight: 1.5,
+            }}>
+              Ingresa tu correo corporativo para acceder al hub de operaciones
+            </p>
+
+            <form onSubmit={handleSubmit}>
+              {/* Email */}
+              <div style={{ marginBottom: 16 }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: '#5A5E72',
+                  marginBottom: 7,
+                }}>
+                  Correo corporativo
+                </label>
                 <input
                   type="email"
                   value={email}
@@ -83,66 +207,110 @@ export function LoginPage() {
                   autoFocus
                   placeholder="tucorreo@beezion.com"
                   style={{
-                    width: '100%', padding: '10px 12px 10px 32px',
-                    backgroundColor: '#0D0D14',
-                    border: `1.5px solid ${error ? 'rgba(226,68,92,0.5)' : '#1E1E2E'}`,
-                    borderRadius: 9, fontSize: 13, color: '#F0F1F8',
-                    outline: 'none', boxSizing: 'border-box',
-                    transition: 'border-color 0.15s',
+                    width: '100%',
+                    padding: '12px 16px',
+                    backgroundColor: '#F7F8FC',
+                    border: `1.5px solid ${error ? '#E2445C' : '#E4E7F0'}`,
+                    borderRadius: 10,
+                    fontSize: 14,
+                    color: '#1A1D27',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                    transition: 'border-color 0.15s, box-shadow 0.15s',
                   }}
-                  onFocus={e => { if (!error) e.target.style.borderColor = 'rgba(245,166,35,0.4)' }}
-                  onBlur={e => { if (!error) e.target.style.borderColor = '#1E1E2E' }}
+                  onFocus={e => {
+                    e.target.style.borderColor = '#6366F1'
+                    e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)'
+                    e.target.style.backgroundColor = '#FFFFFF'
+                  }}
+                  onBlur={e => {
+                    e.target.style.borderColor = error ? '#E2445C' : '#E4E7F0'
+                    e.target.style.boxShadow = 'none'
+                    e.target.style.backgroundColor = '#F7F8FC'
+                  }}
                 />
               </div>
-            </div>
 
-            {/* Error */}
-            {error && (
-              <div style={{
-                padding: '9px 12px', borderRadius: 8, marginBottom: 14,
-                backgroundColor: 'rgba(226,68,92,0.08)',
-                border: '1px solid rgba(226,68,92,0.2)',
-              }}>
-                <p style={{ fontSize: 12, color: '#E2445C', margin: 0 }}>
-                  {error}
-                </p>
-              </div>
-            )}
-
-            {/* Botón */}
-            <button
-              type="submit"
-              disabled={submitting || !email.trim()}
-              style={{
-                width: '100%', padding: '11px 16px',
-                borderRadius: 9, fontSize: 13, fontWeight: 700,
-                color: '#0A0A0F',
-                backgroundColor: !email.trim() ? '#1E1E2E' : '#F5A623',
-                border: 'none',
-                cursor: !email.trim() || submitting ? 'not-allowed' : 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                transition: 'all 0.2s',
-                boxShadow: email.trim() && !submitting ? '0 4px 16px rgba(245,166,35,0.3)' : 'none',
-              }}
-            >
-              {submitting ? (
-                <>
-                  <Loader2 size={14} style={{ animation: 'spin 0.7s linear infinite' }} />
-                  Verificando...
-                </>
-              ) : (
-                <>
-                  Entrar
-                  <ArrowRight size={14} />
-                </>
+              {/* Error */}
+              {error && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '10px 14px',
+                  borderRadius: 8,
+                  marginBottom: 16,
+                  backgroundColor: '#FEF2F4',
+                  border: '1px solid #FECDD3',
+                }}>
+                  <span style={{ fontSize: 14 }}>⚠️</span>
+                  <p style={{ fontSize: 12, color: '#E2445C', margin: 0, fontWeight: 500 }}>
+                    {error}
+                  </p>
+                </div>
               )}
-            </button>
-          </form>
-        </div>
 
-        <p style={{ textAlign: 'center', fontSize: 10, color: '#1E1E2E', marginTop: 18 }}>
-          Acceso restringido · Beezion © 2026
-        </p>
+              {/* Botón */}
+              <button
+                type="submit"
+                disabled={submitting || !email.trim()}
+                style={{
+                  width: '100%',
+                  padding: '13px 20px',
+                  borderRadius: 10,
+                  fontSize: 14,
+                  fontWeight: 700,
+                  color: !email.trim() ? '#9699B0' : '#FFFFFF',
+                  backgroundColor: !email.trim() ? '#F0F2F8' : '#F5A623',
+                  border: 'none',
+                  cursor: !email.trim() || submitting ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  transition: 'all 0.2s',
+                  boxShadow: email.trim() && !submitting
+                    ? '0 4px 14px rgba(245,166,35,0.35)'
+                    : 'none',
+                }}
+                onMouseEnter={e => {
+                  if (email.trim() && !submitting) {
+                    e.currentTarget.style.backgroundColor = '#E8971A'
+                    e.currentTarget.style.transform = 'translateY(-1px)'
+                  }
+                }}
+                onMouseLeave={e => {
+                  if (email.trim() && !submitting) {
+                    e.currentTarget.style.backgroundColor = '#F5A623'
+                    e.currentTarget.style.transform = 'translateY(0)'
+                  }
+                }}
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 size={16} style={{ animation: 'spin 0.7s linear infinite' }} />
+                    Verificando acceso...
+                  </>
+                ) : (
+                  <>
+                    Entrar al hub
+                    <ArrowRight size={16} />
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+
+          {/* Footer */}
+          <p style={{
+            textAlign: 'center',
+            fontSize: 11,
+            color: '#C0C3D0',
+            marginTop: 20,
+          }}>
+            Acceso restringido al equipo interno de Beezion
+          </p>
+        </div>
       </div>
 
       <style>{`

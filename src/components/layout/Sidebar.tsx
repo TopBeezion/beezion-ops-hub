@@ -1,9 +1,13 @@
 import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, List, Kanban, CalendarDays, Settings, ChevronLeft, ChevronRight, Zap, ChevronDown, Rocket, Flame, LogOut } from 'lucide-react'
+import {
+  LayoutDashboard, List, Kanban, CalendarDays, Settings,
+  ChevronLeft, ChevronRight, ChevronDown, Rocket, Flame, LogOut,
+  Zap,
+} from 'lucide-react'
 import { useClients } from '../../hooks/useClients'
 import { useAuth } from '../../hooks/useAuth'
-import { ASSIGNEE_COLORS } from '../../lib/constants'
+import { ASSIGNEE_COLORS, TEAM_ROLES } from '../../lib/constants'
 
 interface SidebarProps {
   collapsed: boolean
@@ -11,13 +15,13 @@ interface SidebarProps {
 }
 
 const NAV_ITEMS = [
-  { id: 'dashboard',  label: 'Dashboard',    icon: LayoutDashboard, path: '/',          accent: null },
-  { id: 'bomberos',   label: '🔥 Bomberos',  icon: Flame,           path: '/bomberos',  accent: '#E2445C' },
-  { id: 'campaigns',  label: 'Campañas',     icon: Rocket,          path: '/campaigns', accent: null },
-  { id: 'backlog',    label: 'Backlog',      icon: List,            path: '/backlog',   accent: null },
-  { id: 'kanban',     label: 'Kanban',       icon: Kanban,          path: '/kanban',    accent: null },
-  { id: 'timeline',   label: 'Timeline',     icon: CalendarDays,    path: '/timeline',  accent: null },
-  { id: 'settings',   label: 'Configuración',icon: Settings,        path: '/settings',  accent: null },
+  { id: 'dashboard', label: 'Dashboard',     icon: LayoutDashboard, path: '/' },
+  { id: 'bomberos',  label: '🔥 Bomberos',   icon: Flame,           path: '/bomberos',  accent: '#E2445C' },
+  { id: 'campaigns', label: 'Campañas',      icon: Rocket,          path: '/campaigns' },
+  { id: 'backlog',   label: 'Backlog',       icon: List,            path: '/backlog' },
+  { id: 'kanban',    label: 'Kanban',        icon: Kanban,          path: '/kanban' },
+  { id: 'timeline',  label: 'Timeline',      icon: CalendarDays,    path: '/timeline' },
+  { id: 'settings',  label: 'Configuración', icon: Settings,        path: '/settings' },
 ]
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
@@ -26,196 +30,187 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const navigate = useNavigate()
   const [clientsOpen, setClientsOpen] = useState(true)
 
-  const toggleClientsSection = () => setClientsOpen(o => !o)
-
-  const handleSignOut = () => {
-    signOut()
-    navigate('/login')
-  }
+  const handleSignOut = () => { signOut(); navigate('/login') }
 
   return (
-    <div
-      style={{
-        width: collapsed ? '56px' : '240px',
-        backgroundColor: '#292D34',
-        borderRight: '1px solid #E6E9EF',
-      }}
-      className="flex flex-col h-full transition-all duration-220 relative"
-    >
-      {/* Top Accent Gradient */}
-      <div
-        style={{
-          background: 'linear-gradient(90deg, #6366F1 0%, transparent 100%)',
-          height: '3px',
-        }}
-      />
+    <div style={{
+      width: collapsed ? 56 : 228,
+      backgroundColor: '#FFFFFF',
+      borderRight: '1px solid #E8EAF0',
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100%',
+      transition: 'width 0.2s ease',
+      flexShrink: 0,
+    }}>
 
-      {/* Logo Section */}
-      <div className="px-3 py-4 border-b" style={{ borderColor: '#3E4450' }}>
-        <div className="flex items-center gap-2">
-          <div
-            style={{
-              background: 'linear-gradient(135deg, #6366F1 0%, #818CF8 100%)',
-              padding: '6px 8px',
-              borderRadius: '6px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <Zap size={16} color="white" />
-          </div>
-          {!collapsed && (
-            <div className="flex flex-col min-w-0">
-              <span
-                style={{ color: '#FFFFFF', fontSize: '13px', fontWeight: '700', lineHeight: '1.2' }}
-              >
-                Beezion
-              </span>
-              <span
-                style={{
-                  color: '#6366F1',
-                  fontSize: '10px',
-                  fontWeight: '600',
-                  lineHeight: '1.2',
-                  letterSpacing: '0.5px',
-                }}
-              >
-                OPS HUB
-              </span>
-            </div>
-          )}
+      {/* Logo */}
+      <div style={{
+        padding: collapsed ? '16px 12px' : '16px 18px',
+        borderBottom: '1px solid #F0F1F7',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        minHeight: 56,
+      }}>
+        <div style={{
+          width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+          background: 'linear-gradient(135deg, #F5A623 0%, #E8971A 100%)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 2px 8px rgba(245,166,35,0.35)',
+        }}>
+          <Zap size={15} color="white" strokeWidth={2.5} />
         </div>
+        {!collapsed && (
+          <div>
+            <p style={{ fontSize: 13, fontWeight: 800, color: '#1A1D27', margin: 0, lineHeight: 1.2 }}>
+              Beezion
+            </p>
+            <p style={{ fontSize: 9, fontWeight: 600, color: '#9699B0', margin: 0, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+              Ops Hub
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* Main Navigation */}
-      <nav className="px-2 py-3 flex-1 overflow-y-auto">
-        <div className="space-y-1">
-          {NAV_ITEMS.map((item) => {
+      {/* Nav */}
+      <nav style={{ flex: 1, overflowY: 'auto', padding: '10px 8px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {NAV_ITEMS.map(item => {
             const Icon = item.icon
             return (
               <NavLink
                 key={item.id}
                 to={item.path}
                 end={item.id === 'dashboard'}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2 rounded-md text-13px font-medium transition-all duration-150 relative group ${
-                    isActive ? 'text-[#FFFFFF]' : 'text-[#C8CCD3] hover:text-[#FFFFFF]'
-                  }`
-                }
+                title={collapsed ? item.label : undefined}
                 style={({ isActive }) => ({
-                  backgroundColor: isActive ? '#3E4450' : 'transparent',
-                  borderLeft: isActive ? '3px solid #6366F1' : '3px solid transparent',
-                  paddingLeft: isActive ? '12px' : '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 9,
+                  padding: collapsed ? '9px' : '9px 11px',
+                  borderRadius: 8,
+                  fontSize: 13,
+                  fontWeight: isActive ? 600 : 500,
+                  color: isActive ? '#6366F1' : '#5A5E72',
+                  backgroundColor: isActive ? '#EEF2FF' : 'transparent',
+                  textDecoration: 'none',
+                  transition: 'all 0.15s',
+                  justifyContent: collapsed ? 'center' : 'flex-start',
                 })}
+                onMouseEnter={e => {
+                  const el = e.currentTarget
+                  if (!el.style.backgroundColor.includes('EEF2FF')) {
+                    el.style.backgroundColor = '#F5F6FA'
+                    el.style.color = '#1A1D27'
+                  }
+                }}
+                onMouseLeave={e => {
+                  const el = e.currentTarget
+                  if (!el.style.backgroundColor.includes('EEF2FF')) {
+                    el.style.backgroundColor = 'transparent'
+                    el.style.color = '#5A5E72'
+                  }
+                }}
               >
-                <Icon size={15} className="flex-shrink-0" />
-                {!collapsed && <span className="truncate">{item.label}</span>}
-                {collapsed && item.label && (
-                  <div
-                    className="absolute left-full ml-2 px-2 py-1 rounded text-[#FFFFFF] text-12px whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50"
-                    style={{ color: '#FFFFFF', fontSize: '12px', backgroundColor: '#3E4450' }}
-                  >
-                    {item.label}
-                  </div>
+                {({ isActive }) => (
+                  <>
+                    <Icon
+                      size={16}
+                      strokeWidth={isActive ? 2.5 : 2}
+                      color={(item as any).accent && !isActive ? (item as any).accent : undefined}
+                      style={{ flexShrink: 0 }}
+                    />
+                    {!collapsed && <span className="truncate">{item.label}</span>}
+                  </>
                 )}
               </NavLink>
             )
           })}
         </div>
 
-        {/* Clients Section */}
-        {!collapsed && (
-          <div className="mt-6 pt-4" style={{ borderTop: '1px solid #3E4450' }}>
+        {/* Clients section */}
+        {!collapsed && clients && clients.length > 0 && (
+          <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid #F0F1F7' }}>
             <button
-              onClick={toggleClientsSection}
-              className="flex items-center justify-between w-full px-3 py-2 transition-colors duration-150 group"
-              style={{ color: '#9CA3AF' }}
+              onClick={() => setClientsOpen(o => !o)}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '4px 11px', background: 'none', border: 'none', cursor: 'pointer',
+                marginBottom: 4,
+              }}
             >
-              <span
-                style={{
-                  fontSize: '10px',
-                  fontWeight: '600',
-                  letterSpacing: '0.5px',
-                  textTransform: 'uppercase',
-                  color: '#9CA3AF',
-                }}
-              >
+              <span style={{ fontSize: 10, fontWeight: 700, color: '#B0B3C6', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
                 Clientes
               </span>
               <ChevronDown
-                size={14}
-                className={`transition-transform duration-200 ${clientsOpen ? '' : '-rotate-90'}`}
-                style={{ color: '#9CA3AF' }}
+                size={12} color="#B0B3C6"
+                style={{ transform: clientsOpen ? 'rotate(0)' : 'rotate(-90deg)', transition: 'transform 0.2s' }}
               />
             </button>
 
             {clientsOpen && (
-              <div className="space-y-1 mt-2">
-                {clients?.map(client => (
-                    <NavLink
-                      key={client.id}
-                      to={`/clients/${client.id}`}
-                      className="flex items-center gap-2 px-3 py-1.5 rounded-md transition-all duration-150"
-                      style={({ isActive }) => ({
-                        color: isActive ? '#FFFFFF' : '#C8CCD3',
-                        backgroundColor: isActive ? '#3E4450' : 'transparent',
-                      })}
-                    >
-                      {({ isActive }) => (
-                        <>
-                          <div
-                            style={{
-                              width: '8px',
-                              height: '8px',
-                              borderRadius: '50%',
-                              backgroundColor: client.color,
-                              flexShrink: 0,
-                              boxShadow: isActive ? `0 0 8px ${client.color}` : 'none',
-                            }}
-                          />
-                          <span className="truncate" style={{ fontSize: '12px', fontWeight: 500, color: isActive ? '#FFFFFF' : '#C8CCD3' }}>
-                            {client.name}
-                          </span>
-                        </>
-                      )}
-                    </NavLink>
-                  ))}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                {clients.map(client => (
+                  <NavLink
+                    key={client.id}
+                    to={`/clients/${client.id}`}
+                    style={({ isActive }) => ({
+                      display: 'flex', alignItems: 'center', gap: 9,
+                      padding: '7px 11px', borderRadius: 7,
+                      fontSize: 12, fontWeight: isActive ? 600 : 500,
+                      color: isActive ? '#1A1D27' : '#5A5E72',
+                      backgroundColor: isActive ? '#F0F1F7' : 'transparent',
+                      textDecoration: 'none', transition: 'all 0.15s',
+                    })}
+                    onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#F5F6FA'; e.currentTarget.style.color = '#1A1D27' }}
+                    onMouseLeave={e => {
+                      if (!e.currentTarget.style.backgroundColor.includes('F0F1F7')) {
+                        e.currentTarget.style.backgroundColor = 'transparent'
+                        e.currentTarget.style.color = '#5A5E72'
+                      }
+                    }}
+                  >
+                    <div style={{
+                      width: 7, height: 7, borderRadius: '50%',
+                      backgroundColor: client.color, flexShrink: 0,
+                    }} />
+                    <span className="truncate">{client.name}</span>
+                  </NavLink>
+                ))}
               </div>
             )}
           </div>
         )}
       </nav>
 
-      {/* User + Logout */}
+      {/* User */}
       {user && (
-        <div style={{ borderTop: '1px solid #3E4450', padding: '10px 8px' }}>
+        <div style={{ padding: '10px 8px', borderTop: '1px solid #F0F1F7' }}>
           <div style={{
-            display: 'flex', alignItems: 'center', gap: 8,
-            padding: '6px 8px', borderRadius: 8,
-            backgroundColor: '#1E222A',
+            display: 'flex', alignItems: 'center', gap: 9,
+            padding: '8px 10px', borderRadius: 9,
+            backgroundColor: '#F7F8FC',
           }}>
-            {/* Avatar */}
             <div style={{
               width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
-              backgroundColor: `${ASSIGNEE_COLORS[user.name] || '#6366F1'}25`,
+              backgroundColor: `${ASSIGNEE_COLORS[user.name] || '#6366F1'}18`,
               color: ASSIGNEE_COLORS[user.name] || '#6366F1',
               fontSize: 10, fontWeight: 800,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              border: `1.5px solid ${ASSIGNEE_COLORS[user.name] || '#6366F1'}40`,
+              border: `1.5px solid ${ASSIGNEE_COLORS[user.name] || '#6366F1'}30`,
             }}>
-              {user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+              {user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
             </div>
 
             {!collapsed && (
               <>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: '#E0E2EC', margin: 0 }} className="truncate">
+                  <p style={{ fontSize: 11, fontWeight: 700, color: '#1A1D27', margin: 0 }} className="truncate">
                     {user.name}
                   </p>
-                  <p style={{ fontSize: 9, color: '#5A5E72', margin: 0 }} className="truncate">
-                    {user.email}
+                  <p style={{ fontSize: 9, color: '#9699B0', margin: 0 }} className="truncate">
+                    {TEAM_ROLES[user.name] || user.role}
                   </p>
                 </div>
                 <button
@@ -223,11 +218,11 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                   title="Cerrar sesión"
                   style={{
                     background: 'none', border: 'none', cursor: 'pointer',
-                    color: '#5A5E72', padding: 4, borderRadius: 5,
-                    flexShrink: 0, transition: 'color 0.15s',
+                    color: '#C0C3D0', padding: 3, borderRadius: 5, flexShrink: 0,
+                    transition: 'color 0.15s',
                   }}
                   onMouseEnter={e => (e.currentTarget.style.color = '#E2445C')}
-                  onMouseLeave={e => (e.currentTarget.style.color = '#5A5E72')}
+                  onMouseLeave={e => (e.currentTarget.style.color = '#C0C3D0')}
                 >
                   <LogOut size={13} />
                 </button>
@@ -237,19 +232,18 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         </div>
       )}
 
-      {/* Collapse Toggle Button */}
-      <div
-        className="px-2 py-3 border-t flex items-center justify-center"
-        style={{ borderColor: '#3E4450' }}
-      >
+      {/* Collapse toggle */}
+      <div style={{ padding: '8px', borderTop: '1px solid #F0F1F7', display: 'flex', justifyContent: 'center' }}>
         <button
           onClick={onToggle}
-          className="p-1.5 rounded-md transition-colors duration-150"
-          style={{ color: '#C8CCD3' }}
-          onMouseEnter={e => { e.currentTarget.style.color = '#FFFFFF'; e.currentTarget.style.backgroundColor = '#3E4450' }}
-          onMouseLeave={e => { e.currentTarget.style.color = '#C8CCD3'; e.currentTarget.style.backgroundColor = 'transparent' }}
+          style={{
+            padding: '6px', borderRadius: 7, background: 'none', border: 'none',
+            cursor: 'pointer', color: '#B0B3C6', transition: 'all 0.15s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#F0F1F7'; e.currentTarget.style.color = '#5A5E72' }}
+          onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#B0B3C6' }}
         >
-          {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+          {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </button>
       </div>
     </div>
