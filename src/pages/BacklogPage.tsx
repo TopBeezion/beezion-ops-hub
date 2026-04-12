@@ -158,6 +158,27 @@ export function BacklogPage() {
     )
   }
 
+  const renderCampaignBadge = (campaign?: Task['campaign']) => {
+    if (!campaign) return <span style={{ color: '#9699A6' }}>—</span>
+    const color = CAMPAIGN_TYPE_COLORS[campaign.type as keyof typeof CAMPAIGN_TYPE_COLORS] ?? '#9699A6'
+    return (
+      <span title={campaign.name} style={{
+        fontSize: 11, fontWeight: 600,
+        color,
+        backgroundColor: `${color}18`,
+        padding: '3px 8px', borderRadius: 6,
+        border: `1px solid ${color}30`,
+        whiteSpace: 'nowrap' as const,
+        overflow: 'hidden' as const,
+        textOverflow: 'ellipsis' as const,
+        display: 'inline-block',
+        maxWidth: '160px',
+      }}>
+        {campaign.name}
+      </span>
+    )
+  }
+
   const renderAssigneeAvatar = (assignee?: string) => {
     if (!assignee) return <span style={{ color: '#9699A6' }}>—</span>
     const color = ASSIGNEE_COLORS[assignee] || '#06b6d4'
@@ -467,7 +488,12 @@ export function BacklogPage() {
                       ? PRIORITY_COLORS[item.groupKey as Priority]
                       : groupBy === 'area'
                         ? AREA_COLORS[item.groupKey as Area]
-                        : '#D1D5DB'
+                        : groupBy === 'campaign'
+                          ? (() => {
+                              const cam = campaigns.find(c => c.id === item.groupKey)
+                              return cam ? (CAMPAIGN_TYPE_COLORS[cam.type as keyof typeof CAMPAIGN_TYPE_COLORS] ?? '#6366F1') : '#D1D5DB'
+                            })()
+                          : '#D1D5DB'
 
                   return (
                     <tr key={item.key} style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #ECEDF2' }}>
@@ -524,27 +550,7 @@ export function BacklogPage() {
 
                     {/* Campaign */}
                     <td className="px-6 py-4">
-                      {task.campaign_id ? (() => {
-                        const camp = campaigns.find(c => c.id === task.campaign_id)
-                        if (!camp) return <span style={{ color: '#9699A6' }}>—</span>
-                        const color = CAMPAIGN_TYPE_COLORS[camp.type as keyof typeof CAMPAIGN_TYPE_COLORS] ?? '#9699A6'
-                        return (
-                          <span style={{
-                            fontSize: 11, fontWeight: 600,
-                            color,
-                            backgroundColor: `${color}18`,
-                            padding: '3px 8px', borderRadius: 6,
-                            border: `1px solid ${color}30`,
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            display: 'inline-block',
-                            maxWidth: '160px',
-                          }} title={camp.name}>
-                            {camp.name}
-                          </span>
-                        )
-                      })() : <span style={{ color: '#9699A6' }}>—</span>}
+                      {renderCampaignBadge(task.campaign)}
                     </td>
 
                     {/* Status */}
