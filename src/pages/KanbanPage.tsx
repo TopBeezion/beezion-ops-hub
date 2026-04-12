@@ -15,14 +15,31 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical } from 'lucide-react'
+import { GripVertical, Plus } from 'lucide-react'
 import type { Task, TaskStatus, Area, Client } from '../types'
 import {
-  AREA_LABELS,
-  AREA_COLORS,
-  PRIORITY_COLORS,
-  ASSIGNEE_COLORS,
+  AREA_LABELS, AREA_COLORS,
+  PRIORITY_COLORS, ASSIGNEE_COLORS,
+  STATUS_LABELS,
 } from '../lib/constants'
+
+// ─── Tokens ───────────────────────────────────────────────────────────────────
+const C = {
+  bg: '#F0F2F8',
+  card: '#FFFFFF',
+  border: '#E4E7F0',
+  text: '#1A1D27',
+  sub: '#5A5E72',
+  muted: '#9699B0',
+  accent: '#6366F1',
+}
+
+const COLUMNS: { id: TaskStatus; label: string; color: string; bg: string }[] = [
+  { id: 'pendiente',   label: 'Pendiente',   color: '#9699B0', bg: '#F4F5F7' },
+  { id: 'en_progreso', label: 'En Progreso', color: '#3B82F6', bg: '#EFF6FF' },
+  { id: 'revision',    label: 'En Revisión', color: '#F59E0B', bg: '#FFFBEB' },
+  { id: 'completado',  label: 'Completado',  color: '#10B981', bg: '#F0FDF4' },
+]
 
 const KANBAN_ASSIGNEES = [
   { name: 'Alejandro', color: '#8B5CF6' },
@@ -35,252 +52,281 @@ const KANBAN_ASSIGNEES = [
   { name: 'Felipe',    color: '#F97316' },
 ]
 
-function FilterChip({ label, active, color, onClick }: { label: string; active: boolean; color: string; onClick: () => void }) {
+// ─── Filter chip ──────────────────────────────────────────────────────────────
+function FilterChip({ label, active, color, dot, onClick }: {
+  label: string; active: boolean; color: string; dot?: string; onClick: () => void
+}) {
   return (
     <button
       onClick={onClick}
       style={{
-        display: 'inline-flex', alignItems: 'center',
+        display: 'inline-flex', alignItems: 'center', gap: 5,
         padding: '4px 11px', borderRadius: 20,
         fontSize: 11, fontWeight: 600,
         cursor: 'pointer', border: 'none', transition: 'all 0.12s',
-        backgroundColor: active ? color : '#F8F9FC',
-        color: active ? '#fff' : '#5A5E72',
-        boxShadow: active ? `0 2px 8px ${color}40` : `inset 0 0 0 1px #E4E7F0`,
+        backgroundColor: active ? color : C.card,
+        color: active ? '#fff' : C.sub,
+        boxShadow: active ? `0 2px 8px ${color}40` : `inset 0 0 0 1px ${C.border}`,
       }}
     >
+      {dot && <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: active ? 'rgba(255,255,255,0.7)' : dot, flexShrink: 0 }} />}
       {label}
     </button>
   )
 }
 
-function AvatarChip({ name, color, active, onClick }: { name: string; color: string; active: boolean; onClick: () => void }) {
-  const ini = name.slice(0, 2).toUpperCase()
+function AvatarChip({ name, color, active, onClick }: {
+  name: string; color: string; active: boolean; onClick: () => void
+}) {
   return (
     <button
       onClick={onClick}
       title={name}
       style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
-        padding: '4px 8px', borderRadius: 10,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+        padding: '4px 6px', borderRadius: 8,
         cursor: 'pointer', border: 'none', transition: 'all 0.12s',
-        backgroundColor: active ? `${color}15` : 'transparent',
-        outline: active ? `2px solid ${color}` : `1px solid #E4E7F0`,
+        backgroundColor: active ? `${color}18` : 'transparent',
+        outline: active ? `2px solid ${color}` : `1px solid ${C.border}`,
       }}
     >
       <div style={{
-        width: 26, height: 26, borderRadius: '50%',
+        width: 24, height: 24, borderRadius: '50%',
         backgroundColor: active ? color : `${color}28`,
         color: active ? '#fff' : color,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontSize: 9, fontWeight: 800,
       }}>
-        {ini}
+        {name.slice(0, 2).toUpperCase()}
       </div>
-      <span style={{ fontSize: 9, fontWeight: 700, color: active ? color : '#9699B0' }}>
+      <span style={{ fontSize: 9, fontWeight: 600, color: active ? color : C.muted }}>
         {name.split(' ')[0]}
       </span>
     </button>
   )
 }
 
-const COLUMNS: { id: TaskStatus; label: string; color: string }[] = [
-  { id: 'pendiente', label: 'Pendiente', color: '#C4C4C4' },
-  { id: 'en_progreso', label: 'En Progreso', color: '#579BFC' },
-  { id: 'revision', label: 'En Revisión', color: '#FDAB3D' },
-  { id: 'completado', label: 'Completado', color: '#00C875' },
-]
-
-interface DraggableTaskCardProps {
-  task: Task
-  onOpenDetail: (task: Task) => void
-}
-
-function DraggableTaskCard({ task, onOpenDetail }: DraggableTaskCardProps) {
+// ─── Task card ────────────────────────────────────────────────────────────────
+function TaskCard({ task, onOpenDetail }: { task: Task; onOpenDetail: (t: Task) => void }) {
   const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
+    attributes, listeners, setNodeRef,
+    transform, transition, isDragging,
   } = useSortable({ id: task.id })
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  }
+  const clientColor = (task.client as Client & { color: string })?.color
+  const assigneeColor = ASSIGNEE_COLORS[task.assignee] || C.muted
+  const areaColor = AREA_COLORS[task.area] || C.muted
+  const priorityColor = PRIORITY_COLORS[task.priority] || C.muted
+  const isUrgent = task.tipo === 'urgente'
 
   return (
     <div
       ref={setNodeRef}
-      style={style}
-      className="group relative"
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.4 : 1,
+      }}
+      className="group"
       {...attributes}
     >
       <div
         onClick={() => onOpenDetail(task)}
-        className="cursor-pointer rounded-xl border transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98]"
         style={{
-          backgroundColor: '#FFFFFF',
-          borderColor: '#E8EAF0',
-          borderWidth: '1px',
-          borderLeft: task.client?.color ? `3px solid ${task.client.color}` : '1px solid #E8EAF0',
+          backgroundColor: C.card,
+          borderRadius: 10,
+          border: `1px solid ${C.border}`,
+          borderLeft: clientColor ? `3px solid ${clientColor}` : `1px solid ${C.border}`,
+          boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+          cursor: 'pointer',
+          transition: 'all 0.15s',
+          padding: '10px 12px',
+          position: 'relative',
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.12)'
+          e.currentTarget.style.transform = 'translateY(-1px)'
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)'
+          e.currentTarget.style.transform = 'translateY(0)'
         }}
       >
-        <div style={{ padding: '10px 12px' }}>
-          {/* Client badge */}
-          {task.client && (
-            <div style={{ marginBottom: 7 }}>
-              <span style={{
-                fontSize: 10, fontWeight: 700,
-                color: task.client.color,
-                backgroundColor: `${task.client.color}15`,
-                padding: '2px 7px', borderRadius: 5,
-                border: `1px solid ${task.client.color}25`,
-              }}>
-                {task.client.name}
-              </span>
-            </div>
+        {/* Urgent badge */}
+        {isUrgent && (
+          <div style={{
+            position: 'absolute', top: -1, right: 10,
+            fontSize: 9, fontWeight: 800, color: '#E2445C',
+            backgroundColor: '#FEF2F4', padding: '2px 6px',
+            borderRadius: '0 0 6px 6px', border: '1px solid #FECDD3', borderTop: 'none',
+          }}>
+            🚨 URGENTE
+          </div>
+        )}
+
+        {/* Client */}
+        {task.client && (
+          <div style={{ marginBottom: 6 }}>
+            <span style={{
+              fontSize: 10, fontWeight: 700,
+              color: clientColor, backgroundColor: `${clientColor}15`,
+              padding: '2px 7px', borderRadius: 5,
+              border: `1px solid ${clientColor}25`,
+            }}>
+              {task.client.name}
+            </span>
+          </div>
+        )}
+
+        {/* Title */}
+        <p style={{
+          fontSize: 12, fontWeight: 600, color: C.text,
+          lineHeight: 1.45, marginBottom: 8,
+          display: '-webkit-box', WebkitLineClamp: 2,
+          WebkitBoxOrient: 'vertical', overflow: 'hidden',
+        }}>
+          {task.title}
+        </p>
+
+        {/* Chips row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 8, flexWrap: 'wrap' }}>
+          <span style={{
+            fontSize: 9, fontWeight: 700,
+            color: areaColor, backgroundColor: `${areaColor}18`,
+            padding: '2px 6px', borderRadius: 4,
+          }}>
+            {AREA_LABELS[task.area]}
+          </span>
+          <span style={{
+            fontSize: 9, fontWeight: 700,
+            color: priorityColor, backgroundColor: `${priorityColor}18`,
+            padding: '2px 6px', borderRadius: 4,
+          }}>
+            {task.priority === 'alta' ? '↑ Alta' : task.priority === 'media' ? '→ Media' : '↓ Baja'}
+          </span>
+          {task.campaign && (
+            <span style={{
+              fontSize: 9, color: C.muted,
+              padding: '2px 5px', borderRadius: 4,
+              backgroundColor: '#F5F6FA',
+              maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>
+              {task.campaign.name}
+            </span>
           )}
+        </div>
 
-          {/* Title */}
-          <h3
-            className="line-clamp-2 leading-snug"
-            style={{ fontSize: 12, fontWeight: 600, color: '#1A1D27', marginBottom: 10 }}
-          >
-            {task.title}
-          </h3>
-
-          {/* Meta Row: Area, Urgent, date, assignee */}
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1.5 flex-1 min-w-0">
-              {/* Area tag */}
-              {task.area && (
-                <span
-                  style={{
-                    fontSize: 9, fontWeight: 700, flexShrink: 0,
-                    padding: '2px 6px', borderRadius: 5,
-                    backgroundColor: AREA_COLORS[task.area] + '18',
-                    color: AREA_COLORS[task.area],
-                  }}
-                >
-                  {AREA_LABELS[task.area]}
-                </span>
-              )}
-              {task.tipo === 'urgente' && (
-                <span style={{ fontSize: 9, fontWeight: 800, color: '#E2445C', backgroundColor: '#FEF2F4', padding: '2px 5px', borderRadius: 4, border: '1px solid #FECDD3' }}>
-                  🚨 URG
-                </span>
-              )}
+        {/* Footer */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <div style={{
+              width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+              backgroundColor: assigneeColor,
+              color: '#fff', fontSize: 8, fontWeight: 800,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              {task.assignee.slice(0, 2).toUpperCase()}
             </div>
-
+            <span style={{ fontSize: 10, fontWeight: 500, color: C.sub }}>{task.assignee}</span>
           </div>
 
-          {/* Footer: Assignee + drag */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
-            {task.assignee ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <div
-                  style={{
-                    width: 20, height: 20, borderRadius: '50%',
-                    backgroundColor: ASSIGNEE_COLORS[task.assignee] || '#6366F1',
-                    color: '#fff', fontSize: 8, fontWeight: 800,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                  }}
-                  title={task.assignee}
-                >
-                  {task.assignee.slice(0, 2).toUpperCase()}
-                </div>
-                <span style={{ fontSize: 10, color: '#9699B0', fontWeight: 500 }}>{task.assignee}</span>
-              </div>
-            ) : <div />}
-
-            <button
-              {...listeners}
-              className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-gray-100 rounded cursor-grab active:cursor-grabbing"
-              onClick={e => e.stopPropagation()}
-            >
-              <GripVertical size={13} style={{ color: '#B0B3C6' }} />
-            </button>
-          </div>
+          <button
+            {...listeners}
+            onClick={e => e.stopPropagation()}
+            className="opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
+            style={{ background: 'none', border: 'none', padding: '2px', color: C.muted }}
+          >
+            <GripVertical size={13} />
+          </button>
         </div>
       </div>
     </div>
   )
 }
 
-interface KanbanColumnProps {
-  column: (typeof COLUMNS)[0]
+// ─── Kanban column ────────────────────────────────────────────────────────────
+function KanbanColumn({
+  column, tasks, onOpenDetail, onNewTask,
+}: {
+  column: typeof COLUMNS[0]
   tasks: Task[]
-  onOpenDetail: (task: Task) => void
-}
-
-function KanbanColumn({ column, tasks, onOpenDetail }: KanbanColumnProps) {
-  const { setNodeRef } = useSortable({
-    id: column.id,
-    data: { type: 'column' },
-  })
+  onOpenDetail: (t: Task) => void
+  onNewTask?: () => void
+}) {
+  const { setNodeRef } = useSortable({ id: column.id, data: { type: 'column' } })
 
   return (
-    <div
-      className="flex flex-col flex-1 min-w-80 max-h-[calc(100vh-180px)] rounded-lg"
-      style={{ backgroundColor: '#F0F1F5' }}
-    >
-      {/* Column Header */}
-      <div
-        className="px-4 py-3 border-t-2"
-        style={{ borderColor: column.color }}
-      >
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <h2
-              className="font-semibold text-sm"
-              style={{ color: '#1F2128' }}
-            >
-              {column.label}
-            </h2>
-            <span
-              className="text-xs px-2 py-0.5 rounded-full font-medium"
-              style={{
-                backgroundColor: '#FFFFFF',
-                color: '#676879',
-                border: '1px solid #ECEDF2',
-              }}
-            >
-              {tasks.length}
-            </span>
-          </div>
+    <div style={{
+      display: 'flex', flexDirection: 'column',
+      minWidth: 280, flex: 1,
+      maxHeight: 'calc(100vh - 160px)',
+    }}>
+      {/* Column header */}
+      <div style={{
+        backgroundColor: C.card,
+        borderRadius: '10px 10px 0 0',
+        border: `1px solid ${C.border}`,
+        borderBottom: 'none',
+        borderTop: `3px solid ${column.color}`,
+        padding: '10px 14px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{column.label}</span>
+          <span style={{
+            fontSize: 11, fontWeight: 700,
+            color: tasks.length > 0 ? column.color : C.muted,
+            backgroundColor: tasks.length > 0 ? `${column.color}15` : '#F5F6FA',
+            padding: '1px 7px', borderRadius: 10,
+            border: `1px solid ${tasks.length > 0 ? column.color + '30' : C.border}`,
+          }}>
+            {tasks.length}
+          </span>
         </div>
+        {onNewTask && column.id === 'pendiente' && (
+          <button
+            onClick={onNewTask}
+            style={{
+              width: 22, height: 22, borderRadius: 6,
+              backgroundColor: `${C.accent}15`, border: `1px solid ${C.accent}30`,
+              color: C.accent, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+            title="Nueva tarea"
+          >
+            <Plus size={12} />
+          </button>
+        )}
       </div>
 
-      {/* Column Body */}
+      {/* Column body */}
       <div
         ref={setNodeRef}
-        className="flex-1 overflow-y-auto p-3 space-y-2"
+        style={{
+          flex: 1, overflowY: 'auto',
+          backgroundColor: column.bg,
+          border: `1px solid ${C.border}`,
+          borderTop: 'none',
+          borderRadius: '0 0 10px 10px',
+          padding: 8,
+          display: 'flex', flexDirection: 'column', gap: 6,
+        }}
       >
         {tasks.length === 0 ? (
-          <div
-            className="h-32 rounded-lg border-2 border-dashed flex items-center justify-center text-center"
-            style={{
-              borderColor: '#ECEDF2',
-              color: '#676879',
-            }}
-          >
-            <p className="text-xs">No hay tareas</p>
+          <div style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            height: 120, borderRadius: 8,
+            border: `2px dashed ${column.color}30`,
+            color: C.muted, fontSize: 11, fontWeight: 500, gap: 4,
+          }}>
+            <span style={{ fontSize: 18 }}>
+              {column.id === 'completado' ? '🎉' : column.id === 'revision' ? '👀' : '📋'}
+            </span>
+            Sin tareas aquí
           </div>
         ) : (
-          <SortableContext
-            items={tasks.map((t) => t.id)}
-            strategy={verticalListSortingStrategy}
-          >
-            {tasks.map((task) => (
-              <DraggableTaskCard
-                key={task.id}
-                task={task}
-                onOpenDetail={onOpenDetail}
-              />
+          <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
+            {tasks.map(task => (
+              <TaskCard key={task.id} task={task} onOpenDetail={onOpenDetail} />
             ))}
           </SortableContext>
         )}
@@ -289,10 +335,11 @@ function KanbanColumn({ column, tasks, onOpenDetail }: KanbanColumnProps) {
   )
 }
 
+// ─── Main ─────────────────────────────────────────────────────────────────────
 export function KanbanPage() {
   const { data: tasks = [] } = useTasks()
   const { data: clients = [] } = useClients()
-  const { openTaskDetail } = useOutletContext<{
+  const { openTaskDetail, openNewTask } = useOutletContext<{
     openNewTask: () => void
     openTaskDetail: (task: Task) => void
   }>()
@@ -310,162 +357,141 @@ export function KanbanPage() {
   const hasFilters = filterClients.length > 0 || filterAreas.length > 0 || filterAssignees.length > 0
   const clearFilters = () => { setFilterClients([]); setFilterAreas([]); setFilterAssignees([]) }
 
-  const filteredTasks = useMemo(() => {
-    return tasks.filter((task) => {
-      if (filterClients.length && !filterClients.includes(task.client_id ?? '')) return false
-      if (filterAreas.length && !filterAreas.includes(task.area ?? '')) return false
-      if (filterAssignees.length && !filterAssignees.includes(task.assignee ?? '')) return false
-      return true
-    })
-  }, [tasks, filterClients, filterAreas, filterAssignees])
+  const filteredTasks = useMemo(() => tasks.filter(task => {
+    if (filterClients.length && !filterClients.includes(task.client_id ?? '')) return false
+    if (filterAreas.length && !filterAreas.includes(task.area ?? '')) return false
+    if (filterAssignees.length && !filterAssignees.includes(task.assignee ?? '')) return false
+    return true
+  }), [tasks, filterClients, filterAreas, filterAssignees])
 
-  const tasksByStatus: Record<TaskStatus, Task[]> = useMemo(() => {
+  const tasksByStatus = useMemo(() => {
     const grouped: Record<TaskStatus, Task[]> = {
-      pendiente: [],
-      en_progreso: [],
-      revision: [],
-      completado: [],
+      pendiente: [], en_progreso: [], revision: [], completado: [],
     }
-    filteredTasks.forEach((task) => {
-      grouped[task.status].push(task)
-    })
+    filteredTasks.forEach(task => { grouped[task.status].push(task) })
     return grouped
   }, [filteredTasks])
 
-  const handleDragStart = (event: DragStartEvent) => {
-    const { active } = event
-    const task = filteredTasks.find((t) => t.id === active.id)
-    if (task) {
-      setDraggedTask(task)
-    }
+  const handleDragStart = ({ active }: DragStartEvent) => {
+    const task = filteredTasks.find(t => t.id === active.id)
+    if (task) setDraggedTask(task)
   }
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event
+  const handleDragEnd = ({ active, over }: DragEndEvent) => {
     setDraggedTask(null)
-
     if (!over) return
-
     const newStatus = over.id as TaskStatus
-    const validStatuses = COLUMNS.map((col) => col.id)
-    if (validStatuses.includes(newStatus) && draggedTask) {
-      updateTaskStatus.mutate({
-        id: draggedTask.id,
-        status: newStatus,
-      })
+    if (COLUMNS.map(c => c.id).includes(newStatus) && draggedTask) {
+      updateTaskStatus.mutate({ id: draggedTask.id, status: newStatus })
     }
   }
-
-  const totalTasks = filteredTasks.length
 
   return (
-    <div
-      className="h-screen overflow-hidden flex flex-col"
-      style={{ backgroundColor: '#F6F7FB' }}
-    >
-      {/* Filter Bar */}
-      <div style={{ borderBottom: '1px solid #E4E7F0', backgroundColor: '#FFFFFF', padding: '10px 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {/* Row 1: clients + assignees */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 9, fontWeight: 800, color: '#9699B0', letterSpacing: '0.1em', marginRight: 2 }}>CLIENTE</span>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', backgroundColor: C.bg }}>
+
+      {/* ── Filter bar ─────────────────────────────────────────────────────── */}
+      <div style={{
+        backgroundColor: C.card, borderBottom: `1px solid ${C.border}`,
+        padding: '10px 20px', display: 'flex', flexDirection: 'column', gap: 8,
+        flexShrink: 0,
+      }}>
+        {/* Row 1: cliente + responsable */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 9, fontWeight: 800, color: C.muted, letterSpacing: '0.1em', marginRight: 2, whiteSpace: 'nowrap' }}>CLIENTE</span>
           {clients.map(cl => (
             <FilterChip
-              key={cl.id}
-              label={cl.name}
-              active={filterClients.includes(cl.id)}
-              color={cl.color}
+              key={cl.id} label={cl.name} dot={cl.color}
+              active={filterClients.includes(cl.id)} color={cl.color}
               onClick={() => setFilterClients(toggle(filterClients, cl.id))}
             />
           ))}
-
-          <div style={{ width: 1, height: 28, backgroundColor: '#E4E7F0', margin: '0 4px' }} />
-
-          <span style={{ fontSize: 9, fontWeight: 800, color: '#9699B0', letterSpacing: '0.1em', marginRight: 2 }}>RESPONSABLE</span>
+          <div style={{ width: 1, height: 20, backgroundColor: C.border, flexShrink: 0, margin: '0 4px' }} />
+          <span style={{ fontSize: 9, fontWeight: 800, color: C.muted, letterSpacing: '0.1em', marginRight: 2, whiteSpace: 'nowrap' }}>RESPONSABLE</span>
           {KANBAN_ASSIGNEES.map(({ name, color }) => (
             <AvatarChip
-              key={name}
-              name={name}
-              color={color}
+              key={name} name={name} color={color}
               active={filterAssignees.includes(name)}
               onClick={() => setFilterAssignees(toggle(filterAssignees, name))}
             />
           ))}
         </div>
 
-        {/* Row 2: areas + count + clear */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 9, fontWeight: 800, color: '#9699B0', letterSpacing: '0.1em', marginRight: 2 }}>ÁREA</span>
-          {(Object.entries(AREA_LABELS) as [string, string][]).map(([key, label]) => (
+        {/* Row 2: área + stats + clear */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 9, fontWeight: 800, color: C.muted, letterSpacing: '0.1em', marginRight: 2, whiteSpace: 'nowrap' }}>ÁREA</span>
+          {(Object.entries(AREA_LABELS) as [Area, string][]).map(([key, label]) => (
             <FilterChip
-              key={key}
-              label={label}
-              active={filterAreas.includes(key)}
-              color={AREA_COLORS[key as Area] ?? '#6366F1'}
+              key={key} label={label}
+              active={filterAreas.includes(key)} color={AREA_COLORS[key]}
               onClick={() => setFilterAreas(toggle(filterAreas, key))}
             />
           ))}
-
-          <span style={{ fontSize: 11, color: '#9699B0', marginLeft: 'auto', fontWeight: 500 }}>
-            {totalTasks} tareas
-          </span>
-
-          {hasFilters && (
-            <button
-              onClick={clearFilters}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 4,
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+            {/* Status counts */}
+            {COLUMNS.map(col => (
+              <div key={col.id} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: col.color }} />
+                <span style={{ fontSize: 11, fontWeight: 600, color: C.sub }}>
+                  {tasksByStatus[col.id].length}
+                </span>
+              </div>
+            ))}
+            <span style={{ fontSize: 10, color: C.muted, marginLeft: 4 }}>{filteredTasks.length} tareas</span>
+            {hasFilters && (
+              <button onClick={clearFilters} style={{
+                display: 'flex', alignItems: 'center', gap: 3,
                 fontSize: 11, fontWeight: 600, cursor: 'pointer',
                 color: '#DC2626', backgroundColor: '#FEF2F2',
                 border: '1px solid #FCA5A5', borderRadius: 20, padding: '3px 10px',
-              }}
-            >
-              ✕ Limpiar
-            </button>
-          )}
+              }}>
+                ✕ Limpiar
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Kanban Columns */}
-      <div className="flex-1 overflow-x-auto p-4 gap-4 flex">
+      {/* ── Kanban board ───────────────────────────────────────────────────── */}
+      <div style={{ flex: 1, overflowX: 'auto', overflowY: 'hidden', padding: '16px 20px' }}>
         <DndContext
           collisionDetection={closestCenter}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          {COLUMNS.map((column) => (
-            <KanbanColumn
-              key={column.id}
-              column={column}
-              tasks={tasksByStatus[column.id]}
-              onOpenDetail={openTaskDetail}
-            />
-          ))}
+          <div style={{ display: 'flex', gap: 14, height: '100%', minWidth: 'max-content' }}>
+            {COLUMNS.map(column => (
+              <KanbanColumn
+                key={column.id}
+                column={column}
+                tasks={tasksByStatus[column.id]}
+                onOpenDetail={openTaskDetail}
+                onNewTask={openNewTask}
+              />
+            ))}
+          </div>
 
-          {/* Drag Overlay */}
           <DragOverlay>
             {draggedTask && (
-              <div
-                className="rounded-lg p-3 shadow-xl opacity-95 max-w-xs"
-                style={{
-                  backgroundColor: '#FFFFFF',
-                  borderColor: '#ECEDF2',
-                  borderWidth: '1px',
-                  transform: 'rotate(2deg)',
-                }}
-              >
-                <h3
-                  className="text-sm font-medium mb-2 line-clamp-2"
-                  style={{ color: '#1F2128' }}
-                >
+              <div style={{
+                backgroundColor: C.card, borderRadius: 10,
+                border: `1px solid ${C.border}`,
+                borderLeft: draggedTask.client?.color ? `3px solid ${draggedTask.client.color}` : `1px solid ${C.border}`,
+                padding: '10px 12px',
+                boxShadow: '0 12px 32px rgba(0,0,0,0.18)',
+                transform: 'rotate(2deg)',
+                maxWidth: 280,
+              }}>
+                {draggedTask.client && (
+                  <span style={{
+                    fontSize: 10, fontWeight: 700, display: 'block', marginBottom: 5,
+                    color: draggedTask.client.color,
+                  }}>
+                    {draggedTask.client.name}
+                  </span>
+                )}
+                <p style={{ fontSize: 12, fontWeight: 600, color: C.text, margin: 0 }}>
                   {draggedTask.title}
-                </h3>
-                <div className="flex items-center gap-1 text-xs">
-                  {draggedTask.client_id && (
-                    <span style={{ color: '#676879' }}>
-                      {draggedTask.client?.name || 'Sin cliente'}
-                    </span>
-                  )}
-                </div>
+                </p>
               </div>
             )}
           </DragOverlay>

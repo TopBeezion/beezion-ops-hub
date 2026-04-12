@@ -17,16 +17,14 @@ export const AREA_COLORS: Record<Area, string> = {
 
 // ── Priority ─────────────────────────────────────────────────
 export const PRIORITY_LABELS: Record<Priority, string> = {
-  maxima: '🔴 Máxima',
-  alta: 'Alta',
+  alta: '🔴 Alta',
   media: 'Media',
   baja: 'Baja',
 }
 
 export const PRIORITY_COLORS: Record<Priority, string> = {
-  maxima: '#DC2626',
-  alta: '#F87171',
-  media: '#FBBF24',
+  alta: '#EF4444',
+  media: '#F59E0B',
   baja: '#9CA3AF',
 }
 
