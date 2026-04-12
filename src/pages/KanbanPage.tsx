@@ -15,11 +15,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import {
-  GripVertical,
-  Clock,
-  AlertTriangle,
-} from 'lucide-react'
+import { GripVertical } from 'lucide-react'
 import type { Task, TaskStatus, Area, Client } from '../types'
 import {
   AREA_LABELS,
@@ -125,110 +121,89 @@ function DraggableTaskCard({ task, onOpenDetail }: DraggableTaskCardProps) {
     >
       <div
         onClick={() => onOpenDetail(task)}
-        className="cursor-pointer rounded-lg border transition-all duration-200 hover:shadow-md hover:-translate-y-1 active:scale-95"
+        className="cursor-pointer rounded-xl border transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98]"
         style={{
           backgroundColor: '#FFFFFF',
-          borderColor: '#ECEDF2',
+          borderColor: '#E8EAF0',
           borderWidth: '1px',
+          borderLeft: task.client?.color ? `3px solid ${task.client.color}` : '1px solid #E8EAF0',
         }}
       >
-        <div className="p-3">
+        <div style={{ padding: '10px 12px' }}>
+          {/* Client badge */}
+          {task.client && (
+            <div style={{ marginBottom: 7 }}>
+              <span style={{
+                fontSize: 10, fontWeight: 700,
+                color: task.client.color,
+                backgroundColor: `${task.client.color}15`,
+                padding: '2px 7px', borderRadius: 5,
+                border: `1px solid ${task.client.color}25`,
+              }}>
+                {task.client.name}
+              </span>
+            </div>
+          )}
+
           {/* Title */}
           <h3
-            className="text-sm font-medium mb-3 line-clamp-2 leading-tight"
-            style={{ color: '#1F2128' }}
+            className="line-clamp-2 leading-snug"
+            style={{ fontSize: 12, fontWeight: 600, color: '#1A1D27', marginBottom: 10 }}
           >
             {task.title}
           </h3>
 
-          {/* Meta Row: Client, Area, Priority, Assignee */}
-          <div className="flex items-center justify-between gap-2 text-xs">
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              {/* Client dot + name */}
-              {task.client_id && (
-                <div className="flex items-center gap-1 flex-1 min-w-0">
-                  <div
-                    className="w-2 h-2 rounded-full flex-shrink-0"
-                    style={{
-                      backgroundColor: PRIORITY_COLORS[task.priority] || '#9CA3AF',
-                    }}
-                  />
-                  <span
-                    className="truncate font-medium"
-                    style={{ color: '#676879' }}
-                  >
-                    {task.client?.name || 'Sin cliente'}
-                  </span>
-                </div>
-              )}
-
+          {/* Meta Row: Area, Urgent, date, assignee */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 flex-1 min-w-0">
               {/* Area tag */}
               {task.area && (
                 <span
-                  className="px-2 py-0.5 rounded font-medium flex-shrink-0"
                   style={{
-                    backgroundColor: AREA_COLORS[task.area] + '20',
+                    fontSize: 9, fontWeight: 700, flexShrink: 0,
+                    padding: '2px 6px', borderRadius: 5,
+                    backgroundColor: AREA_COLORS[task.area] + '18',
                     color: AREA_COLORS[task.area],
                   }}
                 >
                   {AREA_LABELS[task.area]}
                 </span>
               )}
-            </div>
-
-            {/* Priority badge */}
-            {task.tipo && (
-              <div className="flex-shrink-0">
-                {task.tipo === 'urgente' ? (
-                  <AlertTriangle
-                    size={14}
-                    style={{ color: '#EF4444' }}
-                  />
-                ) : null}
-              </div>
-            )}
-          </div>
-
-          {/* Footer: Meeting Date + Assignee */}
-          <div className="mt-3 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1">
-              {task.meeting_date && (
-                <span
-                  className="text-xs px-1.5 py-1 rounded flex items-center gap-0.5"
-                  style={{ color: '#676879' }}
-                >
-                  <Clock size={12} />
-                  {new Date(task.meeting_date).toLocaleDateString('es-ES', {
-                    month: 'short',
-                    day: 'numeric',
-                  })}
+              {task.tipo === 'urgente' && (
+                <span style={{ fontSize: 9, fontWeight: 800, color: '#E2445C', backgroundColor: '#FEF2F4', padding: '2px 5px', borderRadius: 4, border: '1px solid #FECDD3' }}>
+                  🚨 URG
                 </span>
               )}
             </div>
 
-            <div className="flex items-center gap-1">
-              {/* Assignee avatar */}
-              {task.assignee && (
+          </div>
+
+          {/* Footer: Assignee + drag */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
+            {task.assignee ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                 <div
-                  className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-semibold text-white flex-shrink-0"
                   style={{
-                    backgroundColor:
-                      ASSIGNEE_COLORS[task.assignee || ''] || '#6366F1',
+                    width: 20, height: 20, borderRadius: '50%',
+                    backgroundColor: ASSIGNEE_COLORS[task.assignee] || '#6366F1',
+                    color: '#fff', fontSize: 8, fontWeight: 800,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                   }}
                   title={task.assignee}
                 >
-                  {task.assignee?.charAt(0).toUpperCase() || '?'}
+                  {task.assignee.slice(0, 2).toUpperCase()}
                 </div>
-              )}
+                <span style={{ fontSize: 10, color: '#9699B0', fontWeight: 500 }}>{task.assignee}</span>
+              </div>
+            ) : <div />}
 
-              {/* Drag handle */}
-              <button
-                {...listeners}
-                className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-gray-100 rounded cursor-grab active:cursor-grabbing"
-              >
-                <GripVertical size={14} style={{ color: '#676879' }} />
-              </button>
-            </div>
+            <button
+              {...listeners}
+              className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-gray-100 rounded cursor-grab active:cursor-grabbing"
+              onClick={e => e.stopPropagation()}
+            >
+              <GripVertical size={13} style={{ color: '#B0B3C6' }} />
+            </button>
           </div>
         </div>
       </div>

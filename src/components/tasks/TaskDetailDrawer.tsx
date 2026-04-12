@@ -264,90 +264,107 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
             />
           </div>
 
-          {/* ── Meta row ── */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* ── Meta row — chips ── */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-            {/* Status */}
+            {/* Status chips */}
             <div>
-              <label className="flex items-center gap-1 mb-1.5" style={sectionLabel}>
+              <label className="flex items-center gap-1 mb-2" style={sectionLabel}>
                 <Tag size={9} /> Status
               </label>
-              <select
-                value={status}
-                onChange={e => setStatus(e.target.value as TaskStatus)}
-                className="px-3 py-2 rounded-lg text-xs font-semibold w-full"
-                style={{
-                  ...inputBase,
-                  color: STATUS_COLORS[status],
-                  backgroundColor: `${STATUS_COLORS[status]}15`,
-                  border: `1px solid ${STATUS_COLORS[status]}30`,
-                }}
-              >
-                {(Object.entries(STATUS_LABELS) as [TaskStatus, string][]).map(([v, l]) => (
-                  <option key={v} value={v} style={{ backgroundColor: '#FFFFFF', color: STATUS_COLORS[v] }}>{l}</option>
-                ))}
-              </select>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {(Object.entries(STATUS_LABELS) as [TaskStatus, string][]).map(([v, l]) => {
+                  const active = status === v
+                  const col = STATUS_COLORS[v]
+                  return (
+                    <button key={v} onClick={() => setStatus(v)}
+                      style={{
+                        padding: '5px 11px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+                        cursor: 'pointer', border: 'none', transition: 'all 0.12s',
+                        backgroundColor: active ? col : `${col}12`,
+                        color: active ? '#fff' : col,
+                        boxShadow: active ? `0 2px 8px ${col}45` : `inset 0 0 0 1.5px ${col}35`,
+                      }}
+                    >{l}</button>
+                  )
+                })}
+              </div>
             </div>
 
-            {/* Priority */}
-            <div>
-              <label className="flex items-center gap-1 mb-1.5" style={sectionLabel}>
-                <AlertTriangle size={9} /> Prioridad
-              </label>
-              <select
-                value={priority}
-                onChange={e => setPriority(e.target.value as Priority)}
-                className="px-3 py-2 rounded-lg text-xs font-semibold w-full"
-                style={{
-                  ...inputBase,
-                  color: PRIORITY_COLORS[priority],
-                  backgroundColor: `${PRIORITY_COLORS[priority]}15`,
-                  border: `1px solid ${PRIORITY_COLORS[priority]}30`,
-                }}
-              >
-                {(Object.entries(PRIORITY_LABELS) as [Priority, string][]).map(([v, l]) => (
-                  <option key={v} value={v} style={{ backgroundColor: '#FFFFFF', color: PRIORITY_COLORS[v] }}>{l}</option>
-                ))}
-              </select>
+            {/* Priority + Tipo chips in 2 cols */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              <div>
+                <label className="flex items-center gap-1 mb-2" style={sectionLabel}>
+                  <AlertTriangle size={9} /> Prioridad
+                </label>
+                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                  {(Object.entries(PRIORITY_LABELS) as [Priority, string][]).map(([v, l]) => {
+                    const active = priority === v
+                    const col = PRIORITY_COLORS[v]
+                    return (
+                      <button key={v} onClick={() => setPriority(v)}
+                        style={{
+                          padding: '5px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+                          cursor: 'pointer', border: 'none', transition: 'all 0.12s',
+                          backgroundColor: active ? col : `${col}12`,
+                          color: active ? '#fff' : col,
+                          boxShadow: active ? `0 2px 6px ${col}45` : `inset 0 0 0 1.5px ${col}35`,
+                        }}
+                      >{l}</button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <label className="flex items-center gap-1 mb-2" style={sectionLabel}>
+                  <Hash size={9} /> Tipo
+                </label>
+                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                  {([
+                    { v: 'nuevo',             l: 'Nuevo',     col: '#9699A6' },
+                    { v: 'pendiente_anterior', l: 'Pendiente', col: '#F97316' },
+                    { v: 'urgente',            l: '🚨 Urgente', col: '#EF4444' },
+                  ] as { v: TaskTipo; l: string; col: string }[]).map(({ v, l, col }) => {
+                    const active = tipo === v
+                    return (
+                      <button key={v} onClick={() => setTipo(v)}
+                        style={{
+                          padding: '5px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+                          cursor: 'pointer', border: 'none', transition: 'all 0.12s',
+                          backgroundColor: active ? col : `${col}12`,
+                          color: active ? '#fff' : col,
+                          boxShadow: active ? `0 2px 6px ${col}45` : `inset 0 0 0 1.5px ${col}35`,
+                        }}
+                      >{l}</button>
+                    )
+                  })}
+                </div>
+              </div>
             </div>
 
-            {/* Área */}
+            {/* Area chips */}
             <div>
-              <label className="flex items-center gap-1 mb-1.5" style={sectionLabel}>
+              <label className="flex items-center gap-1 mb-2" style={sectionLabel}>
                 <Layers size={9} /> Área
               </label>
-              <select
-                value={area}
-                onChange={e => setArea(e.target.value as Area)}
-                className="px-3 py-2 rounded-lg text-xs font-semibold w-full"
-                style={{
-                  ...inputBase,
-                  color: AREA_COLORS[area],
-                  backgroundColor: `${AREA_COLORS[area]}15`,
-                  border: `1px solid ${AREA_COLORS[area]}30`,
-                }}
-              >
-                {(Object.entries(AREA_LABELS) as [Area, string][]).map(([v, l]) => (
-                  <option key={v} value={v} style={{ backgroundColor: '#FFFFFF', color: AREA_COLORS[v] }}>{l}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Tipo */}
-            <div>
-              <label className="flex items-center gap-1 mb-1.5" style={sectionLabel}>
-                <Hash size={9} /> Tipo
-              </label>
-              <select
-                value={tipo}
-                onChange={e => setTipo(e.target.value as TaskTipo)}
-                className="px-3 py-2 rounded-lg text-xs font-semibold w-full"
-                style={{ ...inputBase, color: tipo === 'urgente' ? '#ef4444' : tipo === 'pendiente_anterior' ? '#f97316' : '#9699A6' }}
-              >
-                <option value="nuevo" style={{ backgroundColor: '#FFFFFF' }}>Nuevo</option>
-                <option value="pendiente_anterior" style={{ backgroundColor: '#FFFFFF' }}>Pendiente anterior</option>
-                <option value="urgente" style={{ backgroundColor: '#FFFFFF' }}>Urgente</option>
-              </select>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {(Object.entries(AREA_LABELS) as [Area, string][]).map(([v, l]) => {
+                  const active = area === v
+                  const col = AREA_COLORS[v]
+                  return (
+                    <button key={v} onClick={() => setArea(v)}
+                      style={{
+                        padding: '5px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+                        cursor: 'pointer', border: 'none', transition: 'all 0.12s',
+                        backgroundColor: active ? col : `${col}12`,
+                        color: active ? '#fff' : col,
+                        boxShadow: active ? `0 2px 8px ${col}45` : `inset 0 0 0 1.5px ${col}35`,
+                      }}
+                    >{l}</button>
+                  )
+                })}
+              </div>
             </div>
           </div>
 

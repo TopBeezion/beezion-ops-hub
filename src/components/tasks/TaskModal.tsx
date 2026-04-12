@@ -7,6 +7,8 @@ import { useCreateTask } from '../../hooks/useTasks'
 import type { Area, Priority, TaskStatus, TaskTipo, Etapa, MiniStatus, Deliverables } from '../../types'
 import {
   AREA_COLORS, AREA_LABELS,
+  STATUS_LABELS, STATUS_COLORS,
+  PRIORITY_LABELS, PRIORITY_COLORS,
   ETAPA_LABELS, ETAPA_COLORS, ETAPA_ORDER,
   MINI_STATUS_LABELS, MINI_STATUS_COLORS, MINI_STATUS_ORDER,
 } from '../../lib/constants'
@@ -248,71 +250,89 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
             </div>
           )}
 
-          {/* Área + Prioridad + Status + Tipo */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* Área + Prioridad + Status + Tipo — chips */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {/* Área */}
             <div>
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#676879' }}>Área</label>
-              <select
-                value={area}
-                onChange={e => setArea(e.target.value as Area)}
-                className="px-3 py-2 rounded-lg text-xs font-semibold"
-                style={{
-                  backgroundColor: '#FFFFFF',
-                  border: `1px solid ${AREA_COLORS[area]}30`,
-                  color: AREA_COLORS[area],
-                  outline: 'none',
-                  width: '100%',
-                  borderRadius: 8,
-                }}
-              >
-                {(Object.entries(AREA_LABELS) as [Area, string][]).map(([v, l]) => (
-                  <option key={v} value={v}>{l}</option>
-                ))}
-              </select>
+              <label className="block text-xs font-semibold mb-2" style={{ color: '#676879' }}>Área</label>
+              <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                {(Object.entries(AREA_LABELS) as [Area, string][]).map(([v, l]) => {
+                  const active = area === v
+                  const col = AREA_COLORS[v]
+                  return (
+                    <button key={v} type="button" onClick={() => setArea(v)} style={{
+                      padding: '5px 11px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+                      cursor: 'pointer', border: 'none', transition: 'all 0.12s',
+                      backgroundColor: active ? col : `${col}12`,
+                      color: active ? '#fff' : col,
+                      boxShadow: active ? `0 2px 8px ${col}40` : `inset 0 0 0 1.5px ${col}35`,
+                    }}>{l}</button>
+                  )
+                })}
+              </div>
             </div>
 
+            {/* Status */}
             <div>
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#676879' }}>Prioridad</label>
-              <select
-                value={priority}
-                onChange={e => setPriority(e.target.value as Priority)}
-                className="px-3 py-2 rounded-lg text-xs font-semibold"
-                style={fieldStyle}
-              >
-                <option value="maxima">🔴 Máxima</option>
-                <option value="alta">Alta</option>
-                <option value="media">Media</option>
-                <option value="baja">Baja</option>
-              </select>
+              <label className="block text-xs font-semibold mb-2" style={{ color: '#676879' }}>Status</label>
+              <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                {(Object.entries(STATUS_LABELS) as [TaskStatus, string][]).map(([v, l]) => {
+                  const active = status === v
+                  const col = STATUS_COLORS[v]
+                  return (
+                    <button key={v} type="button" onClick={() => setStatus(v)} style={{
+                      padding: '5px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+                      cursor: 'pointer', border: 'none', transition: 'all 0.12s',
+                      backgroundColor: active ? col : `${col}12`,
+                      color: active ? '#fff' : col,
+                      boxShadow: active ? `0 2px 6px ${col}40` : `inset 0 0 0 1.5px ${col}35`,
+                    }}>{l}</button>
+                  )
+                })}
+              </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#676879' }}>Status</label>
-              <select
-                value={status}
-                onChange={e => setStatus(e.target.value as TaskStatus)}
-                className="px-3 py-2 rounded-lg text-xs font-semibold"
-                style={fieldStyle}
-              >
-                <option value="pendiente">Pendiente</option>
-                <option value="en_progreso">En Progreso</option>
-                <option value="revision">En Revisión</option>
-                <option value="completado">Completado</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: '#676879' }}>Tipo</label>
-              <select
-                value={tipo}
-                onChange={e => setTipo(e.target.value as TaskTipo)}
-                className="px-3 py-2 rounded-lg text-xs font-semibold"
-                style={fieldStyle}
-              >
-                <option value="nuevo">Nuevo</option>
-                <option value="pendiente_anterior">Pendiente anterior</option>
-                <option value="urgente">🚨 Urgente</option>
-              </select>
+            {/* Priority + Tipo side by side */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div>
+                <label className="block text-xs font-semibold mb-2" style={{ color: '#676879' }}>Prioridad</label>
+                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                  {(Object.entries(PRIORITY_LABELS) as [Priority, string][]).map(([v, l]) => {
+                    const active = priority === v
+                    const col = PRIORITY_COLORS[v]
+                    return (
+                      <button key={v} type="button" onClick={() => setPriority(v)} style={{
+                        padding: '4px 9px', borderRadius: 20, fontSize: 10, fontWeight: 700,
+                        cursor: 'pointer', border: 'none', transition: 'all 0.12s',
+                        backgroundColor: active ? col : `${col}12`,
+                        color: active ? '#fff' : col,
+                        boxShadow: active ? `0 2px 6px ${col}40` : `inset 0 0 0 1.5px ${col}35`,
+                      }}>{l}</button>
+                    )
+                  })}
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold mb-2" style={{ color: '#676879' }}>Tipo</label>
+                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                  {([
+                    { v: 'nuevo' as TaskTipo,             l: 'Nuevo',     col: '#9699A6' },
+                    { v: 'pendiente_anterior' as TaskTipo, l: 'Anterior',  col: '#F97316' },
+                    { v: 'urgente' as TaskTipo,            l: '🚨 Urgente', col: '#EF4444' },
+                  ]).map(({ v, l, col }) => {
+                    const active = tipo === v
+                    return (
+                      <button key={v} type="button" onClick={() => setTipo(v)} style={{
+                        padding: '4px 9px', borderRadius: 20, fontSize: 10, fontWeight: 700,
+                        cursor: 'pointer', border: 'none', transition: 'all 0.12s',
+                        backgroundColor: active ? col : `${col}12`,
+                        color: active ? '#fff' : col,
+                        boxShadow: active ? `0 2px 6px ${col}40` : `inset 0 0 0 1.5px ${col}35`,
+                      }}>{l}</button>
+                    )
+                  })}
+                </div>
+              </div>
             </div>
           </div>
 

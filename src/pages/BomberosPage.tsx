@@ -230,70 +230,95 @@ export function BomberosPage() {
       {/* Filters */}
       <div style={{
         backgroundColor: C.card, borderBottom: `1px solid ${C.border}`,
-        padding: '12px 28px', display: 'flex', gap: 12, alignItems: 'center',
+        padding: '10px 28px', display: 'flex', flexDirection: 'column', gap: 8,
       }}>
-        <select
-          value={filterClient}
-          onChange={e => setFilterClient(e.target.value)}
-          style={{
-            fontSize: 12, fontWeight: 600,
-            border: `1px solid ${C.border}`, borderRadius: 8,
-            padding: '6px 12px', backgroundColor: '#FFFFFF', color: C.sub,
-            outline: 'none',
-          }}
-        >
-          <option value="">Todos los clientes</option>
-          {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
+        {/* Row 1: Clients */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 9, fontWeight: 800, color: C.muted, letterSpacing: '0.1em', marginRight: 2 }}>CLIENTE</span>
+          {[{ id: '', name: 'Todos' }, ...clients].map(c => {
+            const col = (c as any).color || C.red
+            const active = filterClient === c.id
+            return (
+              <button key={c.id} onClick={() => setFilterClient(c.id === filterClient ? '' : c.id)}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600,
+                  cursor: 'pointer', border: 'none', transition: 'all 0.12s',
+                  backgroundColor: active ? (c.id ? col : C.red) : '#F5F6FA',
+                  color: active ? '#fff' : C.sub,
+                  boxShadow: active ? `0 2px 6px ${c.id ? col : C.red}40` : `inset 0 0 0 1px ${C.border}`,
+                }}
+              >
+                {c.id && <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: active ? 'rgba(255,255,255,0.7)' : col, flexShrink: 0 }} />}
+                {c.name}
+              </button>
+            )
+          })}
 
-        <select
-          value={filterAssignee}
-          onChange={e => setFilterAssignee(e.target.value)}
-          style={{
-            fontSize: 12, fontWeight: 600,
-            border: `1px solid ${C.border}`, borderRadius: 8,
-            padding: '6px 12px', backgroundColor: '#FFFFFF', color: C.sub,
-            outline: 'none',
-          }}
-        >
-          <option value="">Todo el equipo</option>
-          {assignees.map(a => <option key={a} value={a}>{a}</option>)}
-        </select>
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button
+              onClick={() => setShowResolved(v => !v)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'all 0.12s',
+                padding: '4px 10px', borderRadius: 20,
+                backgroundColor: showResolved ? `${C.green}18` : '#F5F6FA',
+                color: showResolved ? C.green : C.sub,
+                boxShadow: showResolved ? `inset 0 0 0 1.5px ${C.green}` : `inset 0 0 0 1px ${C.border}`,
+                border: 'none',
+              }}
+            >
+              <CheckCircle2 size={11} />
+              {showResolved ? 'Ocultar resueltos' : 'Ver resueltos'}
+            </button>
+            <button onClick={() => window.location.reload()}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                padding: '4px 10px', borderRadius: 20,
+                backgroundColor: '#F5F6FA', color: C.sub, border: 'none',
+                boxShadow: `inset 0 0 0 1px ${C.border}`,
+              }}
+            >
+              <RefreshCw size={11} /> Actualizar
+            </button>
+            <span style={{ fontSize: 11, color: C.muted, fontWeight: 500 }}>
+              {bomberos.length} visible{bomberos.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+        </div>
 
-        <button
-          onClick={() => setShowResolved(v => !v)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            fontSize: 12, fontWeight: 600,
-            border: `1px solid ${showResolved ? C.green : C.border}`,
-            borderRadius: 8, padding: '6px 12px',
-            backgroundColor: showResolved ? `${C.green}15` : '#FFFFFF',
-            color: showResolved ? C.green : C.sub,
-            cursor: 'pointer',
-          }}
-        >
-          <CheckCircle2 size={12} />
-          {showResolved ? 'Ocultar resueltos' : 'Mostrar resueltos'}
-        </button>
-
-        <div className="flex-1" />
-
-        <span style={{ fontSize: 12, color: C.muted }}>
-          {bomberos.length} incendio{bomberos.length !== 1 ? 's' : ''} visible{bomberos.length !== 1 ? 's' : ''}
-        </span>
-
-        <button
-          onClick={() => window.location.reload()}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            fontSize: 12, fontWeight: 600,
-            border: `1px solid ${C.border}`, borderRadius: 8, padding: '6px 12px',
-            backgroundColor: '#FFFFFF', color: C.sub, cursor: 'pointer',
-          }}
-        >
-          <RefreshCw size={12} />
-          Actualizar
-        </button>
+        {/* Row 2: Assignees */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 9, fontWeight: 800, color: C.muted, letterSpacing: '0.1em', marginRight: 2 }}>RESPONSABLE</span>
+          {[{ name: '', label: 'Todos' }, ...assignees.map(a => ({ name: a, label: a }))].map(({ name, label }) => {
+            const ac = ASSIGNEE_COLORS[name] || C.muted
+            const active = filterAssignee === name
+            const ini = name ? name.slice(0, 2).toUpperCase() : null
+            return (
+              <button key={name} onClick={() => setFilterAssignee(name === filterAssignee ? '' : name)}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  padding: ini ? '3px 8px 3px 4px' : '4px 10px', borderRadius: 20,
+                  fontSize: 11, fontWeight: 600, cursor: 'pointer', border: 'none', transition: 'all 0.12s',
+                  backgroundColor: active ? ac : '#F5F6FA',
+                  color: active ? '#fff' : C.sub,
+                  boxShadow: active ? `0 2px 6px ${ac}40` : `inset 0 0 0 1px ${C.border}`,
+                }}
+              >
+                {ini && (
+                  <div style={{
+                    width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
+                    backgroundColor: active ? 'rgba(255,255,255,0.3)' : `${ac}25`,
+                    color: active ? '#fff' : ac, fontSize: 8, fontWeight: 800,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>{ini}</div>
+                )}
+                {label}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       {/* List */}
