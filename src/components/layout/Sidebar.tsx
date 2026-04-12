@@ -14,15 +14,30 @@ interface SidebarProps {
   onToggle: () => void
 }
 
-const NAV_ITEMS = [
-  { id: 'dashboard', label: 'Dashboard',     icon: LayoutDashboard, path: '/' },
-  { id: 'bomberos',  label: '🔥 Bomberos',   icon: Flame,           path: '/bomberos',  accent: '#E2445C' },
-  { id: 'campaigns', label: 'Campañas',      icon: Rocket,          path: '/campaigns' },
-  { id: 'backlog',   label: 'Backlog',       icon: List,            path: '/backlog' },
-  { id: 'kanban',    label: 'Kanban',        icon: Kanban,          path: '/kanban' },
-  { id: 'timeline',  label: 'Timeline',      icon: CalendarDays,    path: '/timeline' },
-  { id: 'settings',  label: 'Configuración', icon: Settings,        path: '/settings' },
+const NAV = [
+  { id: 'dashboard', label: 'Dashboard',    icon: LayoutDashboard, path: '/' },
+  { id: 'bomberos',  label: 'Bomberos',     icon: Flame,           path: '/bomberos',  hot: true },
+  { id: 'campaigns', label: 'Campañas',     icon: Rocket,          path: '/campaigns' },
+  { id: 'backlog',   label: 'Backlog',      icon: List,            path: '/backlog' },
+  { id: 'kanban',    label: 'Kanban',       icon: Kanban,          path: '/kanban' },
+  { id: 'timeline',  label: 'Timeline',     icon: CalendarDays,    path: '/timeline' },
+  { id: 'settings',  label: 'Config',       icon: Settings,        path: '/settings' },
 ]
+
+// Dark palette
+const S = {
+  bg:         '#111318',
+  surface:    '#1C1F26',
+  hover:      '#22262F',
+  active:     '#2A2F3C',
+  border:     'rgba(255,255,255,0.07)',
+  text:       '#E8EAED',
+  sub:        '#8B8FA8',
+  muted:      '#525669',
+  accent:     '#7C83F7',
+  accentBg:   'rgba(124,131,247,0.15)',
+  red:        '#F87171',
+}
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const { data: clients } = useClients()
@@ -34,9 +49,9 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
   return (
     <div style={{
-      width: collapsed ? 56 : 228,
-      backgroundColor: '#FFFFFF',
-      borderRight: '1px solid #E8EAF0',
+      width: collapsed ? 58 : 232,
+      backgroundColor: S.bg,
+      borderRight: `1px solid ${S.border}`,
       display: 'flex',
       flexDirection: 'column',
       height: '100%',
@@ -44,39 +59,40 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       flexShrink: 0,
     }}>
 
-      {/* Logo */}
+      {/* ── Logo ────────────────────────────────────── */}
       <div style={{
-        padding: collapsed ? '16px 12px' : '16px 18px',
-        borderBottom: '1px solid #F0F1F7',
+        padding: collapsed ? '14px 0' : '14px 16px',
+        borderBottom: `1px solid ${S.border}`,
         display: 'flex',
         alignItems: 'center',
         gap: 10,
-        minHeight: 56,
+        minHeight: 58,
+        justifyContent: collapsed ? 'center' : 'flex-start',
       }}>
         <div style={{
-          width: 30, height: 30, borderRadius: 8, flexShrink: 0,
-          background: 'linear-gradient(135deg, #F5A623 0%, #E8971A 100%)',
+          width: 32, height: 32, borderRadius: 10, flexShrink: 0,
+          background: 'linear-gradient(135deg, #F5A623 0%, #E8760A 100%)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 2px 8px rgba(245,166,35,0.35)',
+          boxShadow: '0 0 16px rgba(245,166,35,0.4)',
         }}>
-          <Zap size={15} color="white" strokeWidth={2.5} />
+          <Zap size={16} color="white" strokeWidth={2.5} />
         </div>
         {!collapsed && (
           <div>
-            <p style={{ fontSize: 13, fontWeight: 800, color: '#1A1D27', margin: 0, lineHeight: 1.2 }}>
-              Beezion
+            <p style={{ fontSize: 14, fontWeight: 800, color: S.text, margin: 0, letterSpacing: '-0.3px' }}>
+              beezion
             </p>
-            <p style={{ fontSize: 9, fontWeight: 600, color: '#9699B0', margin: 0, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-              Ops Hub
+            <p style={{ fontSize: 9, fontWeight: 600, color: S.muted, margin: 0, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+              ops hub
             </p>
           </div>
         )}
       </div>
 
-      {/* Nav */}
+      {/* ── Nav ─────────────────────────────────────── */}
       <nav style={{ flex: 1, overflowY: 'auto', padding: '10px 8px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {NAV_ITEMS.map(item => {
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          {NAV.map(item => {
             const Icon = item.icon
             return (
               <NavLink
@@ -88,28 +104,29 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                   display: 'flex',
                   alignItems: 'center',
                   gap: 9,
-                  padding: collapsed ? '9px' : '9px 11px',
-                  borderRadius: 8,
+                  padding: collapsed ? '9px 0' : '8px 11px',
+                  borderRadius: 9,
                   fontSize: 13,
                   fontWeight: isActive ? 600 : 500,
-                  color: isActive ? '#6366F1' : '#5A5E72',
-                  backgroundColor: isActive ? '#EEF2FF' : 'transparent',
+                  color: isActive ? S.accent : S.sub,
+                  backgroundColor: isActive ? S.accentBg : 'transparent',
                   textDecoration: 'none',
-                  transition: 'all 0.15s',
+                  transition: 'all 0.12s',
                   justifyContent: collapsed ? 'center' : 'flex-start',
+                  border: isActive ? `1px solid rgba(124,131,247,0.2)` : '1px solid transparent',
                 })}
                 onMouseEnter={e => {
                   const el = e.currentTarget
-                  if (!el.style.backgroundColor.includes('EEF2FF')) {
-                    el.style.backgroundColor = '#F5F6FA'
-                    el.style.color = '#1A1D27'
+                  if (!el.style.backgroundColor.includes('124')) {
+                    el.style.backgroundColor = S.hover
+                    el.style.color = S.text
                   }
                 }}
                 onMouseLeave={e => {
                   const el = e.currentTarget
-                  if (!el.style.backgroundColor.includes('EEF2FF')) {
+                  if (!el.style.backgroundColor.includes('124')) {
                     el.style.backgroundColor = 'transparent'
-                    el.style.color = '#5A5E72'
+                    el.style.color = S.sub
                   }
                 }}
               >
@@ -118,10 +135,14 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                     <Icon
                       size={16}
                       strokeWidth={isActive ? 2.5 : 2}
-                      color={(item as any).accent && !isActive ? (item as any).accent : undefined}
+                      color={item.hot ? (isActive ? '#FB923C' : '#EF4444') : undefined}
                       style={{ flexShrink: 0 }}
                     />
-                    {!collapsed && <span className="truncate">{item.label}</span>}
+                    {!collapsed && (
+                      <span style={{ flex: 1 }}>
+                        {item.hot ? `🔥 ${item.label}` : item.label}
+                      </span>
+                    )}
                   </>
                 )}
               </NavLink>
@@ -129,22 +150,21 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           })}
         </div>
 
-        {/* Clients section */}
+        {/* ── Clients ──────────────────────────────── */}
         {!collapsed && clients && clients.length > 0 && (
-          <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid #F0F1F7' }}>
+          <div style={{ marginTop: 22, paddingTop: 16, borderTop: `1px solid ${S.border}` }}>
             <button
               onClick={() => setClientsOpen(o => !o)}
               style={{
                 width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '4px 11px', background: 'none', border: 'none', cursor: 'pointer',
-                marginBottom: 4,
+                padding: '3px 11px 6px', background: 'none', border: 'none', cursor: 'pointer',
               }}
             >
-              <span style={{ fontSize: 10, fontWeight: 700, color: '#B0B3C6', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: S.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                 Clientes
               </span>
               <ChevronDown
-                size={12} color="#B0B3C6"
+                size={11} color={S.muted}
                 style={{ transform: clientsOpen ? 'rotate(0)' : 'rotate(-90deg)', transition: 'transform 0.2s' }}
               />
             </button>
@@ -157,23 +177,23 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                     to={`/clients/${client.id}`}
                     style={({ isActive }) => ({
                       display: 'flex', alignItems: 'center', gap: 9,
-                      padding: '7px 11px', borderRadius: 7,
-                      fontSize: 12, fontWeight: isActive ? 600 : 500,
-                      color: isActive ? '#1A1D27' : '#5A5E72',
-                      backgroundColor: isActive ? '#F0F1F7' : 'transparent',
-                      textDecoration: 'none', transition: 'all 0.15s',
+                      padding: '6px 11px', borderRadius: 8,
+                      fontSize: 12, fontWeight: isActive ? 600 : 400,
+                      color: isActive ? S.text : S.sub,
+                      backgroundColor: isActive ? S.active : 'transparent',
+                      textDecoration: 'none', transition: 'all 0.12s',
                     })}
-                    onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#F5F6FA'; e.currentTarget.style.color = '#1A1D27' }}
+                    onMouseEnter={e => { e.currentTarget.style.backgroundColor = S.hover; e.currentTarget.style.color = S.text }}
                     onMouseLeave={e => {
-                      if (!e.currentTarget.style.backgroundColor.includes('F0F1F7')) {
-                        e.currentTarget.style.backgroundColor = 'transparent'
-                        e.currentTarget.style.color = '#5A5E72'
-                      }
+                      const isActive = e.currentTarget.style.backgroundColor === S.active
+                      if (!isActive) { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = S.sub }
                     }}
                   >
                     <div style={{
                       width: 7, height: 7, borderRadius: '50%',
-                      backgroundColor: client.color, flexShrink: 0,
+                      backgroundColor: client.color,
+                      flexShrink: 0,
+                      boxShadow: `0 0 6px ${client.color}80`,
                     }} />
                     <span className="truncate">{client.name}</span>
                   </NavLink>
@@ -184,76 +204,79 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         )}
       </nav>
 
-      {/* User */}
+      {/* ── User ────────────────────────────────────── */}
       {user && (
-        <div style={{ padding: '10px 8px', borderTop: '1px solid #F0F1F7' }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 9,
-            padding: '8px 10px', borderRadius: 9,
-            backgroundColor: '#F7F8FC',
-          }}>
-            <div style={{
-              width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
-              backgroundColor: `${ASSIGNEE_COLORS[user.name] || '#6366F1'}18`,
-              color: ASSIGNEE_COLORS[user.name] || '#6366F1',
-              fontSize: 10, fontWeight: 800,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              border: `1.5px solid ${ASSIGNEE_COLORS[user.name] || '#6366F1'}30`,
-            }}>
-              {user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
+        <div style={{ padding: '8px', borderTop: `1px solid ${S.border}` }}>
+          {collapsed ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 0' }}>
+              <div style={{
+                width: 30, height: 30, borderRadius: '50%',
+                backgroundColor: `${ASSIGNEE_COLORS[user.name] || '#7C83F7'}25`,
+                color: ASSIGNEE_COLORS[user.name] || S.accent,
+                fontSize: 10, fontWeight: 800,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                border: `1.5px solid ${ASSIGNEE_COLORS[user.name] || S.accent}40`,
+              }}>
+                {user.name.slice(0, 2).toUpperCase()}
+              </div>
             </div>
-
-            {!collapsed && (
-              <>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: '#1A1D27', margin: 0 }} className="truncate">
-                    {user.name}
-                  </p>
-                  <p style={{ fontSize: 9, color: '#9699B0', margin: 0 }} className="truncate">
-                    {TEAM_ROLES[user.name] || user.role}
-                  </p>
-                </div>
-                <button
-                  onClick={handleSignOut}
-                  title="Cerrar sesión"
-                  style={{
-                    background: '#F5F6FA', border: '1px solid #E8EAF0', cursor: 'pointer',
-                    color: '#9699B0', padding: '4px 7px', borderRadius: 6, flexShrink: 0,
-                    transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 4,
-                    fontSize: 10, fontWeight: 600,
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.backgroundColor = '#FEF2F4'
-                    e.currentTarget.style.borderColor = '#FECDD3'
-                    e.currentTarget.style.color = '#E2445C'
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.backgroundColor = '#F5F6FA'
-                    e.currentTarget.style.borderColor = '#E8EAF0'
-                    e.currentTarget.style.color = '#9699B0'
-                  }}
-                >
-                  <LogOut size={11} />
-                  <span>Salir</span>
-                </button>
-              </>
-            )}
-          </div>
+          ) : (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 9,
+              padding: '8px 10px', borderRadius: 10,
+              backgroundColor: S.surface,
+              border: `1px solid ${S.border}`,
+            }}>
+              <div style={{
+                width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
+                backgroundColor: `${ASSIGNEE_COLORS[user.name] || S.accent}25`,
+                color: ASSIGNEE_COLORS[user.name] || S.accent,
+                fontSize: 10, fontWeight: 800,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                border: `1.5px solid ${ASSIGNEE_COLORS[user.name] || S.accent}40`,
+              }}>
+                {user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: 12, fontWeight: 700, color: S.text, margin: 0 }} className="truncate">
+                  {user.name}
+                </p>
+                <p style={{ fontSize: 9, color: S.muted, margin: 0 }} className="truncate">
+                  {TEAM_ROLES[user.name] || user.role}
+                </p>
+              </div>
+              <button
+                onClick={handleSignOut}
+                title="Salir"
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: S.muted, padding: '4px', borderRadius: 6, flexShrink: 0,
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  fontSize: 10, fontWeight: 600, transition: 'all 0.15s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.color = S.red }}
+                onMouseLeave={e => { e.currentTarget.style.color = S.muted }}
+              >
+                <LogOut size={13} />
+                <span>Salir</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Collapse toggle */}
-      <div style={{ padding: '8px', borderTop: '1px solid #F0F1F7', display: 'flex', justifyContent: 'center' }}>
+      {/* ── Collapse toggle ──────────────────────────── */}
+      <div style={{ padding: '8px', borderTop: `1px solid ${S.border}`, display: 'flex', justifyContent: 'center' }}>
         <button
           onClick={onToggle}
           style={{
             padding: '6px', borderRadius: 7, background: 'none', border: 'none',
-            cursor: 'pointer', color: '#B0B3C6', transition: 'all 0.15s',
+            cursor: 'pointer', color: S.muted, transition: 'all 0.15s',
           }}
-          onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#F0F1F7'; e.currentTarget.style.color = '#5A5E72' }}
-          onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#B0B3C6' }}
+          onMouseEnter={e => { e.currentTarget.style.backgroundColor = S.hover; e.currentTarget.style.color = S.text }}
+          onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = S.muted }}
         >
-          {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+          {collapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
         </button>
       </div>
     </div>
