@@ -42,7 +42,7 @@ export function AppLayout() {
     <div className="flex h-screen overflow-hidden" style={{ backgroundColor: '#F6F7FB' }}>
       <Sidebar collapsed={collapsed} onToggle={() => setCollapsed(c => !c)} />
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-        <Header title={title} onNewTask={open} onOpenTaskById={openTaskById} />
+        <Header title={title} onNewTask={open} onOpenTaskById={openTaskById} onOpenTaskDetail={openTaskDetail} />
         <main className="flex-1 overflow-auto">
           <Outlet context={{ openNewTask: open, openTaskDetail }} />
         </main>

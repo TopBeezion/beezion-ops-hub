@@ -1,13 +1,14 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useTasks } from '../hooks/useTasks'
 import { useClients } from '../hooks/useClients'
 import { useCampaigns } from '../hooks/useCampaigns'
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import type { Task, Client, Area } from '../types'
-import { AREA_LABELS, AREA_COLORS, STATUS_COLORS, ASSIGNEE_COLORS } from '../lib/constants'
+import { AREA_LABELS, AREA_COLORS, ASSIGNEE_COLORS, TEAM_MEMBERS } from '../lib/constants'
 import {
   Flame, Zap, CheckCircle2, Clock, TrendingUp,
   Users, BarChart3, ChevronRight, Circle, Layers, Activity,
+  UserCircle2,
 } from 'lucide-react'
 
 // ─── Tokens ───────────────────────────────────────────────────────────────────
@@ -31,13 +32,13 @@ function card(extra?: React.CSSProperties): React.CSSProperties {
     backgroundColor: C.card,
     border: `1px solid ${C.border}`,
     borderRadius: 14,
-    boxShadow: '0 1px 4px rgba(0,0,0,0.05), 0 0 0 0 transparent',
+    boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
     overflow: 'hidden',
     ...extra,
   }
 }
 
-// ─── KPI Card — horizontal compact ───────────────────────────────────────────
+// ─── KPI Card ─────────────────────────────────────────────────────────────────
 function KpiCard({ label, value, sub, icon: Icon, color, onClick }: {
   label: string; value: number | string; sub?: string
   icon: React.ElementType; color: string; onClick?: () => void
@@ -177,13 +178,8 @@ function ClientCard({ client, total, done, inProg, pending, pct, activeCampaigns
     <div
       onClick={onClick}
       className="hover:shadow-md transition-all duration-200 cursor-pointer"
-      style={{
-        ...card(),
-        padding: 0,
-        borderTop: `3px solid ${client.color}`,
-      }}
+      style={{ ...card(), padding: 0, borderTop: `3px solid ${client.color}` }}
     >
-      {/* Header */}
       <div style={{ padding: '12px 14px 8px' }}>
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
@@ -202,8 +198,6 @@ function ClientCard({ client, total, done, inProg, pending, pct, activeCampaigns
             <span style={{ fontSize: 9, color: C.muted }}>{total} tasks</span>
           </div>
         </div>
-
-        {/* Progress bar */}
         <div style={{ height: 3, backgroundColor: C.border, borderRadius: 3, overflow: 'hidden' }}>
           <div style={{
             height: '100%', width: `${pct}%`,
@@ -215,27 +209,53 @@ function ClientCard({ client, total, done, inProg, pending, pct, activeCampaigns
           <p style={{ fontSize: 9, color: C.muted, marginTop: 3, textAlign: 'right' }}>{pct}% completado</p>
         )}
       </div>
-
-      {/* Stats row */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', borderTop: `1px solid ${C.border}` }}>
         {[
           { label: 'Progreso', value: inProg, color: C.blue },
           { label: 'Pendiente', value: pending, color: C.orange },
           { label: 'Hecho', value: done, color: C.green },
         ].map(({ label, value, color }, i) => (
-          <div
-            key={label}
-            style={{
-              padding: '8px 0', textAlign: 'center',
-              borderRight: i < 2 ? `1px solid ${C.border}` : 'none',
-            }}
-          >
+          <div key={label} style={{ padding: '8px 0', textAlign: 'center', borderRight: i < 2 ? `1px solid ${C.border}` : 'none' }}>
             <p style={{ fontSize: 16, fontWeight: 700, color, lineHeight: 1 }}>{value}</p>
             <p style={{ fontSize: 8, color: C.muted, fontWeight: 600, marginTop: 2, letterSpacing: '0.04em' }}>{label.toUpperCase()}</p>
           </div>
         ))}
       </div>
     </div>
+  )
+}
+
+// ─── Mi Vista Chip ────────────────────────────────────────────────────────────
+function MemberChip({ name, active, onClick }: { name: string; active: boolean; onClick: () => void }) {
+  const color = ASSIGNEE_COLORS[name] || C.muted
+  const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 6,
+        padding: '5px 10px 5px 6px',
+        borderRadius: 99,
+        fontSize: 12, fontWeight: 600,
+        cursor: 'pointer',
+        transition: 'all 0.15s',
+        backgroundColor: active ? color : C.card,
+        color: active ? '#fff' : C.sub,
+        border: `1.5px solid ${active ? color : C.border}`,
+        boxShadow: active ? `0 2px 8px ${color}35` : 'none',
+      }}
+    >
+      <div style={{
+        width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
+        backgroundColor: active ? 'rgba(255,255,255,0.25)' : `${color}20`,
+        color: active ? '#fff' : color,
+        fontSize: 8, fontWeight: 800,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        {initials}
+      </div>
+      {name}
+    </button>
   )
 }
 
@@ -247,26 +267,42 @@ export function DashboardPage() {
   const navigate = useNavigate()
   const ctx = useOutletContext<{ openNewTask?: () => void; openTaskDetail?: (t: Task) => void }>()
 
-  const stats = useMemo(() => {
-    const total = tasks.length
-    const completed = tasks.filter(t => t.status === 'completado').length
-    const inProgress = tasks.filter(t => t.status === 'en_progreso').length
-    const pending = tasks.filter(t => t.status === 'pendiente').length
-    const pct = total > 0 ? Math.round((completed / total) * 100) : 0
-    return { total, completed, inProgress, pending, pct }
+  // ── Mi Vista state ───────────────────────────────────────────────────────
+  const [miVista, setMiVista] = useState<string | null>(null)
+
+  // Filter tasks for selected member
+  const visibleTasks = useMemo(
+    () => miVista ? tasks.filter(t => t.assignee === miVista) : tasks,
+    [tasks, miVista]
+  )
+
+  // All active members (those who have tasks)
+  const activeMembers = useMemo(() => {
+    const found = new Set(tasks.map(t => t.assignee).filter(Boolean))
+    return TEAM_MEMBERS.filter(m => found.has(m))
   }, [tasks])
 
-  const bomberos = useMemo(() => tasks
+  // ── KPIs ─────────────────────────────────────────────────────────────────
+  const stats = useMemo(() => {
+    const total = visibleTasks.length
+    const completed = visibleTasks.filter(t => t.status === 'completado').length
+    const inProgress = visibleTasks.filter(t => t.status === 'en_progreso').length
+    const pending = visibleTasks.filter(t => t.status === 'pendiente').length
+    const pct = total > 0 ? Math.round((completed / total) * 100) : 0
+    return { total, completed, inProgress, pending, pct }
+  }, [visibleTasks])
+
+  const bomberos = useMemo(() => visibleTasks
     .filter(t => t.tipo === 'urgente' || (t.tipo === 'pendiente_anterior' && t.priority === 'alta'))
     .sort((a, b) => (a.tipo === 'urgente' ? 0 : 1) - (b.tipo === 'urgente' ? 0 : 1))
     .slice(0, 7),
-  [tasks])
+  [visibleTasks])
 
-  const inProgressTasks = useMemo(() => tasks.filter(t => t.status === 'en_progreso').slice(0, 6), [tasks])
+  const inProgressTasks = useMemo(() => visibleTasks.filter(t => t.status === 'en_progreso').slice(0, 6), [visibleTasks])
 
   const clientStats = useMemo(() => clients
     .map(client => {
-      const ct = tasks.filter(t => t.client_id === client.id)
+      const ct = visibleTasks.filter(t => t.client_id === client.id)
       const done = ct.filter(t => t.status === 'completado').length
       const inProg = ct.filter(t => t.status === 'en_progreso').length
       const pending = ct.filter(t => t.status === 'pendiente').length
@@ -276,11 +312,11 @@ export function DashboardPage() {
     })
     .filter(c => c.total > 0)
     .sort((a, b) => b.total - a.total),
-  [clients, tasks, campaigns])
+  [clients, visibleTasks, campaigns])
 
   const copyMetrics = useMemo(() => {
     let hooks = 0, cta = 0, body = 0, scripts = 0, lm = 0
-    for (const t of tasks) {
+    for (const t of visibleTasks) {
       if (!t.deliverables) continue
       hooks   += t.deliverables.hooks ?? 0
       cta     += t.deliverables.cta ?? 0
@@ -289,16 +325,16 @@ export function DashboardPage() {
       lm      += t.deliverables.lead_magnet_pdf ?? 0
     }
     return { hooks, cta, body, scripts, lm }
-  }, [tasks])
+  }, [visibleTasks])
 
   const areaStats = useMemo(() => (['copy', 'trafico', 'tech', 'admin'] as Area[]).map(area => {
-    const at = tasks.filter(t => t.area === area)
+    const at = visibleTasks.filter(t => t.area === area)
     return { area, total: at.length, done: at.filter(t => t.status === 'completado').length }
-  }).filter(a => a.total > 0), [tasks])
+  }).filter(a => a.total > 0), [visibleTasks])
 
   const teamStats = useMemo(() => {
     const map: Record<string, { total: number; done: number; inProg: number }> = {}
-    for (const t of tasks) {
+    for (const t of tasks) {  // always use all tasks for team view
       if (!map[t.assignee]) map[t.assignee] = { total: 0, done: 0, inProg: 0 }
       map[t.assignee].total++
       if (t.status === 'completado') map[t.assignee].done++
@@ -318,7 +354,53 @@ export function DashboardPage() {
   }
 
   return (
-    <div style={{ backgroundColor: C.bg, minHeight: '100vh', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+    <div style={{ backgroundColor: C.bg, minHeight: '100vh', padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+      {/* ── Mi Vista Filter ───────────────────────────────────────────────────── */}
+      <div style={{
+        ...card({ overflow: 'visible' }),
+        padding: '10px 16px',
+        display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+      }}>
+        <div className="flex items-center gap-1.5" style={{ marginRight: 4 }}>
+          <UserCircle2 size={14} color={C.accent} />
+          <span style={{ fontSize: 11, fontWeight: 700, color: C.sub, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+            Mi Vista
+          </span>
+        </div>
+
+        {/* "Todos" chip */}
+        <button
+          onClick={() => setMiVista(null)}
+          style={{
+            padding: '5px 12px', borderRadius: 99, fontSize: 12, fontWeight: 600,
+            cursor: 'pointer', transition: 'all 0.15s',
+            backgroundColor: miVista === null ? C.accent : C.bg,
+            color: miVista === null ? '#fff' : C.sub,
+            border: `1.5px solid ${miVista === null ? C.accent : C.border}`,
+            boxShadow: miVista === null ? `0 2px 8px ${C.accent}35` : 'none',
+          }}
+        >
+          Todos
+        </button>
+
+        {activeMembers.map(member => (
+          <MemberChip
+            key={member}
+            name={member}
+            active={miVista === member}
+            onClick={() => setMiVista(miVista === member ? null : member)}
+          />
+        ))}
+
+        {miVista && (
+          <span style={{
+            marginLeft: 'auto', fontSize: 11, color: C.muted, fontWeight: 500,
+          }}>
+            {visibleTasks.length} tareas de {miVista}
+          </span>
+        )}
+      </div>
 
       {/* ── KPIs ─────────────────────────────────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12 }}>
@@ -331,7 +413,6 @@ export function DashboardPage() {
 
       {/* ── BOMBEROS + EN PROGRESO ────────────────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 14 }}>
-
         {/* Bomberos */}
         <div style={card()}>
           <div style={{ padding: '14px 16px 10px', borderBottom: `1px solid ${C.border}` }}>
@@ -344,7 +425,9 @@ export function DashboardPage() {
           {bomberos.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8">
               <CheckCircle2 size={24} color={C.green} />
-              <p style={{ color: C.sub, fontSize: 12, marginTop: 8, fontWeight: 500 }}>Sin incendios activos 🎉</p>
+              <p style={{ color: C.sub, fontSize: 12, marginTop: 8, fontWeight: 500 }}>
+                {miVista ? `Sin incendios para ${miVista} 🎉` : 'Sin incendios activos 🎉'}
+              </p>
             </div>
           ) : (
             bomberos.map(t => (
@@ -421,7 +504,9 @@ export function DashboardPage() {
         <div style={card({ padding: 18 })}>
           <SectionHeader icon={TrendingUp} title="Por área" sub="Distribución de tareas" />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
-            {areaStats.map(({ area, total, done }) => {
+            {areaStats.length === 0 ? (
+              <p style={{ fontSize: 12, color: C.muted, textAlign: 'center', padding: '12px 0' }}>Sin datos</p>
+            ) : areaStats.map(({ area, total, done }) => {
               const pct = total > 0 ? Math.round((done / total) * 100) : 0
               const color = AREA_COLORS[area]
               return (
@@ -450,20 +535,30 @@ export function DashboardPage() {
             {teamStats.slice(0, 7).map(({ name, total, done, inProg }) => {
               const pct = total > 0 ? Math.round((done / total) * 100) : 0
               const color = ASSIGNEE_COLORS[name] || C.muted
+              const isActive = miVista === name
               return (
-                <div key={name} className="flex items-center gap-2">
+                <div
+                  key={name}
+                  className="flex items-center gap-2 cursor-pointer rounded-lg transition-all"
+                  style={{
+                    padding: '4px 6px', margin: '-4px -6px',
+                    backgroundColor: isActive ? `${color}10` : 'transparent',
+                    border: isActive ? `1px solid ${color}25` : '1px solid transparent',
+                  }}
+                  onClick={() => setMiVista(miVista === name ? null : name)}
+                >
                   <div style={{
                     width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
                     background: `linear-gradient(135deg, ${color}30, ${color}15)`,
                     color, fontSize: 9, fontWeight: 800,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    border: `1px solid ${color}25`,
+                    border: `1px solid ${isActive ? color + '60' : color + '25'}`,
                   }}>
-                    {name.slice(0, 2).toUpperCase()}
+                    {name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div className="flex justify-between items-center" style={{ marginBottom: 3 }}>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: C.text }} className="truncate">{name}</span>
+                      <span style={{ fontSize: 11, fontWeight: isActive ? 700 : 600, color: isActive ? color : C.text }} className="truncate">{name}</span>
                       <div className="flex gap-1.5 flex-shrink-0">
                         {inProg > 0 && (
                           <span style={{ fontSize: 9, fontWeight: 700, color: C.blue, backgroundColor: `${C.blue}15`, padding: '1px 4px', borderRadius: 3 }}>{inProg} act.</span>
