@@ -49,6 +49,15 @@ export interface Campaign {
   tasks?: Task[]
 }
 
+export interface TaskAttachment {
+  name: string
+  url: string
+  path: string
+  size: number
+  type: string
+  uploaded_at: string
+}
+
 export interface Deliverables {
   hooks?: number
   cta?: number
@@ -90,6 +99,7 @@ export interface Task {
   client?: Client
   campaign?: Campaign
   deliverables?: Deliverables
+  attachments?: TaskAttachment[]
 }
 
 export interface TeamMember {

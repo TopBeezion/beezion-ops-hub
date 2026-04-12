@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   X, Save, Calendar, User, Tag, Layers, AlertTriangle, Clock, FileText, Hash,
   Anchor, Video, PenTool, Target, FileDown, Film, Globe, ThumbsUp, LayoutGrid,
   Type, HelpCircle, BarChart3, RefreshCw, Bot, Hand, Zap, Hourglass, Package,
+  Paperclip, Upload, Trash2, Download, File, Image, FileVideo, FileAudio, Plus,
 } from 'lucide-react'
+import { supabase } from '../../lib/supabase'
 import { useUpdateTask } from '../../hooks/useTasks'
 import { useClients } from '../../hooks/useClients'
 import { useCampaignsByClient } from '../../hooks/useCampaigns'
-import type { Task, Area, Priority, TaskStatus, TaskTipo, Etapa, MiniStatus, Deliverables } from '../../types'
+import type { Task, Area, Priority, TaskStatus, TaskTipo, Etapa, MiniStatus, Deliverables, TaskAttachment } from '../../types'
 import {
   AREA_LABELS, AREA_COLORS, STATUS_LABELS, STATUS_COLORS,
   PRIORITY_LABELS, PRIORITY_COLORS,
@@ -89,8 +91,11 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
   const [miniStatus,  setMiniStatus]  = useState<MiniStatus | ''>(task.mini_status ?? '')
   const [dueDate,     setDueDate]     = useState(task.due_date ?? '')
   const [deliverables, setDeliverables] = useState<Deliverables>(task.deliverables ?? {})
+  const [attachments,  setAttachments]  = useState<TaskAttachment[]>(task.attachments ?? [])
+  const [uploading,    setUploading]    = useState(false)
   const [saving,      setSaving]      = useState(false)
   const [saved,       setSaved]       = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const { data: campaigns = [] } = useCampaignsByClient(clientId || undefined)
 
@@ -121,7 +126,8 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
     etapa !== (task.etapa ?? '') ||
     miniStatus !== (task.mini_status ?? '') ||
     dueDate !== (task.due_date ?? '') ||
-    JSON.stringify(deliverables) !== JSON.stringify(task.deliverables ?? {})
+    JSON.stringify(deliverables) !== JSON.stringify(task.deliverables ?? {}) ||
+    JSON.stringify(attachments) !== JSON.stringify(task.attachments ?? [])
 
   const handleSave = async () => {
     setSaving(true)
@@ -143,6 +149,7 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
         mini_status: miniStatus || undefined,
         due_date: dueDate || undefined,
         deliverables: Object.keys(deliverables).length > 0 ? deliverables : undefined,
+        attachments: attachments.length > 0 ? attachments : undefined,
       })
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
@@ -161,6 +168,42 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
   }
 
   const totalDeliverables = Object.values(deliverables).reduce((s, v) => s + (v ?? 0), 0)
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? [])
+    if (!files.length) return
+    setUploading(true)
+    const newAttachments: TaskAttachment[] = []
+    for (const file of files) {
+      const path = `tasks/${task.id}/${Date.now()}-${file.name}`
+      const { error } = await supabase.storage.from('task-attachments').upload(path, file, { upsert: false })
+      if (!error) {
+        const { data: urlData } = supabase.storage.from('task-attachments').getPublicUrl(path)
+        newAttachments.push({ name: file.name, url: urlData.publicUrl, path, size: file.size, type: file.type, uploaded_at: new Date().toISOString() })
+      }
+    }
+    setAttachments(prev => [...prev, ...newAttachments])
+    setUploading(false)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const removeAttachment = async (att: TaskAttachment) => {
+    await supabase.storage.from('task-attachments').remove([att.path])
+    setAttachments(prev => prev.filter(a => a.path !== att.path))
+  }
+
+  const getFileIcon = (type: string) => {
+    if (type.startsWith('image/')) return Image
+    if (type.startsWith('video/')) return FileVideo
+    if (type.startsWith('audio/')) return FileAudio
+    return File
+  }
+
+  const formatBytes = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-stretch justify-end">
@@ -591,6 +634,125 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
               style={{ ...inputBase, color: '#676879' }}
               placeholder="Describe qué exactamente hay que hacer, cómo hacerlo, referencias, links, observaciones..."
             />
+          </div>
+
+          {/* ── Adjuntos ── */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="flex items-center gap-1" style={sectionLabel}>
+                <Paperclip size={9} /> Archivos adjuntos
+                {attachments.length > 0 && (
+                  <span className="ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: '#EEF2FF', color: '#6366F1' }}>
+                    {attachments.length}
+                  </span>
+                )}
+              </label>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  padding: '4px 10px', borderRadius: 8, fontSize: 11, fontWeight: 600,
+                  cursor: uploading ? 'not-allowed' : 'pointer', border: 'none',
+                  backgroundColor: uploading ? '#F3F4F6' : '#EEF2FF',
+                  color: uploading ? '#9699A6' : '#6366F1',
+                }}
+              >
+                <Upload size={11} />
+                {uploading ? 'Subiendo…' : 'Subir archivo'}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                style={{ display: 'none' }}
+                onChange={handleFileUpload}
+                accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip"
+              />
+            </div>
+
+            {/* Drop zone when no attachments */}
+            {attachments.length === 0 && !uploading && (
+              <div
+                style={{
+                  border: '2px dashed #E4E7F0', borderRadius: 10, padding: '16px',
+                  textAlign: 'center', cursor: 'pointer',
+                }}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Paperclip size={18} style={{ color: '#D1D5DB', margin: '0 auto 6px' }} />
+                <p style={{ fontSize: 11, color: '#9699A6', margin: 0 }}>Arrastra archivos aquí o haz click para adjuntar</p>
+                <p style={{ fontSize: 10, color: '#D1D5DB', margin: '3px 0 0' }}>Imágenes, videos, PDFs, documentos</p>
+              </div>
+            )}
+
+            {/* Attachment list */}
+            {attachments.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {attachments.map(att => {
+                  const FileIcon = getFileIcon(att.type)
+                  const isImage = att.type.startsWith('image/')
+                  return (
+                    <div
+                      key={att.path}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        padding: '8px 10px', borderRadius: 10,
+                        border: '1px solid #E6E9EF', backgroundColor: '#FAFBFC',
+                      }}
+                    >
+                      {isImage ? (
+                        <img
+                          src={att.url}
+                          alt={att.name}
+                          style={{ width: 36, height: 36, borderRadius: 6, objectFit: 'cover', flexShrink: 0, border: '1px solid #E6E9EF' }}
+                        />
+                      ) : (
+                        <div style={{
+                          width: 36, height: 36, borderRadius: 6, flexShrink: 0,
+                          backgroundColor: '#EEF2FF', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                          <FileIcon size={16} color="#6366F1" />
+                        </div>
+                      )}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 11, fontWeight: 600, color: '#1F2128', margin: 0 }} className="truncate">{att.name}</p>
+                        <p style={{ fontSize: 9, color: '#9699A6', margin: '2px 0 0' }}>{formatBytes(att.size)}</p>
+                      </div>
+                      <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                        <a
+                          href={att.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{ width: 26, height: 26, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#EEF2FF', color: '#6366F1', border: 'none' }}
+                          title="Descargar"
+                        >
+                          <Download size={12} />
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => removeAttachment(att)}
+                          style={{ width: 26, height: 26, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FEF2F2', color: '#EF4444', border: 'none', cursor: 'pointer' }}
+                          title="Eliminar"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+
+                {/* Add more button */}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '7px', borderRadius: 10, border: '1.5px dashed #E4E7F0', fontSize: 11, color: '#9699A6', cursor: 'pointer', backgroundColor: 'transparent' }}
+                >
+                  <Plus size={12} /> Agregar más archivos
+                </button>
+              </div>
+            )}
           </div>
 
           {/* ── Problema ── */}
