@@ -101,13 +101,13 @@ function SectionHeader({ icon: Icon, title, sub, color = C.accent, action, onAct
 }
 
 // ─── Bombero row ──────────────────────────────────────────────────────────────
-function BomberoRow({ task, onClick }: { task: Task; onClick?: () => void }) {
+function BomberoRow({ task, onClick, isLast }: { task: Task; onClick?: () => void; isLast?: boolean }) {
   const clientColor = (task.client as Client & { color: string })?.color || C.red
   const isUrgent = task.tipo === 'urgente'
   return (
     <div
-      className="flex items-center gap-3 px-4 py-2.5 hover:bg-red-50 cursor-pointer transition-colors"
-      style={{ borderBottom: `1px solid ${C.border}`, borderLeft: `3px solid ${isUrgent ? C.red : C.orange}` }}
+      className="flex items-center gap-3 px-4 py-3 hover:bg-red-50 cursor-pointer transition-colors"
+      style={{ borderBottom: isLast ? 'none' : `1px solid ${C.border}`, borderLeft: `3px solid ${isUrgent ? C.red : C.orange}` }}
       onClick={onClick}
     >
       <div style={{ flexShrink: 0 }}>
@@ -147,20 +147,21 @@ function BomberoRow({ task, onClick }: { task: Task; onClick?: () => void }) {
 }
 
 // ─── In-progress row ──────────────────────────────────────────────────────────
-function ProgressRow({ task, onClick }: { task: Task; onClick?: () => void }) {
+function ProgressRow({ task, onClick, isLast }: { task: Task; onClick?: () => void; isLast?: boolean }) {
   const clientColor = (task.client as Client & { color: string })?.color || C.muted
   return (
     <div
-      className="flex items-center gap-2 px-4 py-2.5 hover:bg-blue-50 cursor-pointer transition-colors"
+      className="flex items-center gap-3 px-4 py-3 hover:bg-blue-50 cursor-pointer transition-colors"
       onClick={onClick}
-      style={{ borderBottom: `1px solid ${C.border}` }}
+      style={{ borderBottom: isLast ? 'none' : `1px solid ${C.border}` }}
     >
-      <Circle size={7} color={C.blue} fill={C.blue} className="shrink-0" />
-      <p style={{ fontSize: 12, color: C.text, flex: 1 }} className="truncate">{task.title}</p>
+      <div style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: C.blue, flexShrink: 0 }} />
+      <p style={{ fontSize: 12, fontWeight: 500, color: C.text, flex: 1, lineHeight: 1.4 }} className="truncate">{task.title}</p>
       {task.client && (
         <span style={{
           fontSize: 9, fontWeight: 700, color: clientColor,
-          backgroundColor: `${clientColor}15`, padding: '1px 5px', borderRadius: 3, flexShrink: 0,
+          backgroundColor: `${clientColor}15`, padding: '2px 7px', borderRadius: 4, flexShrink: 0,
+          border: `1px solid ${clientColor}25`,
         }}>
           {(task.client as Client).name}
         </span>
@@ -180,44 +181,48 @@ function ClientCard({ client, total, done, inProg, pending, pct, activeCampaigns
       className="hover:shadow-md transition-all duration-200 cursor-pointer"
       style={{ ...card(), padding: 0, borderTop: `3px solid ${client.color}` }}
     >
-      <div style={{ padding: '12px 14px 8px' }}>
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: client.color, flexShrink: 0 }} />
-            <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{client.name}</span>
+      {/* Header */}
+      <div style={{ padding: '14px 16px 12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 9, height: 9, borderRadius: '50%', backgroundColor: client.color, flexShrink: 0, boxShadow: `0 0 6px ${client.color}60` }} />
+            <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{client.name}</span>
           </div>
-          <div className="flex items-center gap-1">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             {activeCampaigns > 0 && (
               <span style={{
-                fontSize: 9, fontWeight: 700, color: client.color,
-                backgroundColor: `${client.color}15`, padding: '2px 6px', borderRadius: 4,
+                fontSize: 10, fontWeight: 700, color: client.color,
+                backgroundColor: `${client.color}12`, padding: '2px 7px', borderRadius: 5,
+                border: `1px solid ${client.color}25`,
               }}>
                 {activeCampaigns} camp.
               </span>
             )}
-            <span style={{ fontSize: 9, color: C.muted }}>{total} tasks</span>
+            <span style={{ fontSize: 10, color: C.muted, fontWeight: 500 }}>{total} tasks</span>
           </div>
         </div>
-        <div style={{ height: 3, backgroundColor: C.border, borderRadius: 3, overflow: 'hidden' }}>
+        {/* Progress bar */}
+        <div style={{ height: 4, backgroundColor: C.border, borderRadius: 4, overflow: 'hidden' }}>
           <div style={{
             height: '100%', width: `${pct}%`,
-            background: `linear-gradient(90deg, ${client.color}, ${client.color}CC)`,
-            borderRadius: 3, transition: 'width 0.5s ease',
+            background: `linear-gradient(90deg, ${client.color}, ${client.color}BB)`,
+            borderRadius: 4, transition: 'width 0.5s ease',
           }} />
         </div>
         {pct > 0 && (
-          <p style={{ fontSize: 9, color: C.muted, marginTop: 3, textAlign: 'right' }}>{pct}% completado</p>
+          <p style={{ fontSize: 10, color: C.muted, marginTop: 5, textAlign: 'right', fontWeight: 500 }}>{pct}% completado</p>
         )}
       </div>
+      {/* Stats row */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', borderTop: `1px solid ${C.border}` }}>
         {[
           { label: 'Progreso', value: inProg, color: C.blue },
           { label: 'Pendiente', value: pending, color: C.orange },
           { label: 'Hecho', value: done, color: C.green },
         ].map(({ label, value, color }, i) => (
-          <div key={label} style={{ padding: '8px 0', textAlign: 'center', borderRight: i < 2 ? `1px solid ${C.border}` : 'none' }}>
-            <p style={{ fontSize: 16, fontWeight: 700, color, lineHeight: 1 }}>{value}</p>
-            <p style={{ fontSize: 8, color: C.muted, fontWeight: 600, marginTop: 2, letterSpacing: '0.04em' }}>{label.toUpperCase()}</p>
+          <div key={label} style={{ padding: '10px 0', textAlign: 'center', borderRight: i < 2 ? `1px solid ${C.border}` : 'none' }}>
+            <p style={{ fontSize: 20, fontWeight: 800, color, lineHeight: 1 }}>{value}</p>
+            <p style={{ fontSize: 9, color: C.muted, fontWeight: 600, marginTop: 4, letterSpacing: '0.05em', textTransform: 'uppercase' }}>{label}</p>
           </div>
         ))}
       </div>
@@ -416,53 +421,79 @@ export function DashboardPage() {
       <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 14 }}>
         {/* Bomberos */}
         <div style={card()}>
-          <div style={{ padding: '14px 16px 10px', borderBottom: `1px solid ${C.border}` }}>
-            <SectionHeader
-              icon={Flame} title="🔥 Bomberos — Incendios del día"
-              sub={`${bomberos.length} urgentes activos`} color={C.red}
-              action="Ver todos" onAction={() => navigate('/bomberos')}
-            />
+          <div style={{ padding: '16px 18px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: `${C.red}12`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Flame size={14} color={C.red} />
+              </div>
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 700, color: C.text, margin: 0 }}>🔥 Bomberos — Incendios del día</p>
+                <p style={{ fontSize: 10, color: C.muted, margin: 0 }}>{bomberos.length} urgentes activos</p>
+              </div>
+            </div>
+            <button onClick={() => navigate('/bomberos')} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, color: C.red, background: 'none', border: 'none', cursor: 'pointer' }}>
+              Ver todos <ChevronRight size={11} />
+            </button>
           </div>
           {bomberos.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8">
-              <CheckCircle2 size={24} color={C.green} />
-              <p style={{ color: C.sub, fontSize: 12, marginTop: 8, fontWeight: 500 }}>
+            <div className="flex flex-col items-center justify-center" style={{ padding: '32px 0' }}>
+              <CheckCircle2 size={26} color={C.green} />
+              <p style={{ color: C.sub, fontSize: 12, marginTop: 10, fontWeight: 500 }}>
                 {miVista ? `Sin incendios para ${miVista} 🎉` : 'Sin incendios activos 🎉'}
               </p>
             </div>
           ) : (
-            bomberos.map(t => (
-              <BomberoRow key={t.id} task={t} onClick={() => ctx?.openTaskDetail?.(t)} />
-            ))
+            <div>
+              {bomberos.map((t, i) => (
+                <BomberoRow key={t.id} task={t} isLast={i === bomberos.length - 1} onClick={() => ctx?.openTaskDetail?.(t)} />
+              ))}
+            </div>
           )}
         </div>
 
         {/* En Progreso */}
         <div style={card()}>
-          <div style={{ padding: '14px 16px 10px', borderBottom: `1px solid ${C.border}` }}>
-            <SectionHeader
-              icon={Activity} title="En progreso ahora"
-              sub={`${stats.inProgress} tareas activas`} color={C.blue}
-              action="Ver Kanban" onAction={() => navigate('/kanban')}
-            />
+          <div style={{ padding: '16px 18px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: `${C.blue}12`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Activity size={14} color={C.blue} />
+              </div>
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 700, color: C.text, margin: 0 }}>En progreso ahora</p>
+                <p style={{ fontSize: 10, color: C.muted, margin: 0 }}>{stats.inProgress} tareas activas</p>
+              </div>
+            </div>
+            <button onClick={() => navigate('/kanban')} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, color: C.blue, background: 'none', border: 'none', cursor: 'pointer' }}>
+              Ver Kanban <ChevronRight size={11} />
+            </button>
           </div>
           {inProgressTasks.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8">
-              <Clock size={24} color={C.muted} />
-              <p style={{ color: C.sub, fontSize: 12, marginTop: 8 }}>Nada en progreso aún</p>
+            <div className="flex flex-col items-center justify-center" style={{ padding: '32px 0' }}>
+              <Clock size={26} color={C.muted} />
+              <p style={{ color: C.sub, fontSize: 12, marginTop: 10 }}>Nada en progreso aún</p>
             </div>
           ) : (
-            inProgressTasks.map(t => (
-              <ProgressRow key={t.id} task={t} onClick={() => ctx?.openTaskDetail?.(t)} />
-            ))
+            <div>
+              {inProgressTasks.map((t, i) => (
+                <ProgressRow key={t.id} task={t} isLast={i === inProgressTasks.length - 1} onClick={() => ctx?.openTaskDetail?.(t)} />
+              ))}
+            </div>
           )}
         </div>
       </div>
 
       {/* ── CLIENTES ──────────────────────────────────────────────────────────── */}
       {clientStats.length > 0 && (
-        <div>
-          <SectionHeader icon={Users} title="Estado por cliente" sub={`${clientStats.length} clientes con tareas activas`} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingLeft: 2 }}>
+            <div style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: `${C.accent}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Users size={14} color={C.accent} />
+            </div>
+            <div>
+              <p style={{ fontSize: 14, fontWeight: 700, color: C.text, margin: 0, lineHeight: 1.2 }}>Estado por cliente</p>
+              <p style={{ fontSize: 11, color: C.muted, margin: 0 }}>{clientStats.length} clientes con tareas activas</p>
+            </div>
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
             {clientStats.map(s => (
               <ClientCard key={s.client.id} {...s} onClick={() => navigate(`/clients/${s.client.id}`)} />
@@ -472,10 +503,10 @@ export function DashboardPage() {
       )}
 
       {/* ── MÉTRICAS BOTTOM ROW ───────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 0.9fr 1.2fr', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 0.9fr 1.2fr', gap: 14, paddingBottom: 16 }}>
 
         {/* Copy Production */}
-        <div style={card({ padding: 18 })}>
+        <div style={card({ padding: '18px 18px 16px' })}>
           <SectionHeader icon={BarChart3} title="Producción de copy acumulada" sub="Entregables creados en total" color={C.purple} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
             {[
