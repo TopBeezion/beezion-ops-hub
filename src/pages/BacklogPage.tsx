@@ -442,7 +442,7 @@ export function BacklogPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
             <thead style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: C.surface, borderBottom: `1px solid ${C.border}` }}>
               <tr>
-                {([['TAREA', '28%'], ['CAMPAÑA', '16%'], ['CLIENTE', '9%'], ['ESTADO', '11%'], ['PRIORIDAD', '9%'], ['ÁREA', '8%'], ['RESPONSABLE', '14%'], ['S', '5%']] as [string, string][]).map(([l, w]) => (
+                {([['TAREA', '28%'], ['CAMPAÑA', '16%'], ['CLIENTE', '9%'], ['ESTADO', '11%'], ['PRIORIDAD', '9%'], ['ÁREA', '8%'], ['RESPONSABLE', '12%'], ['SEMANA', '7%']] as [string, string][]).map(([l, w]) => (
                   <th key={l} style={{ padding: '8px 14px', textAlign: 'left', fontSize: 9, fontWeight: 800, letterSpacing: '0.09em', color: C.muted, width: w, whiteSpace: 'nowrap' }}>{l}</th>
                 ))}
               </tr>
@@ -496,7 +496,7 @@ export function BacklogPage() {
                     <td style={{ padding: '9px 14px' }}><AssigneePicker task={task} onUpdate={handleAssigneeUpdate} /></td>
                     {/* Sprint */}
                     <td style={{ padding: '9px 14px' }}>
-                      {task.week ? <span style={{ padding: '3px 7px', borderRadius: 8, fontSize: 10, fontWeight: 700, backgroundColor: '#EEF2FF', color: C.accent, border: `1px solid ${C.accent}20` }}>S{task.week}</span> : <span style={{ color: C.muted }}>—</span>}
+                      {task.week ? <span style={{ padding: '3px 9px', borderRadius: 8, fontSize: 10, fontWeight: 700, backgroundColor: '#EEF2FF', color: C.accent, border: `1px solid ${C.accent}20`, whiteSpace: 'nowrap' }}>Sem. {task.week}</span> : <span style={{ color: C.muted }}>—</span>}
                     </td>
                   </tr>
                 )
