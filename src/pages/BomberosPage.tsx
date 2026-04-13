@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { useTasks } from '../hooks/useTasks'
 import { useClients } from '../hooks/useClients'
 import { useOutletContext } from 'react-router-dom'
@@ -6,8 +6,8 @@ import { useUpdateTask } from '../hooks/useTasks'
 import type { Task, Client, TaskStatus } from '../types'
 import { STATUS_LABELS, STATUS_COLORS, ASSIGNEE_COLORS, PRIORITY_COLORS, TEAM_MEMBERS } from '../lib/constants'
 import {
-  Flame, CheckCircle2, Clock, AlertTriangle, ChevronDown,
-  Circle, RefreshCw,
+  Flame, CheckCircle2, Clock, AlertTriangle,
+  ChevronDown, Circle, RefreshCw, XCircle,
 } from 'lucide-react'
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
@@ -24,106 +24,196 @@ const C = {
   blue: '#579BFC',
 }
 
-function StatusBadge({ status, onClick }: { status: TaskStatus; onClick?: (e: React.MouseEvent) => void }) {
+const STATUS_ORDER: TaskStatus[] = ['pendiente', 'en_progreso', 'revision', 'completado']
+
+// ─── Status Dropdown ──────────────────────────────────────────────────────────
+function StatusDropdown({
+  status,
+  onSelect,
+}: {
+  status: TaskStatus
+  onSelect: (s: TaskStatus) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
   const color = STATUS_COLORS[status]
+
+  useEffect(() => {
+    if (!open) return
+    const h = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [open])
+
   return (
-    <button
-      onClick={onClick}
-      style={{
-        display: 'flex', alignItems: 'center', gap: 4,
-        fontSize: 11, fontWeight: 700,
-        color, backgroundColor: `${color}15`,
-        padding: '3px 8px', borderRadius: 6, border: `1px solid ${color}30`,
-        cursor: onClick ? 'pointer' : 'default',
-      }}
-    >
-      <Circle size={6} fill={color} color={color} />
-      {STATUS_LABELS[status]}
-      {onClick && <ChevronDown size={10} />}
-    </button>
+    <div ref={ref} style={{ position: 'relative', flexShrink: 0 }}>
+      <button
+        onClick={e => { e.stopPropagation(); setOpen(v => !v) }}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 5,
+          fontSize: 11, fontWeight: 700,
+          color, backgroundColor: `${color}15`,
+          padding: '5px 10px', borderRadius: 6, border: `1.5px solid ${color}35`,
+          cursor: 'pointer', transition: 'all 0.1s',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        <Circle size={7} fill={color} color={color} />
+        {STATUS_LABELS[status]}
+        <ChevronDown size={11} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: '150ms' }} />
+      </button>
+
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 100,
+          backgroundColor: '#fff', border: '1px solid #E4E7F0',
+          borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          padding: 4, minWidth: 160,
+        }}>
+          {STATUS_ORDER.map(s => {
+            const sc = STATUS_COLORS[s]
+            const isActive = s === status
+            return (
+              <button
+                key={s}
+                onClick={e => { e.stopPropagation(); onSelect(s); setOpen(false) }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+                  padding: '8px 10px', borderRadius: 7, border: 'none', cursor: 'pointer',
+                  backgroundColor: isActive ? `${sc}12` : 'transparent',
+                  transition: 'background 0.1s', textAlign: 'left',
+                }}
+                onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.backgroundColor = '#F5F6FA' }}
+                onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent' }}
+              >
+                <Circle size={8} fill={sc} color={sc} />
+                <span style={{ flex: 1, fontSize: 12, fontWeight: isActive ? 700 : 500, color: isActive ? sc : '#374151' }}>
+                  {STATUS_LABELS[s]}
+                </span>
+                {isActive && <CheckCircle2 size={13} color={sc} />}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
   )
 }
 
-const STATUS_CYCLE: TaskStatus[] = ['pendiente', 'en_progreso', 'revision', 'completado']
-
-function BomberoRow({ task, onClick, onStatusChange }: {
+// ─── Bombero Row ──────────────────────────────────────────────────────────────
+function BomberoRow({ task, onClick, onStatusChange, isLast }: {
   task: Task
   onClick?: () => void
   onStatusChange: (id: string, status: TaskStatus) => void
+  isLast?: boolean
 }) {
   const clientColor = (task.client as Client & { color: string })?.color || C.red
   const priorityColor = PRIORITY_COLORS[task.priority]
   const assigneeColor = ASSIGNEE_COLORS[task.assignee] || C.muted
-
-  const cycleStatus = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    const cur = STATUS_CYCLE.indexOf(task.status)
-    const next = STATUS_CYCLE[(cur + 1) % STATUS_CYCLE.length]
-    onStatusChange(task.id, next)
-  }
-
   const isCompleted = task.status === 'completado'
+  const accentColor = task.status === 'en_progreso' ? C.red : task.status === 'completado' ? C.green : C.orange
 
   return (
     <div
-      className="flex items-center gap-5 px-6 py-4 hover:bg-red-50 transition-colors cursor-pointer"
+      className="flex items-center gap-4 hover:bg-slate-50 transition-colors cursor-pointer"
       style={{
-        borderBottom: `1px solid ${C.border}`,
-        borderLeft: `4px solid ${task.status === 'en_progreso' ? C.red : C.orange}`,
-        opacity: isCompleted ? 0.5 : 1,
+        padding: '12px 20px',
+        borderBottom: isLast ? 'none' : `1px solid ${C.border}`,
+        borderLeft: `4px solid ${accentColor}`,
+        opacity: isCompleted ? 0.6 : 1,
       }}
       onClick={onClick}
     >
       {/* Priority dot */}
       <div style={{
-        width: 10, height: 10, borderRadius: '50%',
-        backgroundColor: priorityColor, flexShrink: 0,
+        width: 9, height: 9, borderRadius: '50%', flexShrink: 0,
+        backgroundColor: priorityColor,
         boxShadow: `0 0 6px ${priorityColor}60`,
       }} />
 
-      {/* Title + client */}
+      {/* Title + client + problema */}
       <div className="flex-1 min-w-0">
         <p style={{
-          fontSize: 14, fontWeight: 600, color: C.text,
+          fontSize: 13, fontWeight: 600, color: isCompleted ? C.muted : C.text,
           textDecoration: isCompleted ? 'line-through' : 'none',
+          lineHeight: 1.3,
         }} className="truncate">
           {task.title}
         </p>
         <div className="flex items-center gap-2 mt-1">
           {task.client && (
             <span style={{
-              fontSize: 11, fontWeight: 700,
-              color: clientColor,
+              fontSize: 10, fontWeight: 700, color: clientColor,
               backgroundColor: `${clientColor}15`,
-              padding: '1px 7px', borderRadius: 4,
+              padding: '1px 7px', borderRadius: 4, flexShrink: 0,
             }}>
               {(task.client as Client).name}
             </span>
           )}
-          {task.problema && (
-            <span style={{ fontSize: 11, color: C.muted }} className="truncate max-w-xs">
-              {task.problema}
+          {task.area && (
+            <span style={{ fontSize: 10, color: C.muted, fontWeight: 500 }}>
+              {task.area}
             </span>
           )}
         </div>
       </div>
 
-      {/* Assignee */}
+      {/* Assignee avatar */}
       <div
         style={{
-          width: 28, height: 28, borderRadius: '50%',
+          width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
           backgroundColor: `${assigneeColor}20`, color: assigneeColor,
-          fontSize: 10, fontWeight: 700,
+          fontSize: 10, fontWeight: 800,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          border: `1px solid ${assigneeColor}30`, flexShrink: 0,
+          border: `1.5px solid ${assigneeColor}40`,
         }}
         title={task.assignee}
       >
         {task.assignee.slice(0, 2).toUpperCase()}
       </div>
 
-      {/* Status cycle */}
-      <StatusBadge status={task.status} onClick={cycleStatus} />
+      {/* Status dropdown */}
+      <StatusDropdown
+        status={task.status}
+        onSelect={status => onStatusChange(task.id, status)}
+      />
+    </div>
+  )
+}
+
+// ─── Section Card ─────────────────────────────────────────────────────────────
+function SectionCard({
+  icon: Icon, title, count, accentColor, borderColor, bgColor, children,
+}: {
+  icon: React.ElementType; title: string; count: number; accentColor: string
+  borderColor: string; bgColor: string; children: React.ReactNode
+}) {
+  return (
+    <div style={{
+      backgroundColor: C.card, borderRadius: 14,
+      border: `1px solid ${borderColor}`, overflow: 'hidden', marginBottom: 16,
+      boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+    }}>
+      <div style={{
+        padding: '13px 20px', backgroundColor: bgColor,
+        borderBottom: `1px solid ${borderColor}`,
+        display: 'flex', alignItems: 'center', gap: 8,
+      }}>
+        <Icon size={15} color={accentColor} />
+        <span style={{ fontSize: 13, fontWeight: 800, color: accentColor, letterSpacing: '0.02em' }}>
+          {title}
+        </span>
+        <span style={{
+          fontSize: 11, fontWeight: 700,
+          backgroundColor: `${accentColor}20`, color: accentColor,
+          padding: '1px 8px', borderRadius: 99,
+        }}>
+          {count}
+        </span>
+      </div>
+      {children}
     </div>
   )
 }
@@ -139,26 +229,23 @@ export function BomberosPage() {
   const [filterAssignee, setFilterAssignee] = useState('')
   const [showResolved, setShowResolved] = useState(false)
 
-  const bomberos = useMemo(() => tasks
+  const allBomberos = useMemo(() => tasks
     .filter(t => t.priority === 'alta')
     .filter(t => !filterClient || t.client_id === filterClient)
-    .filter(t => !filterAssignee || t.assignee === filterAssignee)
-    .filter(t => showResolved || t.status !== 'completado')
-    .sort((a, b) => {
-      if (a.status === 'en_progreso' && b.status !== 'en_progreso') return -1
-      if (a.status !== 'en_progreso' && b.status === 'en_progreso') return 1
-      return 0
-    }),
-  [tasks, filterClient, filterAssignee, showResolved])
+    .filter(t => !filterAssignee || t.assignee === filterAssignee),
+  [tasks, filterClient, filterAssignee])
+
+  const enProceso  = useMemo(() => allBomberos.filter(t => t.status === 'en_progreso'), [allBomberos])
+  const pendientes = useMemo(() => allBomberos.filter(t => t.status === 'pendiente' || t.status === 'revision'), [allBomberos])
+  const resueltos  = useMemo(() => allBomberos.filter(t => t.status === 'completado'), [allBomberos])
 
   const stats = useMemo(() => ({
-    total: tasks.filter(t => t.priority === 'alta').length,
-    enProceso: tasks.filter(t => t.priority === 'alta' && t.status === 'en_progreso').length,
-    pendientes: tasks.filter(t => t.priority === 'alta' && t.status === 'pendiente').length,
-    resueltos: tasks.filter(t => t.priority === 'alta' && t.status === 'completado').length,
-  }), [tasks, bomberos.length, showResolved])
+    total:      tasks.filter(t => t.priority === 'alta').length,
+    enProceso:  tasks.filter(t => t.priority === 'alta' && t.status === 'en_progreso').length,
+    pendientes: tasks.filter(t => t.priority === 'alta' && (t.status === 'pendiente' || t.status === 'revision')).length,
+    resueltos:  tasks.filter(t => t.priority === 'alta' && t.status === 'completado').length,
+  }), [tasks])
 
-  // Always show all team members in the filter (not just those with tasks)
   const assignees = TEAM_MEMBERS.filter(m => m !== 'TBD')
 
   const handleStatusChange = (id: string, status: TaskStatus) => {
@@ -168,133 +255,124 @@ export function BomberosPage() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: C.bg }}>
 
-      {/* Header */}
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div style={{
-        background: 'linear-gradient(135deg, #E2445C 0%, #C0392B 100%)',
-        padding: '24px 28px',
+        background: 'linear-gradient(135deg, #E2445C 0%, #B03050 100%)',
+        padding: '24px 32px 20px',
       }}>
-        <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center gap-3 mb-5">
           <div style={{
-            width: 44, height: 44, borderRadius: 12,
-            backgroundColor: 'rgba(255,255,255,0.2)',
+            width: 46, height: 46, borderRadius: 13,
+            backgroundColor: 'rgba(255,255,255,0.18)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
+            border: '1px solid rgba(255,255,255,0.25)',
           }}>
             <Flame size={22} color="#FFFFFF" />
           </div>
           <div>
-            <h1 style={{ fontSize: 22, fontWeight: 800, color: '#FFFFFF' }}>🔥 Bomberos</h1>
-            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)' }}>
-              Centro de control de incendios operativos — revisión diaria
+            <h1 style={{ fontSize: 22, fontWeight: 800, color: '#FFFFFF', margin: 0 }}>🔥 Bomberos</h1>
+            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', margin: 0 }}>
+              Tareas de alta prioridad — revisión diaria del equipo
             </p>
           </div>
         </div>
 
-        {/* Stats row */}
-        <div className="flex gap-3">
+        {/* Stats */}
+        <div style={{ display: 'flex', gap: 10 }}>
           {[
-            { label: 'Total alta prioridad', value: stats.total,     icon: AlertTriangle, color: '#FFF' },
-            { label: 'En Proceso',           value: stats.enProceso, icon: Flame,         color: '#FFD700' },
-            { label: 'Pendientes',           value: stats.pendientes, icon: Clock,        color: '#FFB347' },
-            { label: 'Resueltos',            value: stats.resueltos,  icon: CheckCircle2, color: '#90EE90' },
+            { label: 'Total alta prioridad', value: stats.total,      icon: AlertTriangle, color: 'rgba(255,255,255,0.9)' },
+            { label: 'En Proceso',           value: stats.enProceso,  icon: Flame,         color: '#FFD700' },
+            { label: 'Pendientes',           value: stats.pendientes, icon: Clock,         color: '#FFB347' },
+            { label: 'Resueltos',            value: stats.resueltos,  icon: CheckCircle2,  color: '#7DF9AA' },
           ].map(({ label, value, icon: Icon, color }) => (
             <div key={label} style={{
-              backgroundColor: 'rgba(255,255,255,0.15)',
-              borderRadius: 10, padding: '10px 16px',
+              backgroundColor: 'rgba(255,255,255,0.13)',
+              borderRadius: 12, padding: '10px 18px',
+              border: '1px solid rgba(255,255,255,0.15)',
               backdropFilter: 'blur(4px)',
             }}>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 mb-1">
                 <Icon size={14} color={color} />
-                <span style={{ fontSize: 20, fontWeight: 800, color: '#FFFFFF' }}>{value}</span>
+                <span style={{ fontSize: 24, fontWeight: 800, color: '#FFFFFF', lineHeight: 1 }}>{value}</span>
               </div>
-              <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', marginTop: 2 }}>{label}</p>
+              <p style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.65)', margin: 0 }}>{label}</p>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Filters */}
+      {/* ── Filters ────────────────────────────────────────────────────────── */}
       <div style={{
         backgroundColor: C.card, borderBottom: `1px solid ${C.border}`,
-        padding: '14px 28px', display: 'flex', flexDirection: 'column', gap: 12,
+        padding: '14px 32px', display: 'flex', flexDirection: 'column', gap: 10,
       }}>
-        {/* Row 1: Clients */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 9, fontWeight: 800, color: C.muted, letterSpacing: '0.1em', marginRight: 2 }}>CLIENTE</span>
+          <span style={{ fontSize: 9, fontWeight: 800, color: C.muted, letterSpacing: '0.12em', marginRight: 2 }}>CLIENTE</span>
           {[{ id: '', name: 'Todos' }, ...clients].map(c => {
             const col = (c as any).color || C.red
             const active = filterClient === c.id
             return (
-              <button key={c.id} onClick={() => setFilterClient(c.id === filterClient ? '' : c.id)}
+              <button key={c.id} onClick={() => setFilterClient(active ? '' : c.id)}
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: 5,
-                  padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600,
+                  padding: '5px 12px', borderRadius: 20, fontSize: 11, fontWeight: 600,
                   cursor: 'pointer', border: 'none', transition: 'all 0.12s',
                   backgroundColor: active ? (c.id ? col : C.red) : '#F5F6FA',
                   color: active ? '#fff' : C.sub,
-                  boxShadow: active ? `0 2px 6px ${c.id ? col : C.red}40` : `inset 0 0 0 1px ${C.border}`,
+                  boxShadow: active ? `0 2px 8px ${c.id ? col : C.red}40` : `inset 0 0 0 1px ${C.border}`,
                 }}
               >
-                {c.id && <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: active ? 'rgba(255,255,255,0.7)' : col, flexShrink: 0 }} />}
+                {c.id && <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: active ? 'rgba(255,255,255,0.8)' : col, flexShrink: 0 }} />}
                 {c.name}
               </button>
             )
           })}
 
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button
-              onClick={() => setShowResolved(v => !v)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 5,
-                fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'all 0.12s',
-                padding: '4px 10px', borderRadius: 20,
-                backgroundColor: showResolved ? `${C.green}18` : '#F5F6FA',
-                color: showResolved ? C.green : C.sub,
-                boxShadow: showResolved ? `inset 0 0 0 1.5px ${C.green}` : `inset 0 0 0 1px ${C.border}`,
-                border: 'none',
-              }}
-            >
+            <button onClick={() => setShowResolved(v => !v)} style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              fontSize: 11, fontWeight: 700, cursor: 'pointer', transition: 'all 0.12s',
+              padding: '5px 12px', borderRadius: 20, border: 'none',
+              backgroundColor: showResolved ? C.green : '#F5F6FA',
+              color: showResolved ? '#fff' : C.sub,
+              boxShadow: showResolved ? `0 2px 8px ${C.green}50` : `inset 0 0 0 1px ${C.border}`,
+            }}>
               <CheckCircle2 size={11} />
-              {showResolved ? 'Ocultar resueltos' : 'Ver resueltos'}
+              {showResolved ? 'Ocultar resueltos' : `Ver resueltos (${stats.resueltos})`}
             </button>
-            <button onClick={() => window.location.reload()}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 5,
-                fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                padding: '4px 10px', borderRadius: 20,
-                backgroundColor: '#F5F6FA', color: C.sub, border: 'none',
-                boxShadow: `inset 0 0 0 1px ${C.border}`,
-              }}
-            >
+            <button onClick={() => window.location.reload()} style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              fontSize: 11, fontWeight: 600, cursor: 'pointer',
+              padding: '5px 12px', borderRadius: 20, border: 'none',
+              backgroundColor: '#F5F6FA', color: C.sub,
+              boxShadow: `inset 0 0 0 1px ${C.border}`,
+            }}>
               <RefreshCw size={11} /> Actualizar
             </button>
-            <span style={{ fontSize: 11, color: C.muted, fontWeight: 500 }}>
-              {bomberos.length} visible{bomberos.length !== 1 ? 's' : ''}
-            </span>
           </div>
         </div>
 
-        {/* Row 2: Assignees */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 9, fontWeight: 800, color: C.muted, letterSpacing: '0.1em', marginRight: 2 }}>RESPONSABLE</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 9, fontWeight: 800, color: C.muted, letterSpacing: '0.12em', marginRight: 2 }}>RESPONSABLE</span>
           {[{ name: '', label: 'Todos' }, ...assignees.map(a => ({ name: a, label: a }))].map(({ name, label }) => {
             const ac = ASSIGNEE_COLORS[name] || C.muted
             const active = filterAssignee === name
             const ini = name ? name.slice(0, 2).toUpperCase() : null
             return (
-              <button key={name} onClick={() => setFilterAssignee(name === filterAssignee ? '' : name)}
+              <button key={name} onClick={() => setFilterAssignee(active ? '' : name)}
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: 5,
-                  padding: ini ? '3px 8px 3px 4px' : '4px 10px', borderRadius: 20,
+                  padding: ini ? '4px 10px 4px 4px' : '5px 12px', borderRadius: 20,
                   fontSize: 11, fontWeight: 600, cursor: 'pointer', border: 'none', transition: 'all 0.12s',
                   backgroundColor: active ? ac : '#F5F6FA',
                   color: active ? '#fff' : C.sub,
-                  boxShadow: active ? `0 2px 6px ${ac}40` : `inset 0 0 0 1px ${C.border}`,
+                  boxShadow: active ? `0 2px 8px ${ac}40` : `inset 0 0 0 1px ${C.border}`,
                 }}
               >
                 {ini && (
                   <div style={{
-                    width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
-                    backgroundColor: active ? 'rgba(255,255,255,0.3)' : `${ac}25`,
+                    width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
+                    backgroundColor: active ? 'rgba(255,255,255,0.3)' : `${ac}20`,
                     color: active ? '#fff' : ac, fontSize: 8, fontWeight: 800,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>{ini}</div>
@@ -306,77 +384,88 @@ export function BomberosPage() {
         </div>
       </div>
 
-      {/* List */}
-      <div style={{ maxWidth: 1100, margin: '28px auto', padding: '0 28px' }}>
+      {/* ── Task List ──────────────────────────────────────────────────────── */}
+      <div style={{ maxWidth: 1100, margin: '28px auto', padding: '0 32px' }}>
         {isLoading ? (
           <div className="flex justify-center py-20">
             <div className="w-8 h-8 rounded-full border-2 border-transparent border-t-current animate-spin" style={{ color: C.red }} />
           </div>
-        ) : bomberos.length === 0 ? (
+        ) : (enProceso.length === 0 && pendientes.length === 0 && (!showResolved || resueltos.length === 0)) ? (
           <div style={{
-            backgroundColor: C.card, borderRadius: 12,
-            border: `1px solid ${C.border}`,
-            padding: '60px 40px', textAlign: 'center',
+            backgroundColor: C.card, borderRadius: 14,
+            border: `1px solid ${C.border}`, padding: '60px 40px', textAlign: 'center',
           }}>
             <CheckCircle2 size={48} color={C.green} style={{ margin: '0 auto 16px' }} />
             <p style={{ fontSize: 20, fontWeight: 700, color: C.text }}>¡Sin incendios activos!</p>
             <p style={{ fontSize: 14, color: C.sub, marginTop: 8 }}>
-              {filterClient || filterAssignee ? 'No hay incendios con los filtros aplicados.' : 'El equipo está operando sin urgencias. Buen trabajo.'}
+              {filterClient || filterAssignee ? 'Sin tareas con los filtros aplicados.' : 'El equipo está operando sin urgencias. ¡Buen trabajo! 🎉'}
             </p>
           </div>
         ) : (
           <>
-            {/* En Proceso */}
-            {bomberos.filter(t => t.status === 'en_progreso').length > 0 && (
-              <div style={{
-                backgroundColor: C.card, borderRadius: 12,
-                border: `1px solid #E2445C30`, overflow: 'hidden', marginBottom: 18,
-              }}>
-                <div style={{ padding: '12px 20px', backgroundColor: '#E2445C08', borderBottom: `1px solid #E2445C20` }}>
-                  <div className="flex items-center gap-2">
-                    <Flame size={14} color={C.red} />
-                    <span style={{ fontSize: 13, fontWeight: 700, color: C.red }}>
-                      EN PROCESO ({bomberos.filter(t => t.status === 'en_progreso').length})
-                    </span>
-                  </div>
-                </div>
-                {bomberos
-                  .filter(t => t.status === 'en_progreso')
-                  .map(task => (
-                    <BomberoRow
-                      key={task.id}
-                      task={task}
-                      onClick={() => ctx?.openTaskDetail?.(task)}
-                      onStatusChange={handleStatusChange}
-                    />
-                  ))}
+            {/* EN PROCESO */}
+            {enProceso.length > 0 && (
+              <SectionCard icon={Flame} title="EN PROCESO" count={enProceso.length}
+                accentColor={C.red} borderColor="#E2445C25" bgColor="#E2445C06">
+                {enProceso.map((task, i) => (
+                  <BomberoRow key={task.id} task={task} isLast={i === enProceso.length - 1}
+                    onClick={() => ctx?.openTaskDetail?.(task)}
+                    onStatusChange={handleStatusChange} />
+                ))}
+              </SectionCard>
+            )}
+
+            {/* PENDIENTES */}
+            {pendientes.length > 0 && (
+              <SectionCard icon={Clock} title="PENDIENTES" count={pendientes.length}
+                accentColor={C.orange} borderColor="#FDAB3D25" bgColor="#FDAB3D06">
+                {pendientes.map((task, i) => (
+                  <BomberoRow key={task.id} task={task} isLast={i === pendientes.length - 1}
+                    onClick={() => ctx?.openTaskDetail?.(task)}
+                    onStatusChange={handleStatusChange} />
+                ))}
+              </SectionCard>
+            )}
+
+            {/* RESUELTOS */}
+            {showResolved && resueltos.length > 0 && (
+              <SectionCard icon={CheckCircle2} title="RESUELTOS" count={resueltos.length}
+                accentColor={C.green} borderColor="#00C87525" bgColor="#00C87506">
+                {resueltos.map((task, i) => (
+                  <BomberoRow key={task.id} task={task} isLast={i === resueltos.length - 1}
+                    onClick={() => ctx?.openTaskDetail?.(task)}
+                    onStatusChange={handleStatusChange} />
+                ))}
+              </SectionCard>
+            )}
+
+            {/* Hint para ver resueltos */}
+            {!showResolved && stats.resueltos > 0 && (
+              <div style={{ textAlign: 'center', paddingTop: 4 }}>
+                <button onClick={() => setShowResolved(true)} style={{
+                  fontSize: 12, fontWeight: 600, color: C.green,
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '8px 16px', borderRadius: 20,
+                  backgroundColor: `${C.green}0D`,
+                }}>
+                  <CheckCircle2 size={13} />
+                  Ver {stats.resueltos} tarea{stats.resueltos !== 1 ? 's' : ''} resuelta{stats.resueltos !== 1 ? 's' : ''}
+                </button>
               </div>
             )}
 
-            {/* Pendientes de alta prioridad */}
-            {bomberos.filter(t => t.status !== 'en_progreso').length > 0 && (
+            {/* "No hay resueltos" si showResolved pero la sección está vacía con filtros */}
+            {showResolved && resueltos.length === 0 && (
               <div style={{
                 backgroundColor: C.card, borderRadius: 12,
-                border: `1px solid #FDAB3D30`, overflow: 'hidden',
+                border: `1px solid ${C.border}`, padding: '24px',
+                display: 'flex', alignItems: 'center', gap: 10,
               }}>
-                <div style={{ padding: '12px 20px', backgroundColor: '#FDAB3D08', borderBottom: `1px solid #FDAB3D20` }}>
-                  <div className="flex items-center gap-2">
-                    <Clock size={14} color={C.orange} />
-                    <span style={{ fontSize: 13, fontWeight: 700, color: C.orange }}>
-                      PENDIENTES — PRIORIDAD ALTA ({bomberos.filter(t => t.status !== 'en_progreso').length})
-                    </span>
-                  </div>
-                </div>
-                {bomberos
-                  .filter(t => t.status !== 'en_progreso')
-                  .map(task => (
-                    <BomberoRow
-                      key={task.id}
-                      task={task}
-                      onClick={() => ctx?.openTaskDetail?.(task)}
-                      onStatusChange={handleStatusChange}
-                    />
-                  ))}
+                <XCircle size={16} color={C.muted} />
+                <p style={{ fontSize: 13, color: C.sub, fontWeight: 500 }}>
+                  No hay tareas resueltas con los filtros aplicados.
+                </p>
               </div>
             )}
           </>
