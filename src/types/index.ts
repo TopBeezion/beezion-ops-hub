@@ -43,6 +43,7 @@ export interface Campaign {
   status: CampaignStatus
   objective?: string
   launch_date?: string
+  assignees?: string[]
   created_at: string
   updated_at: string
   client?: Client
