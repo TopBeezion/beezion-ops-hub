@@ -4,7 +4,7 @@ import { useClients } from '../hooks/useClients'
 import { useOutletContext } from 'react-router-dom'
 import { useUpdateTask } from '../hooks/useTasks'
 import type { Task, Client, TaskStatus } from '../types'
-import { STATUS_LABELS, STATUS_COLORS, ASSIGNEE_COLORS, PRIORITY_COLORS } from '../lib/constants'
+import { STATUS_LABELS, STATUS_COLORS, ASSIGNEE_COLORS, PRIORITY_COLORS, TEAM_MEMBERS } from '../lib/constants'
 import {
   Flame, CheckCircle2, Clock, AlertTriangle, ChevronDown,
   Circle, RefreshCw,
@@ -165,12 +165,13 @@ export function BomberosPage() {
 
   const stats = useMemo(() => ({
     total: tasks.filter(t => t.priority === 'alta').length,
-    urgentes: tasks.filter(t => t.priority === 'alta' && t.status !== 'completado').length,
-    prevPendientes: tasks.filter(t => t.priority === 'alta' && t.status === 'pendiente').length,
+    enProceso: tasks.filter(t => t.priority === 'alta' && t.status === 'en_progreso').length,
+    pendientes: tasks.filter(t => t.priority === 'alta' && t.status === 'pendiente').length,
     resueltos: tasks.filter(t => t.priority === 'alta' && t.status === 'completado').length,
   }), [tasks, bomberos.length, showResolved])
 
-  const assignees = useMemo(() => [...new Set(tasks.map(t => t.assignee))].sort(), [tasks])
+  // Always show all team members in the filter (not just those with tasks)
+  const assignees = TEAM_MEMBERS.filter(m => m !== 'TBD')
 
   const handleStatusChange = (id: string, status: TaskStatus) => {
     updateTask.mutate({ id, status })
@@ -203,10 +204,10 @@ export function BomberosPage() {
         {/* Stats row */}
         <div className="flex gap-3">
           {[
-            { label: 'Total incendios', value: stats.total, icon: AlertTriangle, color: '#FFF' },
-            { label: 'Urgentes',        value: stats.urgentes, icon: Flame, color: '#FFD700' },
-            { label: 'Prev. pendientes', value: stats.prevPendientes, icon: Clock, color: '#FFB347' },
-            { label: 'Resueltos hoy',   value: stats.resueltos, icon: CheckCircle2, color: '#90EE90' },
+            { label: 'Total alta prioridad', value: stats.total,     icon: AlertTriangle, color: '#FFF' },
+            { label: 'En Proceso',           value: stats.enProceso, icon: Flame,         color: '#FFD700' },
+            { label: 'Pendientes',           value: stats.pendientes, icon: Clock,        color: '#FFB347' },
+            { label: 'Resueltos',            value: stats.resueltos,  icon: CheckCircle2, color: '#90EE90' },
           ].map(({ label, value, icon: Icon, color }) => (
             <div key={label} style={{
               backgroundColor: 'rgba(255,255,255,0.15)',

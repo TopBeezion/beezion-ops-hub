@@ -47,8 +47,12 @@ const lbl: React.CSSProperties = {
   textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5, display: 'block',
 }
 const fieldBase: React.CSSProperties = {
-  backgroundColor: '#FFFFFF', border: '1px solid #E6E9EF',
+  backgroundColor: '#FFFFFF', border: '1px solid #DDE0EA',
   color: '#1F2128', outline: 'none', width: '100%', borderRadius: 8,
+}
+// Subtle section divider
+const sectionDivider: React.CSSProperties = {
+  borderTop: '1px solid #EEF0F6', margin: '4px 0',
 }
 
 // ── usePopover ────────────────────────────────────────────────────────────────
@@ -208,12 +212,12 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-end">
-      <div className="absolute inset-0" onClick={onClose} style={{ backgroundColor: 'rgba(0,0,0,0.25)' }} />
+      <div className="absolute inset-0" onClick={onClose} style={{ backgroundColor: 'rgba(15,17,22,0.2)', backdropFilter: 'blur(2px)' }} />
       <div className="relative h-full w-full max-w-md flex flex-col overflow-hidden"
-        style={{ backgroundColor: '#FFFFFF', borderLeft: '1px solid #E6E9EF', boxShadow: '-8px 0 24px rgba(0,0,0,0.08)' }}>
+        style={{ backgroundColor: '#FFFFFF', borderLeft: '1px solid #DDE0EA', boxShadow: '-16px 0 48px rgba(0,0,0,0.12)' }}>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 shrink-0" style={{ borderBottom: '1px solid #E6E9EF' }}>
+        <div className="flex items-center justify-between px-5 py-3.5 shrink-0" style={{ borderBottom: '1px solid #DDE0EA' }}>
           <div>
             <h2 style={{ fontSize: 14, fontWeight: 600, color: '#1F2128', margin: 0 }}>Nueva tarea</h2>
             <p style={{ fontSize: 10, color: '#9699A6', margin: '2px 0 0' }}>Completa el detalle de la tarea</p>
@@ -223,7 +227,7 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 overflow-auto p-5 space-y-4">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-auto p-5 space-y-3" style={{ backgroundColor: '#F8F9FC' }}>
 
           {/* Título */}
           <div>
@@ -233,11 +237,13 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
               placeholder="Ej: 50 hooks para campañas de Finkargo..." />
           </div>
 
-          {/* Row: Status · Prioridad · Tipo */}
+          {/* Row: Status · Prioridad */}
           <div style={{ display: 'flex', gap: 8 }}>
             <FieldSel label="Status" value={status} onChange={v => setStatus(v as TaskStatus)} options={statusOpts} />
             <FieldSel label="Prioridad" value={priority} onChange={v => setPriority(v as Priority)} options={priorityOpts} />
           </div>
+
+          <div style={sectionDivider} />
 
           {/* Área */}
           <div>
@@ -248,7 +254,7 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
                 const col    = AREA_COLORS[v]
                 return (
                   <button key={v} type="button" onClick={() => setArea(v)} style={{
-                    padding: '6px 16px', borderRadius: 20, fontSize: 12, fontWeight: 700,
+                    padding: '5px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700,
                     cursor: 'pointer', border: 'none', transition: 'all 0.12s',
                     backgroundColor: active ? col : `${col}12`, color: active ? '#fff' : col,
                     boxShadow: active ? `0 2px 8px ${col}40` : `inset 0 0 0 1.5px ${col}35`,
@@ -264,14 +270,14 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
             <div className="grid grid-cols-2 gap-1.5">
               {ASSIGNEES.map(a => (
                 <button key={a.name} type="button" onClick={() => setAssignee(a.name)}
-                  className="flex items-center gap-2 px-2.5 py-2 rounded-lg text-left"
+                  className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left"
                   style={{
-                    backgroundColor: assignee === a.name ? `${a.color}10` : '#FAFBFC',
-                    border: assignee === a.name ? `1px solid ${a.color}40` : '1px solid #E6E9EF',
+                    backgroundColor: assignee === a.name ? `${a.color}10` : '#FFFFFF',
+                    border: assignee === a.name ? `1px solid ${a.color}40` : '1px solid #DDE0EA',
                     boxShadow: assignee === a.name ? `0 0 10px ${a.color}15` : 'none',
                     cursor: 'pointer', transition: 'all 0.12s',
                   }}>
-                  <div style={{ width: 24, height: 24, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, background: `linear-gradient(135deg,${a.color}40,${a.color}20)`, color: a.color, border: `1px solid ${a.color}30` }}>
+                  <div style={{ width: 22, height: 22, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 800, background: `linear-gradient(135deg,${a.color}40,${a.color}20)`, color: a.color, border: `1px solid ${a.color}30` }}>
                     {a.name.slice(0, 2).toUpperCase()}
                   </div>
                   <div style={{ minWidth: 0 }}>
@@ -287,6 +293,8 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
               </p>
             )}
           </div>
+
+          <div style={sectionDivider} />
 
           {/* Row: Cliente · Campaña */}
           <div style={{ display: 'flex', gap: 8 }}>
@@ -305,6 +313,8 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
               accentColor={miniStatus ? MINI_STATUS_COLORS[miniStatus as MiniStatus] : '#9699A6'} />
           </div>
 
+          <div style={sectionDivider} />
+
           {/* Fecha + Sprint */}
           <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
             <div style={{ flex: 1 }}>
@@ -321,8 +331,8 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
                   return (
                     <button key={w} type="button" onClick={() => setWeek(w)} style={{
                       flex: 1, borderRadius: 8, padding: '6px 4px', textAlign: 'center',
-                      backgroundColor: week === w ? `${sc}14` : '#FAFBFC',
-                      border: week === w ? `1.5px solid ${sc}50` : '1px solid #E6E9EF',
+                      backgroundColor: week === w ? `${sc}14` : '#FFFFFF',
+                      border: week === w ? `1.5px solid ${sc}50` : '1px solid #DDE0EA',
                       cursor: 'pointer', transition: 'all 0.12s',
                     }}>
                       <p style={{ fontSize: 11, fontWeight: 700, color: week === w ? sc : '#9699A6', margin: 0 }}>S{w}</p>
@@ -356,7 +366,7 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
                 padding: '10px 12px', borderRadius: 8, cursor: 'pointer',
-                backgroundColor: showDel ? 'rgba(99,102,241,0.06)' : '#FAFBFC',
+                backgroundColor: showDel ? 'rgba(99,102,241,0.06)' : '#FFFFFF',
                 border: `1px solid ${showDel ? 'rgba(99,102,241,0.2)' : '#E6E9EF'}`,
               }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: showDel ? '#6366F1' : '#676879' }}>
@@ -376,8 +386,8 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
                   return (
                     <div key={key} style={{
                       display: 'flex', alignItems: 'center', gap: 12, padding: '8px 12px', borderRadius: 8,
-                      backgroundColor: val > 0 ? `${color}10` : '#FAFBFC',
-                      border: val > 0 ? `1px solid ${color}30` : '1px solid #E6E9EF',
+                      backgroundColor: val > 0 ? `${color}10` : '#FFFFFF',
+                      border: val > 0 ? `1px solid ${color}30` : '1px solid #DDE0EA',
                     }}>
                       <span style={{ flex: 1, fontSize: 11, fontWeight: 500, color: val > 0 ? color : '#9699A6' }}>{label}</span>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -397,7 +407,7 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
           {/* Footer */}
           <div style={{ paddingTop: 8, display: 'flex', gap: 8 }}>
             <button type="button" onClick={onClose}
-              style={{ flex: 1, padding: '10px', borderRadius: 8, fontSize: 13, border: '1px solid #E6E9EF', color: '#676879', backgroundColor: '#fff', cursor: 'pointer' }}>
+              style={{ flex: 1, padding: '10px', borderRadius: 8, fontSize: 13, border: '1px solid #DDE0EA', color: '#676879', backgroundColor: '#fff', cursor: 'pointer' }}>
               Cancelar
             </button>
             <button type="submit" disabled={createTask.isPending || !title.trim()}

@@ -4,7 +4,7 @@ import { useClients } from '../hooks/useClients'
 import { useCampaigns } from '../hooks/useCampaigns'
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import type { Task, Client, Area } from '../types'
-import { AREA_LABELS, AREA_COLORS, ASSIGNEE_COLORS, TEAM_MEMBERS, TEAM_ROLES } from '../lib/constants'
+import { AREA_LABELS, AREA_COLORS, ASSIGNEE_COLORS, STATUS_LABELS, STATUS_COLORS, TEAM_MEMBERS, TEAM_ROLES } from '../lib/constants'
 import {
   Flame, Zap, CheckCircle2, Clock, TrendingUp,
   Users, BarChart3, ChevronRight, Circle, Layers, Activity,
@@ -103,21 +103,23 @@ function SectionHeader({ icon: Icon, title, sub, color = C.accent, action, onAct
 // ─── Bombero row ──────────────────────────────────────────────────────────────
 function BomberoRow({ task, onClick, isLast }: { task: Task; onClick?: () => void; isLast?: boolean }) {
   const clientColor = (task.client as Client & { color: string })?.color || C.red
-  const isUrgent = task.status === 'en_progreso'  // En Proceso = más urgente visualmente
+  const statusColor = STATUS_COLORS[task.status] || C.muted
+  const statusLabel = STATUS_LABELS[task.status] || task.status
   return (
     <div
       className="flex items-center gap-3 px-4 py-3 hover:bg-red-50 cursor-pointer transition-colors"
-      style={{ borderBottom: isLast ? 'none' : `1px solid ${C.border}`, borderLeft: `3px solid ${isUrgent ? C.red : C.orange}` }}
+      style={{ borderBottom: isLast ? 'none' : `1px solid ${C.border}`, borderLeft: `3px solid ${statusColor}` }}
       onClick={onClick}
     >
       <div style={{ flexShrink: 0 }}>
         <span style={{
-          fontSize: 9, fontWeight: 800, letterSpacing: '0.04em',
-          color: isUrgent ? C.red : C.orange,
-          backgroundColor: isUrgent ? '#E2445C15' : '#F59E0B15',
-          padding: '2px 5px', borderRadius: 4,
+          fontSize: 9, fontWeight: 700, letterSpacing: '0.03em',
+          color: statusColor,
+          backgroundColor: `${statusColor}15`,
+          padding: '2px 6px', borderRadius: 4,
+          border: `1px solid ${statusColor}25`,
         }}>
-          {isUrgent ? 'URG' : 'PREV'}
+          {statusLabel}
         </span>
       </div>
       <p style={{ fontSize: 12, fontWeight: 500, color: C.text, flex: 1, lineHeight: 1.3 }} className="truncate">
