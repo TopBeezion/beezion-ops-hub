@@ -498,18 +498,21 @@ export function BacklogPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
             <thead style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: C.surface, borderBottom: `1px solid ${C.border}` }}>
               <tr>
-                {([['TAREA', '22%'], ['CAMPAÑA', '14%'], ['CLIENTE', '8%'], ['ESTADO', '10%'], ['PRIORIDAD', '8%'], ['ÁREA', '7%'], ['ETAPA', '10%'], ['RESPONSABLE', '11%'], ['SEMANA', '6%'], ['', '4%']] as [string, string][]).map(([l, w]) => (
+                {([['#', '3%'], ['TAREA', '21%'], ['CAMPAÑA', '13%'], ['CLIENTE', '8%'], ['ESTADO', '9%'], ['PRIORIDAD', '8%'], ['ÁREA', '7%'], ['ETAPA', '9%'], ['RESPONSABLE', '10%'], ['SEMANA', '6%'], ['', '4%']] as [string, string][]).map(([l, w]) => (
                   <th key={l} style={{ padding: '8px 14px', textAlign: 'left', fontSize: 9, fontWeight: 800, letterSpacing: '0.09em', color: C.muted, width: w, whiteSpace: 'nowrap' }}>{l}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {flatItems.map(item => {
+              {(() => {
+                let rowNum = 0
+                return flatItems.map(item => {
                 if (item.isHeader) {
+                  rowNum = 0
                   const isCollapsed = collapsedGroups.has(item.groupKey)
                   return (
                     <tr key={item.key}>
-                      <td colSpan={10} style={{ padding: 0 }}>
+                      <td colSpan={11} style={{ padding: 0 }}>
                         <button onClick={() => toggleGroup(item.groupKey)} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '7px 14px', background: `${item.color}08`, border: 'none', borderLeft: `3px solid ${item.color}`, borderBottom: `1px solid ${item.color}18`, cursor: 'pointer' }}>
                           <span style={{ fontSize: 13, color: item.color, transform: isCollapsed ? 'rotate(0deg)' : 'rotate(90deg)', transition: '0.15s', display: 'inline-block' }}>›</span>
                           <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{item.label}</span>
@@ -521,6 +524,7 @@ export function BacklogPage() {
                 }
 
                 const task = item.task
+                rowNum++
                 const isHovered = hoveredRow === task.id
                 const clientColor = clients.find(c => c.id === task.client_id)?.color
 
@@ -529,8 +533,10 @@ export function BacklogPage() {
                     onClick={() => ctx?.openTaskDetail?.(task)}
                     onMouseEnter={() => setHoveredRow(task.id)}
                     onMouseLeave={() => setHoveredRow(null)}
-                    style={{ backgroundColor: isHovered ? '#F4F5FF' : C.surface, borderBottom: `1px solid ${C.borderLight}`, cursor: 'pointer', transition: 'background 0.08s', borderLeft: clientColor ? `3px solid ${clientColor}40` : 'none' }}
+                    style={{ backgroundColor: isHovered ? '#F4F5FF' : C.surface, borderBottom: `1px solid ${C.borderLight}`, cursor: 'pointer', transition: 'background 0.08s', borderLeft: clientColor ? `3px solid ${clientColor}` : 'none' }}
                   >
+                    {/* # */}
+                    <td style={{ padding: '9px 14px', color: C.muted, fontSize: 11, fontWeight: 700, userSelect: 'none' }}>{rowNum}</td>
                     {/* Tarea */}
                     <td style={{ padding: '9px 14px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
@@ -582,7 +588,8 @@ export function BacklogPage() {
                     <td style={{ padding: '9px 14px' }} />
                   </tr>
                 )
-              })}
+              })
+              })()}
             </tbody>
           </table>
         </div>

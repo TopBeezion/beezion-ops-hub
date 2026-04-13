@@ -387,23 +387,24 @@ export function BomberosPage() {
             )
           })}
 
-          <span style={{ fontSize: 9, fontWeight: 800, color: C.muted, letterSpacing: '0.1em', marginLeft: 8, marginRight: 2 }}>PERSONA</span>
+          <span style={{ fontSize: 9, fontWeight: 800, color: C.muted, letterSpacing: '0.1em', marginLeft: 8, marginRight: 4 }}>PERSONA</span>
           {assignees.map(name => {
             const ac = ASSIGNEE_COLORS[name] || C.muted
             const active = filterAssignee === name
             return (
-              <button key={name} onClick={() => setFilterAssignee(active ? '' : name)} style={{
-                display: 'inline-flex', alignItems: 'center', gap: 4,
-                padding: '3px 8px 3px 4px', borderRadius: 20, fontSize: 11, fontWeight: 600,
+              <button key={name} onClick={() => setFilterAssignee(active ? '' : name)} title={name} style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+                padding: '4px 10px 4px 5px', borderRadius: 20, fontSize: 11, fontWeight: 600,
                 cursor: 'pointer', border: 'none', transition: 'all 0.12s',
                 backgroundColor: active ? ac : '#F5F6FA', color: active ? '#fff' : C.sub,
-                boxShadow: active ? `0 2px 6px ${ac}40` : `inset 0 0 0 1px ${C.border}`,
+                boxShadow: active ? `0 2px 8px ${ac}40` : `inset 0 0 0 1px ${C.border}`,
               }}>
                 <div style={{
-                  width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
-                  backgroundColor: active ? 'rgba(255,255,255,0.3)' : `${ac}20`,
-                  color: active ? '#fff' : ac, fontSize: 7, fontWeight: 800,
+                  width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+                  backgroundColor: active ? 'rgba(255,255,255,0.25)' : ac,
+                  color: '#fff', fontSize: 8, fontWeight: 800,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  border: active ? '2px solid rgba(255,255,255,0.4)' : 'none',
                 }}>{name.slice(0, 2).toUpperCase()}</div>
                 {name}
               </button>
