@@ -17,21 +17,6 @@ import {
 } from '../../lib/constants'
 import { getSprintDateRange } from '../../lib/dates'
 
-// ── Design tokens ─────────────────────────────────────────────────────────────
-const D = {
-  bg:          '#111318',
-  surface:     '#1C1F26',
-  surfaceHov:  '#22262F',
-  border:      'rgba(255,255,255,0.07)',
-  borderHov:   'rgba(255,255,255,0.13)',
-  text:        '#E8EAED',
-  sub:         '#8B8FA8',
-  muted:       '#525669',
-  accent:      '#7C83F7',
-  input:       'rgba(255,255,255,0.05)',
-  inputBorder: 'rgba(255,255,255,0.09)',
-}
-
 // ── Team ─────────────────────────────────────────────────────────────────────
 const ASSIGNEES = [
   { name: 'Alejandro', role: 'CEO · Copy · Estrategia',      color: '#8b5cf6', areas: ['copy','trafico','tech','admin'] },
@@ -75,7 +60,7 @@ function usePopover() {
   return { open, setOpen, ref }
 }
 
-// ── Dark custom dropdown ──────────────────────────────────────────────────────
+// ── Custom dropdown ───────────────────────────────────────────────────────────
 function FieldSel({
   label, value, onChange, options, accentColor,
 }: {
@@ -87,45 +72,46 @@ function FieldSel({
 }) {
   const { open, setOpen, ref } = usePopover()
   const sel = options.find(o => o.value === value)
-  const color = accentColor ?? sel?.color ?? D.accent
+  const color = accentColor ?? sel?.color ?? '#6366F1'
 
   return (
     <div style={{ flex: 1, position: 'relative' }} ref={ref}>
-      <p style={{ fontSize: 10, fontWeight: 700, color: D.muted, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>{label}</p>
+      <p style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>{label}</p>
       <button type="button" onClick={() => setOpen(v => !v)} style={{
         width: '100%', display: 'flex', alignItems: 'center', gap: 6,
         padding: '8px 10px', borderRadius: 8, cursor: 'pointer', outline: 'none',
-        backgroundColor: D.input, border: `1px solid ${open ? color + '60' : D.inputBorder}`,
-        transition: 'border 0.15s',
+        backgroundColor: value ? `${color}08` : '#FAFBFC',
+        border: `1px solid ${open ? color + '50' : value ? color + '30' : '#E5E7EB'}`,
+        transition: 'all 0.15s',
       }}>
         <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: color, flexShrink: 0 }} />
-        <span style={{ flex: 1, textAlign: 'left', fontSize: 12, fontWeight: 600, color: value ? color : D.sub }}>{sel?.label ?? ''}</span>
-        <ChevronDown size={11} style={{ color: D.muted, flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: '150ms' }} />
+        <span style={{ flex: 1, textAlign: 'left', fontSize: 12, fontWeight: 600, color: value ? color : '#9CA3AF' }}>{sel?.label ?? ''}</span>
+        <ChevronDown size={11} style={{ color: '#D1D5DB', flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: '150ms' }} />
       </button>
       {open && (
         <div style={{
           position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 600,
-          backgroundColor: D.surface, border: `1px solid ${D.borderHov}`,
-          borderRadius: 10, boxShadow: '0 12px 32px rgba(0,0,0,0.5)', padding: 4,
+          backgroundColor: '#FFFFFF', border: '1px solid #E5E7EB',
+          borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.10)', padding: 4,
           maxHeight: 220, overflowY: 'auto',
         }}>
           {options.map(o => {
             const isActive = o.value === value
-            const oc = o.color ?? D.accent
+            const oc = o.color ?? '#6366F1'
             return (
               <button key={o.value} type="button"
                 onClick={() => { onChange(o.value); setOpen(false) }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 8, width: '100%',
                   padding: '7px 10px', borderRadius: 7, border: 'none', cursor: 'pointer',
-                  backgroundColor: isActive ? `${oc}18` : 'transparent', textAlign: 'left',
+                  backgroundColor: isActive ? `${oc}10` : 'transparent', textAlign: 'left',
                   transition: 'background 0.1s',
                 }}
-                onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(255,255,255,0.05)' }}
+                onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.backgroundColor = '#F5F5F5' }}
                 onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent' }}
               >
                 <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: oc, flexShrink: 0 }} />
-                <span style={{ flex: 1, fontSize: 12, fontWeight: isActive ? 700 : 400, color: isActive ? oc : D.sub }}>{o.label}</span>
+                <span style={{ flex: 1, fontSize: 12, fontWeight: isActive ? 700 : 400, color: isActive ? oc : '#374151' }}>{o.label}</span>
                 {isActive && <Check size={11} color={oc} />}
               </button>
             )
@@ -139,9 +125,8 @@ function FieldSel({
 // ── Props ─────────────────────────────────────────────────────────────────────
 interface Props { task: Task; onClose: () => void }
 
-// ── Component ─────────────────────────────────────────────────────────────────
 export function TaskDetailDrawer({ task, onClose }: Props) {
-  const updateTask = useUpdateTask()
+  const updateTask  = useUpdateTask()
   const { data: clients = [] } = useClients()
 
   const [title,        setTitle]        = useState(task.title)
@@ -167,9 +152,10 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const { data: campaigns = [] } = useCampaignsByClient(clientId || undefined)
-  const sprint       = getSprintDateRange(week)
-  const sprintColor  = SPRINT_COLORS[week] ?? D.accent
+  const sprint      = getSprintDateRange(week)
+  const sprintColor = SPRINT_COLORS[week] ?? '#6366F1'
   const assigneeInfo = ASSIGNEES.find(a => a.name === assignee)
+  const clientColor  = clients.find(c => c.id === clientId)?.color
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -186,7 +172,7 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
     etapa !== (task.etapa ?? '') || miniStatus !== (task.mini_status ?? '') ||
     dueDate !== (task.due_date ?? '') ||
     JSON.stringify(deliverables) !== JSON.stringify(task.deliverables ?? {}) ||
-    JSON.stringify(attachments) !== JSON.stringify(task.attachments ?? [])
+    JSON.stringify(attachments)  !== JSON.stringify(task.attachments ?? [])
 
   const handleSave = async () => {
     setSaving(true)
@@ -198,20 +184,14 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
         campaign_id: campaignId || undefined, etapa: etapa || undefined,
         mini_status: miniStatus || undefined, due_date: dueDate || undefined,
         deliverables: Object.keys(deliverables).length > 0 ? deliverables : undefined,
-        attachments: attachments.length > 0 ? attachments : undefined,
+        attachments:  attachments.length > 0 ? attachments : undefined,
       })
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2000)
+      setSaved(true); setTimeout(() => setSaved(false), 2000)
     } finally { setSaving(false) }
   }
 
   const setDeliverable = (key: keyof Deliverables, value: number) => {
-    setDeliverables(prev => {
-      const next = { ...prev }
-      if (value > 0) next[key] = value
-      else delete next[key]
-      return next
-    })
+    setDeliverables(prev => { const n = { ...prev }; if (value > 0) n[key] = value; else delete n[key]; return n })
   }
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -243,113 +223,103 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
     if (type.startsWith('audio/')) return FileAudio
     return File
   }
-  const fmtBytes = (b: number) => b < 1024 ? `${b} B` : b < 1048576 ? `${(b/1024).toFixed(0)} KB` : `${(b/1048576).toFixed(1)} MB`
-  const totalDel = Object.values(deliverables).reduce((s, v) => s + (v ?? 0), 0)
+  const fmtBytes  = (b: number) => b < 1024 ? `${b} B` : b < 1048576 ? `${(b/1024).toFixed(0)} KB` : `${(b/1048576).toFixed(1)} MB`
+  const totalDel  = Object.values(deliverables).reduce((s, v) => s + (v ?? 0), 0)
 
-  const clientColor = clients.find(c => c.id === clientId)?.color
-  const statusOpts   = (Object.entries(STATUS_LABELS)   as [TaskStatus, string][]).map(([v, l]) => ({ value: v, label: l, color: STATUS_COLORS[v] }))
-  const priorityOpts = (Object.entries(PRIORITY_LABELS) as [Priority,   string][]).map(([v, l]) => ({ value: v, label: l, color: PRIORITY_COLORS[v] }))
-  const tipoOpts = [
-    { value: 'nuevo',              label: 'Nuevo',              color: D.sub },
-    { value: 'pendiente_anterior', label: 'Pendiente anterior', color: '#F97316' },
-    { value: 'urgente',            label: 'Urgente 🚨',         color: '#EF4444' },
-  ]
-  const etapaOpts    = [{ value: '', label: 'Sin etapa', color: D.muted }, ...ETAPA_ORDER.map(e => ({ value: e, label: ETAPA_LABELS[e as Etapa], color: ETAPA_COLORS[e as Etapa] }))]
-  const miniStatusOpts = [{ value: '', label: 'Sin estado', color: D.muted }, ...MINI_STATUS_ORDER.map(s => ({ value: s, label: MINI_STATUS_LABELS[s as MiniStatus], color: MINI_STATUS_COLORS[s as MiniStatus] }))]
-  const clienteOpts  = [{ value: '', label: 'Sin cliente', color: D.muted }, ...clients.map(c => ({ value: c.id, label: c.name, color: c.color }))]
-  const campanaOpts  = [{ value: '', label: 'Sin campaña', color: D.muted }, ...campaigns.map(c => ({ value: c.id, label: c.name, color: D.accent }))]
+  const statusOpts     = (Object.entries(STATUS_LABELS)   as [TaskStatus, string][]).map(([v, l]) => ({ value: v, label: l, color: STATUS_COLORS[v] }))
+  const priorityOpts   = (Object.entries(PRIORITY_LABELS) as [Priority,   string][]).map(([v, l]) => ({ value: v, label: l, color: PRIORITY_COLORS[v] }))
+  const tipoOpts       = [{ value: 'nuevo', label: 'Nuevo', color: '#9CA3AF' }, { value: 'pendiente_anterior', label: 'Pendiente anterior', color: '#F97316' }, { value: 'urgente', label: 'Urgente 🚨', color: '#EF4444' }]
+  const etapaOpts      = [{ value: '', label: 'Sin etapa', color: '#D1D5DB' }, ...ETAPA_ORDER.map(e => ({ value: e, label: ETAPA_LABELS[e as Etapa], color: ETAPA_COLORS[e as Etapa] }))]
+  const miniStatusOpts = [{ value: '', label: 'Sin estado', color: '#D1D5DB' }, ...MINI_STATUS_ORDER.map(s => ({ value: s, label: MINI_STATUS_LABELS[s as MiniStatus], color: MINI_STATUS_COLORS[s as MiniStatus] }))]
+  const clienteOpts    = [{ value: '', label: 'Sin cliente', color: '#D1D5DB' }, ...clients.map(c => ({ value: c.id, label: c.name, color: c.color }))]
+  const campanaOpts    = [{ value: '', label: 'Sin campaña', color: '#D1D5DB' }, ...campaigns.map(c => ({ value: c.id, label: c.name, color: '#6366F1' }))]
 
-  const sectionLbl = (text: string) => (
-    <p style={{ fontSize: 10, fontWeight: 700, color: D.muted, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>{text}</p>
+  const sLbl = (t: string) => (
+    <p style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>{t}</p>
   )
 
   return (
     <div className="fixed inset-0 z-50 flex items-stretch justify-end">
       {/* Backdrop */}
       <div className="absolute inset-0" onClick={onClose}
-        style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)' }} />
+        style={{ backgroundColor: 'rgba(15,17,22,0.45)', backdropFilter: 'blur(5px)' }} />
 
-      {/* Drawer */}
+      {/* Drawer panel */}
       <div className="relative flex flex-col h-full w-full overflow-hidden"
-        style={{ maxWidth: 520, backgroundColor: D.bg, borderLeft: `1px solid ${D.border}`, boxShadow: '-16px 0 48px rgba(0,0,0,0.5)' }}>
+        style={{ maxWidth: 520, backgroundColor: '#FFFFFF', borderLeft: '1px solid #E5E7EB', boxShadow: '-12px 0 40px rgba(0,0,0,0.15)' }}>
 
-        {/* Client color top stripe */}
-        <div className="absolute top-0 left-0 right-0" style={{ height: 2, background: task.client?.color ? `linear-gradient(90deg, ${task.client.color}, ${task.client.color}80)` : D.accent }} />
+        {/* Client color stripe */}
+        <div style={{ height: 3, background: task.client?.color ? `linear-gradient(90deg,${task.client.color},${task.client.color}60)` : '#6366F1', flexShrink: 0 }} />
 
         {/* ── Header ── */}
-        <div className="flex items-center justify-between px-5 pt-5 pb-4 shrink-0"
-          style={{ borderBottom: `1px solid ${D.border}` }}>
-          <div className="flex items-center gap-2 flex-wrap">
-            {task.client && (
-              <span className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-lg"
-                style={{ backgroundColor: `${task.client.color}20`, color: task.client.color, border: `1px solid ${task.client.color}35` }}>
-                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: task.client.color }} />
-                {task.client.name}
+        <div style={{ padding: '14px 20px', borderBottom: '1px solid #F3F4F6', flexShrink: 0, backgroundColor: '#FAFBFC' }}>
+          {/* Row 1: badges + actions */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              {task.client && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 20, backgroundColor: `${task.client.color}15`, color: task.client.color, border: `1px solid ${task.client.color}30` }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: task.client.color }} />
+                  {task.client.name}
+                </span>
+              )}
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 20, backgroundColor: '#F3F4F6', color: '#9CA3AF', border: '1px solid #E5E7EB' }}>
+                {task.source === 'meeting_auto' ? <><Bot size={9} /> Auto</> : <><Hand size={9} /> Manual</>}
               </span>
-            )}
-            <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg uppercase tracking-wider"
-              style={{
-                backgroundColor: task.source === 'meeting_auto' ? `${D.accent}18` : 'rgba(255,255,255,0.05)',
-                color: task.source === 'meeting_auto' ? D.accent : D.muted,
-                border: `1px solid ${task.source === 'meeting_auto' ? D.accent + '30' : D.border}`,
-              }}>
-              {task.source === 'meeting_auto' ? <><Bot size={9} /> Auto</> : <><Hand size={9} /> Manual</>}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            {isDirty && (
-              <button onClick={handleSave} disabled={saving}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold disabled:opacity-60"
-                style={{ background: `linear-gradient(135deg, ${D.accent}, #9B6DFF)`, color: '#fff', border: 'none', cursor: 'pointer', boxShadow: `0 0 16px ${D.accent}40` }}>
-                <Save size={11} />
-                {saving ? 'Guardando…' : saved ? '✓ Guardado' : 'Guardar'}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              {isDirty && (
+                <button onClick={handleSave} disabled={saving}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg,#6366F1,#8B5CF6)', color: '#fff', boxShadow: '0 2px 12px rgba(99,102,241,0.35)', opacity: saving ? 0.7 : 1 }}>
+                  <Save size={12} />
+                  {saving ? 'Guardando…' : saved ? '✓ Guardado' : 'Guardar'}
+                </button>
+              )}
+              <button onClick={onClose}
+                style={{ padding: 7, borderRadius: 8, border: '1px solid #E5E7EB', cursor: 'pointer', backgroundColor: '#fff', color: '#9CA3AF', display: 'flex' }}>
+                <X size={14} />
               </button>
-            )}
-            <button onClick={onClose}
-              style={{ padding: 6, borderRadius: 8, border: `1px solid ${D.border}`, cursor: 'pointer', backgroundColor: 'transparent', color: D.sub, display: 'flex', alignItems: 'center' }}>
-              <X size={14} />
-            </button>
+            </div>
           </div>
+
+          {/* Row 2: Title */}
+          <textarea
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+            rows={2}
+            style={{
+              width: '100%', border: 'none', outline: 'none', resize: 'none',
+              fontSize: 16, fontWeight: 600, color: '#111827', lineHeight: 1.4,
+              backgroundColor: 'transparent', fontFamily: 'inherit',
+            }}
+            placeholder="Título de la tarea..."
+          />
         </div>
 
-        {/* ── Body ── */}
-        <div className="flex-1 overflow-auto" style={{ padding: '20px 20px 32px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {/* ── Scrollable body ── */}
+        <div className="flex-1 overflow-auto" style={{ padding: '18px 20px 32px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
 
-            {/* Título */}
-            <div>
-              {sectionLbl('Título de la tarea')}
-              <textarea value={title} onChange={e => setTitle(e.target.value)} rows={2}
-                style={{
-                  width: '100%', padding: '10px 12px', borderRadius: 10,
-                  backgroundColor: D.input, border: `1px solid ${D.inputBorder}`,
-                  color: D.text, fontSize: 14, fontWeight: 500, resize: 'none',
-                  lineHeight: 1.5, outline: 'none',
-                }}
-                placeholder="Describe la tarea..." />
-            </div>
-
-            {/* Row: Status · Prioridad · Tipo */}
+            {/* Status · Prioridad · Tipo */}
             <div style={{ display: 'flex', gap: 8 }}>
-              <FieldSel label="Status" value={status} onChange={v => setStatus(v as TaskStatus)} options={statusOpts} />
-              <FieldSel label="Prioridad" value={priority} onChange={v => setPriority(v as Priority)} options={priorityOpts} />
-              <FieldSel label="Tipo" value={tipo} onChange={v => setTipo(v as TaskTipo)} options={tipoOpts} accentColor={D.sub} />
+              <FieldSel label="Status"    value={status}   onChange={v => setStatus(v as TaskStatus)}   options={statusOpts} />
+              <FieldSel label="Prioridad" value={priority} onChange={v => setPriority(v as Priority)}   options={priorityOpts} />
+              <FieldSel label="Tipo"      value={tipo}     onChange={v => setTipo(v as TaskTipo)}        options={tipoOpts} accentColor="#9CA3AF" />
             </div>
 
             {/* Área */}
             <div>
-              {sectionLbl('Área')}
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {sLbl('Área')}
+              <div style={{ display: 'flex', gap: 6 }}>
                 {(Object.entries(AREA_LABELS) as [Area, string][]).map(([v, l]) => {
                   const active = area === v
-                  const col = AREA_COLORS[v]
+                  const col    = AREA_COLORS[v]
                   return (
                     <button key={v} onClick={() => setArea(v)} style={{
-                      padding: '6px 16px', borderRadius: 20, fontSize: 12, fontWeight: 700,
+                      padding: '6px 18px', borderRadius: 20, fontSize: 12, fontWeight: 700,
                       cursor: 'pointer', border: 'none', transition: 'all 0.15s',
-                      backgroundColor: active ? col : `${col}15`,
+                      backgroundColor: active ? col : `${col}12`,
                       color: active ? '#fff' : col,
-                      boxShadow: active ? `0 0 16px ${col}50` : 'none',
+                      boxShadow: active ? `0 2px 10px ${col}45` : 'none',
                     }}>{l}</button>
                   )
                 })}
@@ -358,119 +328,112 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
 
             {/* Responsable */}
             <div>
-              {sectionLbl('Responsable')}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+              {sLbl('Responsable')}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 5 }}>
                 {ASSIGNEES.map(a => {
                   const active = assignee === a.name
                   return (
-                    <button key={a.name} onClick={() => setAssignee(a.name)}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px',
-                        borderRadius: 10, cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
-                        backgroundColor: active ? `${a.color}18` : D.input,
-                        border: `1px solid ${active ? a.color + '50' : D.inputBorder}`,
-                        boxShadow: active ? `0 0 12px ${a.color}25` : 'none',
-                      }}>
+                    <button key={a.name} onClick={() => setAssignee(a.name)} style={{
+                      display: 'flex', alignItems: 'center', gap: 9, padding: '8px 11px',
+                      borderRadius: 9, cursor: 'pointer', textAlign: 'left', border: 'none',
+                      backgroundColor: active ? `${a.color}10` : '#FAFBFC',
+                      outline: active ? `1.5px solid ${a.color}40` : '1.5px solid #F0F0F0',
+                      transition: 'all 0.12s',
+                    }}>
                       <div style={{
                         width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontSize: 10, fontWeight: 800,
-                        background: active ? `linear-gradient(135deg, ${a.color}, ${a.color}90)` : `${a.color}25`,
+                        background: active ? `linear-gradient(135deg,${a.color},${a.color}80)` : `${a.color}18`,
                         color: active ? '#fff' : a.color,
-                        boxShadow: active ? `0 0 8px ${a.color}50` : 'none',
                       }}>
                         {a.name.slice(0, 2).toUpperCase()}
                       </div>
                       <div style={{ minWidth: 0 }}>
-                        <p style={{ fontSize: 12, fontWeight: 600, color: active ? a.color : D.text, margin: 0 }}>{a.name}</p>
-                        <p style={{ fontSize: 9, color: D.muted, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.role}</p>
+                        <p style={{ fontSize: 12, fontWeight: 600, color: active ? a.color : '#374151', margin: 0 }}>{a.name}</p>
+                        <p style={{ fontSize: 9, color: '#9CA3AF', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.role}</p>
                       </div>
                     </button>
                   )
                 })}
               </div>
               {assigneeInfo && !assigneeInfo.areas.includes(area) && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, padding: '6px 10px', borderRadius: 8, backgroundColor: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
-                  <AlertTriangle size={11} color="#F59E0B" />
-                  <span style={{ fontSize: 11, color: '#F59E0B' }}>{assignee} normalmente no trabaja en <strong>{AREA_LABELS[area]}</strong>.</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 7, padding: '5px 10px', borderRadius: 7, backgroundColor: '#FFFBEB', border: '1px solid #FDE68A' }}>
+                  <AlertTriangle size={11} color="#D97706" />
+                  <span style={{ fontSize: 11, color: '#92400E' }}>{assignee} normalmente no trabaja en <strong>{AREA_LABELS[area]}</strong>.</span>
                 </div>
               )}
             </div>
 
-            {/* Row: Cliente · Campaña */}
+            {/* Cliente · Campaña */}
             <div style={{ display: 'flex', gap: 8 }}>
-              <FieldSel label="Cliente" value={clientId} onChange={v => { setClientId(v); setCampaignId('') }} options={clienteOpts} accentColor={clientColor ?? D.muted} />
-              <FieldSel label="Campaña" value={campaignId} onChange={setCampaignId} options={campanaOpts} />
+              <FieldSel label="Cliente"  value={clientId}  onChange={v => { setClientId(v); setCampaignId('') }} options={clienteOpts}  accentColor={clientColor ?? '#D1D5DB'} />
+              <FieldSel label="Campaña"  value={campaignId} onChange={setCampaignId}                            options={campanaOpts} />
             </div>
 
-            {/* Row: Etapa · Mini Status */}
+            {/* Etapa · Mini Status */}
             <div style={{ display: 'flex', gap: 8 }}>
-              <FieldSel label="Etapa" value={etapa} onChange={v => setEtapa(v as Etapa | '')} options={etapaOpts} accentColor={etapa ? ETAPA_COLORS[etapa as Etapa] : D.muted} />
-              <FieldSel label="Mini Status" value={miniStatus} onChange={v => setMiniStatus(v as MiniStatus | '')} options={miniStatusOpts} accentColor={miniStatus ? MINI_STATUS_COLORS[miniStatus as MiniStatus] : D.muted} />
+              <FieldSel label="Etapa"      value={etapa}      onChange={v => setEtapa(v as Etapa | '')}           options={etapaOpts}      accentColor={etapa ? ETAPA_COLORS[etapa as Etapa] : '#D1D5DB'} />
+              <FieldSel label="Mini Status" value={miniStatus} onChange={v => setMiniStatus(v as MiniStatus | '')} options={miniStatusOpts} accentColor={miniStatus ? MINI_STATUS_COLORS[miniStatus as MiniStatus] : '#D1D5DB'} />
             </div>
 
-            {/* Row: Fecha límite + Sprint */}
+            {/* Fecha · Sprint */}
             <div style={{ display: 'flex', gap: 8 }}>
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: 10, fontWeight: 700, color: D.muted, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>Fecha límite</p>
+                <p style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>Fecha límite</p>
                 <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} style={{
-                  width: '100%', padding: '8px 10px', borderRadius: 8,
-                  backgroundColor: D.input, border: `1px solid ${D.inputBorder}`,
-                  color: dueDate && new Date(dueDate) < new Date() ? '#F87171' : D.sub,
-                  fontSize: 12, outline: 'none', colorScheme: 'dark',
+                  width: '100%', padding: '8px 10px', borderRadius: 8, outline: 'none',
+                  border: '1px solid #E5E7EB', backgroundColor: '#FAFBFC',
+                  fontSize: 12, color: dueDate && new Date(dueDate) < new Date() ? '#DC2626' : '#374151',
                 }} />
               </div>
-              <div style={{ flex: 1.4 }}>
-                <p style={{ fontSize: 10, fontWeight: 700, color: D.muted, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>Sprint</p>
+              <div style={{ flex: 1.5 }}>
+                <p style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>Sprint</p>
                 <div style={{ display: 'flex', gap: 4 }}>
-                  {[1, 2, 3, 4].map(w => {
+                  {[1,2,3,4].map(w => {
                     const sc = SPRINT_COLORS[w]
                     const s  = getSprintDateRange(w)
-                    const active = week === w
+                    const on = week === w
                     return (
                       <button key={w} onClick={() => setWeek(w)} style={{
-                        flex: 1, borderRadius: 8, padding: '7px 4px', textAlign: 'center',
-                        backgroundColor: active ? `${sc}20` : D.input,
-                        border: `1px solid ${active ? sc + '60' : D.inputBorder}`,
-                        cursor: 'pointer', transition: 'all 0.15s',
-                        boxShadow: active ? `0 0 10px ${sc}30` : 'none',
+                        flex: 1, borderRadius: 8, padding: '7px 2px', textAlign: 'center',
+                        backgroundColor: on ? `${sc}10` : '#FAFBFC',
+                        border: `1px solid ${on ? sc + '50' : '#E5E7EB'}`,
+                        cursor: 'pointer', transition: 'all 0.12s',
                       }}>
-                        <p style={{ fontSize: 11, fontWeight: 700, color: active ? sc : D.muted, margin: 0 }}>S{w}</p>
-                        <p style={{ fontSize: 8, color: D.muted, margin: 0 }}>{s.startFmt}</p>
+                        <p style={{ fontSize: 11, fontWeight: 700, color: on ? sc : '#9CA3AF', margin: 0 }}>S{w}</p>
+                        <p style={{ fontSize: 8, color: '#D1D5DB', margin: 0 }}>{s.startFmt}</p>
                       </button>
                     )
                   })}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 6 }}>
-                  <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: sprintColor }} />
-                  <span style={{ fontSize: 10, fontWeight: 600, color: sprintColor }}>Sprint {week}</span>
-                  <span style={{ fontSize: 10, color: D.muted }}>· {sprint.label}</span>
-                </div>
+                <p style={{ fontSize: 10, color: sprintColor, fontWeight: 600, marginTop: 5 }}>
+                  Sprint {week} · <span style={{ color: '#9CA3AF', fontWeight: 400 }}>{sprint.label}</span>
+                </p>
               </div>
             </div>
 
             {/* Divider */}
-            <div style={{ height: 1, backgroundColor: D.border }} />
+            <div style={{ height: 1, backgroundColor: '#F3F4F6' }} />
 
             {/* Descripción */}
             <div>
-              {sectionLbl('Descripción / Instrucciones')}
-              <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3}
+              {sLbl('Descripción / Instrucciones')}
+              <textarea value={description} onChange={e => setDescription(e.target.value)} rows={4}
                 style={{
-                  width: '100%', padding: '10px 12px', borderRadius: 10,
-                  backgroundColor: D.input, border: `1px solid ${D.inputBorder}`,
-                  color: D.sub, fontSize: 12, resize: 'none', lineHeight: 1.6, outline: 'none',
+                  width: '100%', padding: '10px 12px', borderRadius: 9, resize: 'none', outline: 'none',
+                  border: '1px solid #E5E7EB', backgroundColor: '#FAFBFC',
+                  fontSize: 13, color: '#374151', lineHeight: 1.6,
                 }}
                 placeholder="Qué hay que hacer, cómo hacerlo, referencias, links..." />
             </div>
 
             {/* Problema */}
             <div>
-              {sectionLbl('Problema que resuelve')}
+              {sLbl('Problema que resuelve')}
               <input value={problema} onChange={e => setProblema(e.target.value)} style={{
-                width: '100%', padding: '8px 12px', borderRadius: 8,
-                backgroundColor: D.input, border: `1px solid ${D.inputBorder}`,
-                color: D.sub, fontSize: 12, outline: 'none',
+                width: '100%', padding: '9px 12px', borderRadius: 9, outline: 'none',
+                border: '1px solid #E5E7EB', backgroundColor: '#FAFBFC', fontSize: 13, color: '#374151',
               }} placeholder="Ej: Show rate de Book Demos bajo" />
             </div>
 
@@ -478,15 +441,15 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
             <div>
               <button type="button" onClick={() => setShowDel(v => !v)} style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
-                padding: '10px 14px', borderRadius: 10, cursor: 'pointer',
-                backgroundColor: showDel ? `${D.accent}12` : D.input,
-                border: `1px solid ${showDel ? D.accent + '40' : D.inputBorder}`,
+                padding: '10px 14px', borderRadius: 9, cursor: 'pointer', border: 'none',
+                backgroundColor: showDel ? '#EEF2FF' : '#F9FAFB',
+                outline: `1px solid ${showDel ? '#C7D2FE' : '#E5E7EB'}`,
               }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: showDel ? D.accent : D.sub }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: showDel ? '#4F46E5' : '#6B7280' }}>
                   📦 Entregables y cantidades
-                  {totalDel > 0 && <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 99, backgroundColor: `${D.accent}20`, color: D.accent }}>{totalDel}</span>}
+                  {totalDel > 0 && <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 99, backgroundColor: '#E0E7FF', color: '#4F46E5' }}>{totalDel}</span>}
                 </span>
-                <ChevronDown size={12} style={{ color: D.muted, transform: showDel ? 'rotate(180deg)' : 'none', transition: '150ms' }} />
+                <ChevronDown size={13} style={{ color: '#9CA3AF', transform: showDel ? 'rotate(180deg)' : 'none', transition: '150ms' }} />
               </button>
               {showDel && (
                 <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -495,16 +458,16 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
                     return (
                       <div key={key} style={{
                         display: 'flex', alignItems: 'center', gap: 12, padding: '8px 12px', borderRadius: 8,
-                        backgroundColor: val > 0 ? `${color}10` : D.input,
-                        border: `1px solid ${val > 0 ? color + '30' : D.inputBorder}`,
+                        backgroundColor: val > 0 ? `${color}08` : '#FAFBFC',
+                        border: `1px solid ${val > 0 ? color + '25' : '#F0F0F0'}`,
                       }}>
-                        <span style={{ flex: 1, fontSize: 11, fontWeight: 500, color: val > 0 ? color : D.muted }}>{label}</span>
+                        <span style={{ flex: 1, fontSize: 12, color: val > 0 ? color : '#9CA3AF' }}>{label}</span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           <button type="button" onClick={() => setDeliverable(key, Math.max(0, val - 1))}
-                            style={{ width: 24, height: 24, borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 16, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: val > 0 ? `${color}25` : 'rgba(255,255,255,0.06)', color: val > 0 ? color : D.muted }}>−</button>
-                          <span style={{ width: 28, textAlign: 'center', fontSize: 12, fontWeight: 700, color: val > 0 ? color : D.muted }}>{val}</span>
+                            style={{ width: 24, height: 24, borderRadius: 6, border: '1px solid #E5E7EB', cursor: 'pointer', fontSize: 16, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: val > 0 ? `${color}12` : '#F9FAFB', color: val > 0 ? color : '#D1D5DB' }}>−</button>
+                          <span style={{ width: 26, textAlign: 'center', fontSize: 12, fontWeight: 700, color: val > 0 ? color : '#D1D5DB' }}>{val}</span>
                           <button type="button" onClick={() => setDeliverable(key, val + 1)}
-                            style={{ width: 24, height: 24, borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 16, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: `${color}25`, color }}>+</button>
+                            style={{ width: 24, height: 24, borderRadius: 6, border: '1px solid #E5E7EB', cursor: 'pointer', fontSize: 16, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: `${color}12`, color }}>+</button>
                         </div>
                       </div>
                     )
@@ -516,19 +479,20 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
             {/* Adjuntos */}
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                {sectionLbl(`Archivos adjuntos${attachments.length > 0 ? ` (${attachments.length})` : ''}`)}
+                <p style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em', margin: 0 }}>
+                  Archivos adjuntos {attachments.length > 0 && <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 99, backgroundColor: '#EEF2FF', color: '#6366F1' }}>{attachments.length}</span>}
+                </p>
                 <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading}
-                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 8, border: `1px solid ${D.border}`, cursor: 'pointer', fontSize: 11, fontWeight: 600, backgroundColor: D.input, color: D.accent }}>
-                  <Upload size={11} />{uploading ? 'Subiendo…' : 'Subir'}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 7, border: '1px solid #E0E7FF', cursor: 'pointer', fontSize: 11, fontWeight: 600, backgroundColor: '#EEF2FF', color: '#6366F1' }}>
+                  <Upload size={10} />{uploading ? 'Subiendo…' : 'Subir'}
                 </button>
               </div>
-              <input ref={fileInputRef} type="file" multiple style={{ display: 'none' }}
-                onChange={handleFileUpload} accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip" />
-
+              <input ref={fileInputRef} type="file" multiple style={{ display: 'none' }} onChange={handleFileUpload}
+                accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip" />
               {attachments.length === 0 && !uploading && (
-                <div onClick={() => fileInputRef.current?.click()} style={{ border: `1.5px dashed ${D.border}`, borderRadius: 10, padding: '20px 16px', textAlign: 'center', cursor: 'pointer' }}>
-                  <Paperclip size={18} style={{ color: D.muted, margin: '0 auto 8px' }} />
-                  <p style={{ fontSize: 11, color: D.muted, margin: 0 }}>Arrastra o haz click para adjuntar</p>
+                <div onClick={() => fileInputRef.current?.click()} style={{ border: '1.5px dashed #E5E7EB', borderRadius: 9, padding: '20px', textAlign: 'center', cursor: 'pointer' }}>
+                  <Paperclip size={16} style={{ color: '#D1D5DB', margin: '0 auto 6px' }} />
+                  <p style={{ fontSize: 12, color: '#9CA3AF', margin: 0 }}>Arrastra o haz click para adjuntar</p>
                 </div>
               )}
               {attachments.length > 0 && (
@@ -536,18 +500,14 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
                   {attachments.map(att => {
                     const FileIcon = getFileIcon(att.type)
                     return (
-                      <div key={att.path} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 8, backgroundColor: D.input, border: `1px solid ${D.inputBorder}` }}>
-                        <FileIcon size={14} style={{ color: D.muted, flexShrink: 0 }} />
+                      <div key={att.path} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 8, backgroundColor: '#FAFBFC', border: '1px solid #F0F0F0' }}>
+                        <FileIcon size={14} style={{ color: '#9CA3AF', flexShrink: 0 }} />
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: 11, fontWeight: 500, color: D.text, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{att.name}</p>
-                          <p style={{ fontSize: 9, color: D.muted, margin: 0 }}>{fmtBytes(att.size)}</p>
+                          <p style={{ fontSize: 12, fontWeight: 500, color: '#374151', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{att.name}</p>
+                          <p style={{ fontSize: 10, color: '#9CA3AF', margin: 0 }}>{fmtBytes(att.size)}</p>
                         </div>
-                        <a href={att.url} download target="_blank" rel="noreferrer" style={{ padding: 4, color: D.sub, display: 'flex' }}>
-                          <Download size={12} />
-                        </a>
-                        <button type="button" onClick={() => removeAttachment(att)} style={{ padding: 4, border: 'none', cursor: 'pointer', backgroundColor: 'transparent', color: '#F87171', display: 'flex' }}>
-                          <Trash2 size={12} />
-                        </button>
+                        <a href={att.url} download target="_blank" rel="noreferrer" style={{ padding: 4, color: '#9CA3AF', display: 'flex' }}><Download size={13} /></a>
+                        <button type="button" onClick={() => removeAttachment(att)} style={{ padding: 4, border: 'none', cursor: 'pointer', backgroundColor: 'transparent', color: '#EF4444', display: 'flex' }}><Trash2 size={13} /></button>
                       </div>
                     )
                   })}
