@@ -43,8 +43,8 @@ const SPRINT_COLORS: Record<number, string> = { 1: '#8b5cf6', 2: '#ec4899', 3: '
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 const lbl: React.CSSProperties = {
-  color: '#9CA3AF', fontSize: 10, fontWeight: 600,
-  textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8, display: 'block',
+  color: '#9CA3AF', fontSize: 10, fontWeight: 700,
+  textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 7, display: 'block',
 }
 const fieldBase: React.CSSProperties = {
   backgroundColor: '#F8F9FC', border: '1px solid #E4E7F0',
@@ -55,10 +55,10 @@ const formCard: React.CSSProperties = {
   backgroundColor: '#FFFFFF',
   border: '1px solid #E8EAF2',
   borderRadius: 12,
-  padding: '18px',
+  padding: '14px',
   display: 'flex',
   flexDirection: 'column',
-  gap: 14,
+  gap: 12,
 }
 
 // ── usePopover ────────────────────────────────────────────────────────────────
@@ -218,23 +218,41 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-end">
-      <div className="absolute inset-0" onClick={onClose} style={{ backgroundColor: 'rgba(15,17,22,0.2)', backdropFilter: 'blur(2px)' }} />
-      <div className="relative h-full w-full max-w-md flex flex-col overflow-hidden"
-        style={{ backgroundColor: '#FFFFFF', borderLeft: '1px solid #DDE0EA', boxShadow: '-16px 0 48px rgba(0,0,0,0.12)' }}>
+      <div className="absolute inset-0" onClick={onClose} style={{ backgroundColor: 'rgba(15,17,22,0.25)', backdropFilter: 'blur(3px)' }} />
+      <div className="relative h-full w-full max-w-lg flex flex-col overflow-hidden"
+        style={{ backgroundColor: '#FFFFFF', borderLeft: '1px solid #DDE0EA', boxShadow: '-20px 0 60px rgba(0,0,0,0.14)' }}>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 shrink-0" style={{ borderBottom: '1px solid #DDE0EA' }}>
-          <div>
-            <h2 style={{ fontSize: 14, fontWeight: 600, color: '#1F2128', margin: 0 }}>Nueva tarea</h2>
-            <p style={{ fontSize: 10, color: '#9699A6', margin: '2px 0 0' }}>Completa el detalle de la tarea</p>
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '14px 18px', borderBottom: '1px solid #E8EAF2', flexShrink: 0,
+          background: 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)',
+        }}>
+          <div className="flex items-center gap-3">
+            <div style={{
+              width: 34, height: 34, borderRadius: 10,
+              backgroundColor: 'rgba(255,255,255,0.18)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              border: '1px solid rgba(255,255,255,0.25)',
+            }}>
+              <span style={{ fontSize: 16 }}>✦</span>
+            </div>
+            <div>
+              <h2 style={{ fontSize: 14, fontWeight: 700, color: '#FFFFFF', margin: 0 }}>Nueva tarea</h2>
+              <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', margin: '1px 0 0' }}>Completa los datos y asigna al responsable</p>
+            </div>
           </div>
-          <button onClick={onClose} style={{ padding: 6, borderRadius: 8, border: 'none', cursor: 'pointer', backgroundColor: 'transparent', color: '#9699A6' }}>
-            <X size={15} />
+          <button onClick={onClose} style={{
+            padding: 7, borderRadius: 8, border: 'none', cursor: 'pointer',
+            backgroundColor: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.9)',
+            display: 'flex', alignItems: 'center',
+          }}>
+            <X size={14} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-auto"
-          style={{ backgroundColor: '#F0F2F8', padding: '16px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          style={{ backgroundColor: '#F0F2F8', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
 
           {/* ── Card 1: Título + Status + Prioridad ──────────────────────── */}
           <div style={formCard}>
@@ -271,25 +289,33 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
             </div>
             <div>
               <label style={lbl}>Responsable</label>
-              <div className="grid grid-cols-2 gap-2.5">
-                {ASSIGNEES.map(a => (
-                  <button key={a.name} type="button" onClick={() => setAssignee(a.name)}
-                    className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left"
-                    style={{
-                      backgroundColor: assignee === a.name ? `${a.color}10` : '#F8F9FC',
-                      border: assignee === a.name ? `1.5px solid ${a.color}50` : '1px solid #E8EAF2',
-                      boxShadow: assignee === a.name ? `0 0 12px ${a.color}20` : 'none',
-                      cursor: 'pointer', transition: 'all 0.12s',
-                    }}>
-                    <div style={{ width: 22, height: 22, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 800, background: `linear-gradient(135deg,${a.color}40,${a.color}20)`, color: a.color, border: `1px solid ${a.color}30` }}>
-                      {a.name.slice(0, 2).toUpperCase()}
-                    </div>
-                    <div style={{ minWidth: 0 }}>
-                      <p style={{ fontSize: 11, fontWeight: 600, color: assignee === a.name ? '#1F2128' : '#6B7280', margin: 0 }}>{a.name}</p>
-                      <p style={{ fontSize: 9, color: '#9CA3AF', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.role}</p>
-                    </div>
-                  </button>
-                ))}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {ASSIGNEES.map(a => {
+                  const isActive = assignee === a.name
+                  return (
+                    <button key={a.name} type="button" onClick={() => setAssignee(a.name)}
+                      title={a.role}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        padding: '5px 10px 5px 5px', borderRadius: 20,
+                        backgroundColor: isActive ? `${a.color}15` : '#F8F9FC',
+                        border: isActive ? `1.5px solid ${a.color}50` : '1px solid #E8EAF2',
+                        boxShadow: isActive ? `0 2px 8px ${a.color}25` : 'none',
+                        cursor: 'pointer', transition: 'all 0.12s',
+                      }}>
+                      <div style={{
+                        width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 8, fontWeight: 800,
+                        background: `linear-gradient(135deg,${a.color}40,${a.color}20)`,
+                        color: a.color, border: `1px solid ${a.color}30`,
+                      }}>
+                        {a.name.slice(0, 2).toUpperCase()}
+                      </div>
+                      <span style={{ fontSize: 11, fontWeight: isActive ? 700 : 600, color: isActive ? a.color : '#6B7280' }}>{a.name}</span>
+                    </button>
+                  )
+                })}
               </div>
               {assigneeInfo && !assigneeInfo.areas.includes(area) && (
                 <p style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: '#F59E0B', marginTop: 6 }}>
@@ -406,14 +432,20 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
           </div>
 
           {/* ── Footer ───────────────────────────────────────────────────── */}
-          <div style={{ display: 'flex', gap: 10, paddingTop: 8 }}>
+          <div style={{ display: 'flex', gap: 10, paddingTop: 4, paddingBottom: 8 }}>
             <button type="button" onClick={onClose}
-              style={{ flex: 1, padding: '10px', borderRadius: 10, fontSize: 13, border: '1px solid #E4E7F0', color: '#6B7280', backgroundColor: '#fff', cursor: 'pointer', fontWeight: 500 }}>
+              style={{ flex: 1, padding: '11px', borderRadius: 10, fontSize: 13, border: '1.5px solid #E4E7F0', color: '#6B7280', backgroundColor: '#fff', cursor: 'pointer', fontWeight: 600 }}>
               Cancelar
             </button>
             <button type="submit" disabled={createTask.isPending || !title.trim()}
-              style={{ flex: 1, padding: '10px', borderRadius: 10, fontSize: 13, fontWeight: 700, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #6366F1, #4F46E5)', color: '#fff', boxShadow: '0 4px 16px rgba(99,102,241,0.3)', opacity: (createTask.isPending || !title.trim()) ? 0.5 : 1 }}>
-              {createTask.isPending ? 'Creando…' : 'Crear tarea'}
+              style={{
+                flex: 2, padding: '11px', borderRadius: 10, fontSize: 13, fontWeight: 700,
+                border: 'none', cursor: 'pointer',
+                background: 'linear-gradient(135deg, #6366F1, #4F46E5)',
+                color: '#fff', boxShadow: '0 4px 16px rgba(99,102,241,0.3)',
+                opacity: (createTask.isPending || !title.trim()) ? 0.5 : 1,
+              }}>
+              {createTask.isPending ? 'Creando…' : '✦  Crear tarea'}
             </button>
           </div>
         </form>

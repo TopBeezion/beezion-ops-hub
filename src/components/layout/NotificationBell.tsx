@@ -97,9 +97,19 @@ export function NotificationBell({ onOpenTask }: { onOpenTask?: (taskId: string)
           {/* List */}
           <div className="overflow-auto" style={{ maxHeight: 460 }}>
             {notifications.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12">
-                <Bell size={20} style={{ color: '#D1D5DB' }} />
-                <p className="text-xs mt-3 font-medium" style={{ color: '#9CA3AF' }}>Sin notificaciones</p>
+              <div className="flex flex-col items-center justify-center" style={{ padding: '40px 24px', textAlign: 'center' }}>
+                <div style={{
+                  width: 52, height: 52, borderRadius: 16,
+                  backgroundColor: '#F3F4F6',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  marginBottom: 14,
+                }}>
+                  <Bell size={22} style={{ color: '#9CA3AF' }} />
+                </div>
+                <p style={{ fontSize: 14, fontWeight: 700, color: '#374151', margin: 0 }}>Sin notificaciones</p>
+                <p style={{ fontSize: 12, color: '#9CA3AF', marginTop: 6, lineHeight: 1.5 }}>
+                  Aquí aparecerán alertas de reuniones<br />y tareas importantes del equipo.
+                </p>
               </div>
             ) : (
               notifications.map((n, idx) => (
@@ -111,59 +121,56 @@ export function NotificationBell({ onOpenTask }: { onOpenTask?: (taskId: string)
                 >
                   {/* Overdue notification */}
                   {n.type === 'overdue_tasks' ? (
-                    <div style={{ padding: '12px 16px' }}>
-                      <div
-                        style={{
-                          backgroundColor: '#FEF2F2',
-                          border: '1px solid #FECACA',
-                          borderRadius: 8,
-                          padding: '8px 12px',
-                          marginBottom: 8,
-                        }}
-                      >
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <AlertTriangle size={12} color="#DC2626" />
-                          <p style={{ fontSize: 12, fontWeight: 700, color: '#DC2626' }}>{n.title}</p>
+                    <div style={{ padding: '14px 16px' }}>
+                      <div style={{
+                        backgroundColor: '#FEF2F2', border: '1px solid #FECACA',
+                        borderRadius: 10, padding: '10px 14px', marginBottom: 10,
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                          <AlertTriangle size={13} color="#DC2626" />
+                          <p style={{ fontSize: 13, fontWeight: 700, color: '#DC2626', margin: 0 }}>{n.title}</p>
                         </div>
-                        <p style={{ fontSize: 10, color: '#991B1B', marginLeft: 20, fontWeight: 500 }}>{n.body}</p>
+                        <p style={{ fontSize: 11, color: '#991B1B', marginLeft: 21, fontWeight: 500, margin: 0, marginTop: 2, lineHeight: 1.4 }}>{n.body}</p>
                       </div>
-                      <div className="space-y-1">
-                        {n.tasks.slice(0, 6).map(t => (
-                          <button
-                            key={t.id}
-                            onClick={() => { onOpenTask?.(t.id); setOpen(false) }}
-                            className="w-full text-left flex items-center gap-2 px-2.5 py-1.5 rounded-lg transition-colors"
-                            style={{ backgroundColor: 'transparent' }}
-                            onMouseEnter={e => (e.currentTarget.style.backgroundColor = N.hover)}
-                            onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
-                          >
-                            <span
-                              className="text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0"
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        {n.tasks.slice(0, 6).map(t => {
+                          const areaColor = AREA_COLORS[t.area as keyof typeof AREA_COLORS] ?? '#6b7280'
+                          return (
+                            <button
+                              key={t.id}
+                              onClick={() => { onOpenTask?.(t.id); setOpen(false) }}
                               style={{
-                                backgroundColor: `${AREA_COLORS[t.area as keyof typeof AREA_COLORS] ?? '#6b7280'}18`,
-                                color: AREA_COLORS[t.area as keyof typeof AREA_COLORS] ?? '#6b7280',
+                                width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center',
+                                gap: 8, padding: '7px 10px', borderRadius: 8, border: `1px solid ${N.border}`,
+                                backgroundColor: 'transparent', cursor: 'pointer', transition: 'background 0.1s',
                               }}
+                              onMouseEnter={e => (e.currentTarget.style.backgroundColor = N.hover)}
+                              onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
                             >
-                              {t.area}
-                            </span>
-                            <span className="flex-1 text-xs truncate font-semibold" style={{ color: '#1F2937' }}>
-                              {t.title}
-                            </span>
-                            {(t.days_overdue ?? 0) > 0 && (
-                              <span
-                                style={{
-                                  fontSize: 9, fontWeight: 700, color: '#EF4444',
-                                  backgroundColor: '#FEF2F2', padding: '1px 5px',
-                                  borderRadius: 4, border: '1px solid #FECACA', flexShrink: 0,
-                                }}
-                              >
-                                {t.days_overdue}d
+                              <span style={{
+                                fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 4,
+                                backgroundColor: `${areaColor}15`, color: areaColor, flexShrink: 0,
+                                textTransform: 'uppercase', letterSpacing: '0.03em',
+                              }}>
+                                {t.area}
                               </span>
-                            )}
-                          </button>
-                        ))}
+                              <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: '#1F2937', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {t.title}
+                              </span>
+                              {(t.days_overdue ?? 0) > 0 && (
+                                <span style={{
+                                  fontSize: 9, fontWeight: 700, color: '#EF4444',
+                                  backgroundColor: '#FEF2F2', padding: '2px 6px',
+                                  borderRadius: 4, border: '1px solid #FECACA', flexShrink: 0,
+                                }}>
+                                  {t.days_overdue}d
+                                </span>
+                              )}
+                            </button>
+                          )
+                        })}
                         {n.tasks.length > 6 && (
-                          <p className="text-xs text-center py-1 font-medium" style={{ color: '#9CA3AF' }}>
+                          <p style={{ fontSize: 11, textAlign: 'center', padding: '4px 0', color: '#9CA3AF', fontWeight: 500 }}>
                             +{n.tasks.length - 6} tareas más atrasadas
                           </p>
                         )}
@@ -171,52 +178,56 @@ export function NotificationBell({ onOpenTask }: { onOpenTask?: (taskId: string)
                     </div>
                   ) : (
                     /* Meeting / generic notification */
-                    <div className="px-4 py-3.5">
-                      <div className="flex items-start justify-between gap-2 mb-2">
+                    <div style={{ padding: '14px 16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
                         <div>
-                          <p className="text-sm font-bold" style={{ color: N.text }}>{n.title}</p>
-                          <p className="text-xs mt-1" style={{ color: '#4B5563', fontWeight: 500 }}>{n.body}</p>
+                          <p style={{ fontSize: 13, fontWeight: 700, color: N.text, margin: 0, lineHeight: 1.3 }}>{n.title}</p>
+                          <p style={{ fontSize: 11, color: '#4B5563', fontWeight: 500, margin: '4px 0 0', lineHeight: 1.4 }}>{n.body}</p>
                         </div>
-                        <span className="text-xs shrink-0" style={{ color: '#9CA3AF', fontWeight: 500 }}>
+                        <span style={{ fontSize: 10, color: '#9CA3AF', fontWeight: 500, flexShrink: 0, marginTop: 2 }}>
                           {new Date(n.timestamp).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
-                      <div className="space-y-1">
-                        {n.tasks.slice(0, 5).map(t => (
-                          <button
-                            key={t.id}
-                            onClick={() => { onOpenTask?.(t.id); setOpen(false) }}
-                            className="w-full text-left flex items-center gap-2 px-2.5 py-1.5 rounded-lg transition-colors"
-                            style={{ border: `1px solid ${N.border}`, backgroundColor: 'transparent' }}
-                            onMouseEnter={e => (e.currentTarget.style.backgroundColor = N.hover)}
-                            onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
-                          >
-                            <span
-                              className="text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0"
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        {n.tasks.slice(0, 5).map(t => {
+                          const areaColor = AREA_COLORS[t.area as keyof typeof AREA_COLORS] ?? '#6b7280'
+                          const assigneeColor = ASSIGNEE_COLORS[t.assignee] ?? '#6b7280'
+                          return (
+                            <button
+                              key={t.id}
+                              onClick={() => { onOpenTask?.(t.id); setOpen(false) }}
                               style={{
-                                backgroundColor: `${AREA_COLORS[t.area as keyof typeof AREA_COLORS] ?? '#6b7280'}18`,
-                                color: AREA_COLORS[t.area as keyof typeof AREA_COLORS] ?? '#6b7280',
+                                width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center',
+                                gap: 8, padding: '7px 10px', borderRadius: 8, border: `1px solid ${N.border}`,
+                                backgroundColor: 'transparent', cursor: 'pointer', transition: 'background 0.1s',
                               }}
+                              onMouseEnter={e => (e.currentTarget.style.backgroundColor = N.hover)}
+                              onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
                             >
-                              {t.area}
-                            </span>
-                            <span className="flex-1 text-xs truncate font-semibold" style={{ color: '#1F2937' }}>
-                              {t.title}
-                            </span>
-                            <div
-                              className="w-4 h-4 rounded-full flex items-center justify-center text-[7px] font-bold shrink-0"
-                              style={{
-                                background: `linear-gradient(135deg, ${ASSIGNEE_COLORS[t.assignee] ?? '#6b7280'}30, ${ASSIGNEE_COLORS[t.assignee] ?? '#6b7280'}15)`,
-                                color: ASSIGNEE_COLORS[t.assignee] ?? '#6b7280',
-                                border: `1px solid ${ASSIGNEE_COLORS[t.assignee] ?? '#6b7280'}30`,
-                              }}
-                            >
-                              {t.assignee.slice(0, 2).toUpperCase()}
-                            </div>
-                          </button>
-                        ))}
+                              <span style={{
+                                fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 4,
+                                backgroundColor: `${areaColor}15`, color: areaColor, flexShrink: 0,
+                                textTransform: 'uppercase', letterSpacing: '0.03em',
+                              }}>
+                                {t.area}
+                              </span>
+                              <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: '#1F2937', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {t.title}
+                              </span>
+                              <div style={{
+                                width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+                                background: `linear-gradient(135deg, ${assigneeColor}30, ${assigneeColor}15)`,
+                                color: assigneeColor, fontSize: 8, fontWeight: 800,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                border: `1px solid ${assigneeColor}30`,
+                              }}>
+                                {t.assignee.slice(0, 2).toUpperCase()}
+                              </div>
+                            </button>
+                          )
+                        })}
                         {n.tasks.length > 5 && (
-                          <p className="text-xs text-center py-1 font-medium" style={{ color: '#9CA3AF' }}>
+                          <p style={{ fontSize: 11, textAlign: 'center', padding: '4px 0', color: '#9CA3AF', fontWeight: 500 }}>
                             +{n.tasks.length - 5} tareas más en el backlog
                           </p>
                         )}

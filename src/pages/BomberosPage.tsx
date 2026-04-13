@@ -35,22 +35,43 @@ function StatusDropdown({
   onSelect: (s: TaskStatus) => void
 }) {
   const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
+  const [dropPos, setDropPos] = useState({ top: 0, right: 0 })
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const dropRef = useRef<HTMLDivElement>(null)
   const color = STATUS_COLORS[status]
 
   useEffect(() => {
     if (!open) return
     const h = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+      const t = e.target as Node
+      if (
+        dropRef.current && !dropRef.current.contains(t) &&
+        btnRef.current && !btnRef.current.contains(t)
+      ) setOpen(false)
     }
+    const onScroll = () => setOpen(false)
     document.addEventListener('mousedown', h)
-    return () => document.removeEventListener('mousedown', h)
+    window.addEventListener('scroll', onScroll, true)
+    return () => {
+      document.removeEventListener('mousedown', h)
+      window.removeEventListener('scroll', onScroll, true)
+    }
   }, [open])
 
+  const handleToggle = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!open && btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect()
+      setDropPos({ top: r.bottom + 6, right: window.innerWidth - r.right })
+    }
+    setOpen(v => !v)
+  }
+
   return (
-    <div ref={ref} style={{ position: 'relative', flexShrink: 0 }}>
+    <div style={{ position: 'relative', flexShrink: 0 }}>
       <button
-        onClick={e => { e.stopPropagation(); setOpen(v => !v) }}
+        ref={btnRef}
+        onClick={handleToggle}
         style={{
           display: 'flex', alignItems: 'center', gap: 5,
           fontSize: 11, fontWeight: 700,
@@ -66,12 +87,21 @@ function StatusDropdown({
       </button>
 
       {open && (
-        <div style={{
-          position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 100,
-          backgroundColor: '#fff', border: '1px solid #E4E7F0',
-          borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-          padding: 4, minWidth: 160,
-        }}>
+        <div
+          ref={dropRef}
+          style={{
+            position: 'fixed',
+            top: dropPos.top,
+            right: dropPos.right,
+            zIndex: 9999,
+            backgroundColor: '#fff',
+            border: '1px solid #E4E7F0',
+            borderRadius: 10,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.16)',
+            padding: 4,
+            minWidth: 170,
+          }}
+        >
           {STATUS_ORDER.map(s => {
             const sc = STATUS_COLORS[s]
             const isActive = s === status
@@ -81,7 +111,7 @@ function StatusDropdown({
                 onClick={e => { e.stopPropagation(); onSelect(s); setOpen(false) }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-                  padding: '8px 10px', borderRadius: 7, border: 'none', cursor: 'pointer',
+                  padding: '9px 11px', borderRadius: 7, border: 'none', cursor: 'pointer',
                   backgroundColor: isActive ? `${sc}12` : 'transparent',
                   transition: 'background 0.1s', textAlign: 'left',
                 }}
@@ -193,8 +223,9 @@ function SectionCard({
   return (
     <div style={{
       backgroundColor: C.card, borderRadius: 14,
-      border: `1px solid ${borderColor}`, overflow: 'hidden', marginBottom: 16,
+      border: `1px solid ${borderColor}`, marginBottom: 16,
       boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+      overflow: 'visible',
     }}>
       <div style={{
         padding: '13px 20px', backgroundColor: bgColor,
@@ -390,17 +421,6 @@ export function BomberosPage() {
           <div className="flex justify-center py-20">
             <div className="w-8 h-8 rounded-full border-2 border-transparent border-t-current animate-spin" style={{ color: C.red }} />
           </div>
-        ) : (enProceso.length === 0 && pendientes.length === 0 && (!showResolved || resueltos.length === 0)) ? (
-          <div style={{
-            backgroundColor: C.card, borderRadius: 14,
-            border: `1px solid ${C.border}`, padding: '60px 40px', textAlign: 'center',
-          }}>
-            <CheckCircle2 size={48} color={C.green} style={{ margin: '0 auto 16px' }} />
-            <p style={{ fontSize: 20, fontWeight: 700, color: C.text }}>¡Sin incendios activos!</p>
-            <p style={{ fontSize: 14, color: C.sub, marginTop: 8 }}>
-              {filterClient || filterAssignee ? 'Sin tareas con los filtros aplicados.' : 'El equipo está operando sin urgencias. ¡Buen trabajo! 🎉'}
-            </p>
-          </div>
         ) : (
           <>
             {/* EN PROCESO */}
@@ -427,45 +447,68 @@ export function BomberosPage() {
               </SectionCard>
             )}
 
-            {/* RESUELTOS */}
-            {showResolved && resueltos.length > 0 && (
-              <SectionCard icon={CheckCircle2} title="RESUELTOS" count={resueltos.length}
-                accentColor={C.green} borderColor="#00C87525" bgColor="#00C87506">
-                {resueltos.map((task, i) => (
-                  <BomberoRow key={task.id} task={task} isLast={i === resueltos.length - 1}
-                    onClick={() => ctx?.openTaskDetail?.(task)}
-                    onStatusChange={handleStatusChange} />
-                ))}
-              </SectionCard>
+            {/* RESUELTOS — siempre visible cuando showResolved=true */}
+            {showResolved && (
+              resueltos.length > 0 ? (
+                <SectionCard icon={CheckCircle2} title="RESUELTOS" count={resueltos.length}
+                  accentColor={C.green} borderColor="#00C87525" bgColor="#00C87506">
+                  {resueltos.map((task, i) => (
+                    <BomberoRow key={task.id} task={task} isLast={i === resueltos.length - 1}
+                      onClick={() => ctx?.openTaskDetail?.(task)}
+                      onStatusChange={handleStatusChange} />
+                  ))}
+                </SectionCard>
+              ) : (
+                <div style={{
+                  backgroundColor: C.card, borderRadius: 12,
+                  border: `1px solid ${C.border}`, padding: '20px 24px',
+                  display: 'flex', alignItems: 'center', gap: 10,
+                }}>
+                  <XCircle size={16} color={C.muted} />
+                  <p style={{ fontSize: 13, color: C.sub, fontWeight: 500 }}>
+                    No hay tareas resueltas{filterClient || filterAssignee ? ' con los filtros aplicados' : ''}.
+                  </p>
+                </div>
+              )
             )}
 
-            {/* Hint para ver resueltos */}
-            {!showResolved && stats.resueltos > 0 && (
-              <div style={{ textAlign: 'center', paddingTop: 4 }}>
+            {/* Estado vacío — ninguna tarea activa/pendiente */}
+            {enProceso.length === 0 && pendientes.length === 0 && !showResolved && (
+              <div style={{
+                backgroundColor: C.card, borderRadius: 14,
+                border: `1px solid ${C.border}`, padding: '52px 40px', textAlign: 'center',
+              }}>
+                <CheckCircle2 size={44} color={C.green} style={{ margin: '0 auto 14px' }} />
+                <p style={{ fontSize: 18, fontWeight: 700, color: C.text }}>¡Sin incendios activos!</p>
+                <p style={{ fontSize: 13, color: C.sub, marginTop: 8, marginBottom: stats.resueltos > 0 ? 20 : 0 }}>
+                  {filterClient || filterAssignee ? 'Sin tareas con los filtros aplicados.' : 'El equipo está operando sin urgencias. ¡Buen trabajo! 🎉'}
+                </p>
+                {stats.resueltos > 0 && (
+                  <button onClick={() => setShowResolved(true)} style={{
+                    fontSize: 12, fontWeight: 700, color: C.green, cursor: 'pointer',
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    padding: '9px 18px', borderRadius: 20, border: `1.5px solid ${C.green}35`,
+                    backgroundColor: `${C.green}0D`,
+                  }}>
+                    <CheckCircle2 size={13} />
+                    Ver {stats.resueltos} tarea{stats.resueltos !== 1 ? 's' : ''} resuelta{stats.resueltos !== 1 ? 's' : ''}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Hint abajo cuando hay activos Y hay resueltos sin mostrar */}
+            {(enProceso.length > 0 || pendientes.length > 0) && !showResolved && stats.resueltos > 0 && (
+              <div style={{ textAlign: 'center', paddingTop: 4, paddingBottom: 8 }}>
                 <button onClick={() => setShowResolved(true)} style={{
-                  fontSize: 12, fontWeight: 600, color: C.green,
-                  background: 'none', border: 'none', cursor: 'pointer',
+                  fontSize: 12, fontWeight: 600, color: C.green, cursor: 'pointer',
                   display: 'inline-flex', alignItems: 'center', gap: 6,
-                  padding: '8px 16px', borderRadius: 20,
+                  padding: '8px 16px', borderRadius: 20, border: 'none',
                   backgroundColor: `${C.green}0D`,
                 }}>
                   <CheckCircle2 size={13} />
                   Ver {stats.resueltos} tarea{stats.resueltos !== 1 ? 's' : ''} resuelta{stats.resueltos !== 1 ? 's' : ''}
                 </button>
-              </div>
-            )}
-
-            {/* "No hay resueltos" si showResolved pero la sección está vacía con filtros */}
-            {showResolved && resueltos.length === 0 && (
-              <div style={{
-                backgroundColor: C.card, borderRadius: 12,
-                border: `1px solid ${C.border}`, padding: '24px',
-                display: 'flex', alignItems: 'center', gap: 10,
-              }}>
-                <XCircle size={16} color={C.muted} />
-                <p style={{ fontSize: 13, color: C.sub, fontWeight: 500 }}>
-                  No hay tareas resueltas con los filtros aplicados.
-                </p>
               </div>
             )}
           </>
