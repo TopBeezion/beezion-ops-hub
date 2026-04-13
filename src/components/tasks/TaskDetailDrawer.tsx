@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useUpdateTask, useDeleteTask } from '../../hooks/useTasks'
+import { getDaysOverdue } from '../../lib/dates'
 import { useClients } from '../../hooks/useClients'
 import { useCampaignsByClient } from '../../hooks/useCampaigns'
 import type { Task, Area, Priority, TaskStatus, TaskTipo, Etapa, MiniStatus, Deliverables, TaskAttachment } from '../../types'
@@ -230,7 +231,7 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
 
   const statusOpts     = (Object.entries(STATUS_LABELS)   as [TaskStatus, string][]).map(([v, l]) => ({ value: v, label: l, color: STATUS_COLORS[v] }))
   const priorityOpts   = (Object.entries(PRIORITY_LABELS) as [Priority,   string][]).map(([v, l]) => ({ value: v, label: l, color: PRIORITY_COLORS[v] }))
-  const tipoOpts       = [{ value: 'nuevo', label: 'Nuevo', color: '#9CA3AF' }, { value: 'pendiente_anterior', label: 'Pendiente anterior', color: '#F97316' }, { value: 'urgente', label: 'Urgente 🚨', color: '#EF4444' }]
+  // tipo kept in state for save compatibility but not shown in UI
   const etapaOpts      = [{ value: '', label: 'Sin etapa', color: '#D1D5DB' }, ...ETAPA_ORDER.map(e => ({ value: e, label: ETAPA_LABELS[e as Etapa], color: ETAPA_COLORS[e as Etapa] }))]
   const miniStatusOpts = [{ value: '', label: 'Sin estado', color: '#D1D5DB' }, ...MINI_STATUS_ORDER.map(s => ({ value: s, label: MINI_STATUS_LABELS[s as MiniStatus], color: MINI_STATUS_COLORS[s as MiniStatus] }))]
   const clienteOpts    = [{ value: '', label: 'Sin cliente', color: '#D1D5DB' }, ...clients.map(c => ({ value: c.id, label: c.name, color: c.color }))]
@@ -316,8 +317,8 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
             placeholder="Título de la tarea..."
           />
 
-          {/* Row 3: meta — fecha creación + ID */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 6 }}>
+          {/* Row 3: meta — fecha creación + ID + overdue badge */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 6, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 10, color: '#C4C9D4', fontWeight: 500 }}>
               Creado{' '}
               <span style={{ color: '#9CA3AF', fontWeight: 600 }}>
@@ -328,6 +329,18 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
             <span style={{ fontSize: 10, color: '#C4C9D4', fontWeight: 500 }}>
               ID <span style={{ color: '#9CA3AF', fontWeight: 600, fontFamily: 'monospace' }}>{task.id.slice(0, 8)}</span>
             </span>
+            {(() => {
+              const days = getDaysOverdue(task)
+              if (days === 0) return null
+              return (
+                <>
+                  <span style={{ width: 3, height: 3, borderRadius: '50%', backgroundColor: '#E5E7EB', flexShrink: 0 }} />
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, backgroundColor: '#FEF2F2', color: '#EF4444', border: '1px solid #FECACA' }}>
+                    ⚠️ Atrasada {days} {days === 1 ? 'día' : 'días'}
+                  </span>
+                </>
+              )
+            })()}
           </div>
         </div>
 
@@ -335,11 +348,10 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
         <div className="flex-1 overflow-auto" style={{ padding: '18px 20px 32px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
 
-            {/* Status · Prioridad · Tipo */}
+            {/* Status · Prioridad */}
             <div style={{ display: 'flex', gap: 8 }}>
               <FieldSel label="Status"    value={status}   onChange={v => setStatus(v as TaskStatus)}   options={statusOpts} />
               <FieldSel label="Prioridad" value={priority} onChange={v => setPriority(v as Priority)}   options={priorityOpts} />
-              <FieldSel label="Tipo"      value={tipo}     onChange={v => setTipo(v as TaskTipo)}        options={tipoOpts} accentColor="#9CA3AF" />
             </div>
 
             {/* Área */}

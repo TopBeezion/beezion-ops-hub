@@ -69,7 +69,7 @@ function BomberoRow({ task, onClick, onStatusChange }: {
       className="flex items-center gap-4 px-5 py-4 hover:bg-red-50 transition-colors cursor-pointer"
       style={{
         borderBottom: `1px solid ${C.border}`,
-        borderLeft: `4px solid ${task.tipo === 'urgente' ? C.red : C.orange}`,
+        borderLeft: `4px solid ${task.status === 'en_progreso' ? C.red : C.orange}`,
         opacity: isCompleted ? 0.5 : 1,
       }}
       onClick={onClick}
@@ -111,13 +111,13 @@ function BomberoRow({ task, onClick, onStatusChange }: {
       {/* Type badge */}
       <span style={{
         fontSize: 10, fontWeight: 700,
-        color: task.tipo === 'urgente' ? C.red : C.orange,
-        backgroundColor: task.tipo === 'urgente' ? `${C.red}12` : `${C.orange}12`,
+        color: task.status === 'en_progreso' ? C.red : C.orange,
+        backgroundColor: task.status === 'en_progreso' ? `${C.red}12` : `${C.orange}12`,
         padding: '2px 8px', borderRadius: 6,
-        border: `1px solid ${task.tipo === 'urgente' ? C.red : C.orange}30`,
+        border: `1px solid ${task.status === 'en_progreso' ? C.red : C.orange}30`,
         flexShrink: 0,
       }}>
-        {task.tipo === 'urgente' ? '🚨 URG' : '⏳ PREV'}
+        {task.status === 'en_progreso' ? '🔴 ACT' : '🟡 PEND'}
       </span>
 
       {/* Assignee */}
@@ -152,26 +152,22 @@ export function BomberosPage() {
   const [showResolved, setShowResolved] = useState(false)
 
   const bomberos = useMemo(() => tasks
-    .filter(t => t.tipo === 'urgente' || (t.tipo === 'pendiente_anterior' && t.priority === 'alta'))
+    .filter(t => t.priority === 'alta')
     .filter(t => !filterClient || t.client_id === filterClient)
     .filter(t => !filterAssignee || t.assignee === filterAssignee)
     .filter(t => showResolved || t.status !== 'completado')
     .sort((a, b) => {
-      if (a.tipo === 'urgente' && b.tipo !== 'urgente') return -1
-      if (a.tipo !== 'urgente' && b.tipo === 'urgente') return 1
+      if (a.status === 'en_progreso' && b.status !== 'en_progreso') return -1
+      if (a.status !== 'en_progreso' && b.status === 'en_progreso') return 1
       return 0
     }),
   [tasks, filterClient, filterAssignee, showResolved])
 
   const stats = useMemo(() => ({
-    total: bomberos.length + (showResolved ? 0 : tasks.filter(t =>
-      (t.tipo === 'urgente' || (t.tipo === 'pendiente_anterior' && t.priority === 'alta')) && t.status === 'completado'
-    ).length),
-    urgentes: tasks.filter(t => t.tipo === 'urgente').length,
-    prevPendientes: tasks.filter(t => t.tipo === 'pendiente_anterior' && t.priority === 'alta').length,
-    resueltos: tasks.filter(t =>
-      (t.tipo === 'urgente' || (t.tipo === 'pendiente_anterior' && t.priority === 'alta')) && t.status === 'completado'
-    ).length,
+    total: tasks.filter(t => t.priority === 'alta').length,
+    urgentes: tasks.filter(t => t.priority === 'alta' && t.status !== 'completado').length,
+    prevPendientes: tasks.filter(t => t.priority === 'alta' && t.status === 'pendiente').length,
+    resueltos: tasks.filter(t => t.priority === 'alta' && t.status === 'completado').length,
   }), [tasks, bomberos.length, showResolved])
 
   const assignees = useMemo(() => [...new Set(tasks.map(t => t.assignee))].sort(), [tasks])
@@ -341,8 +337,8 @@ export function BomberosPage() {
           </div>
         ) : (
           <>
-            {/* Urgentes */}
-            {bomberos.filter(t => t.tipo === 'urgente').length > 0 && (
+            {/* En Proceso */}
+            {bomberos.filter(t => t.status === 'en_progreso').length > 0 && (
               <div style={{
                 backgroundColor: C.card, borderRadius: 12,
                 border: `1px solid #E2445C30`, overflow: 'hidden', marginBottom: 16,
@@ -351,12 +347,12 @@ export function BomberosPage() {
                   <div className="flex items-center gap-2">
                     <Flame size={14} color={C.red} />
                     <span style={{ fontSize: 13, fontWeight: 700, color: C.red }}>
-                      URGENTES ({bomberos.filter(t => t.tipo === 'urgente').length})
+                      EN PROCESO ({bomberos.filter(t => t.status === 'en_progreso').length})
                     </span>
                   </div>
                 </div>
                 {bomberos
-                  .filter(t => t.tipo === 'urgente')
+                  .filter(t => t.status === 'en_progreso')
                   .map(task => (
                     <BomberoRow
                       key={task.id}
@@ -368,8 +364,8 @@ export function BomberosPage() {
               </div>
             )}
 
-            {/* Prev-pendientes de alta prioridad */}
-            {bomberos.filter(t => t.tipo === 'pendiente_anterior').length > 0 && (
+            {/* Pendientes de alta prioridad */}
+            {bomberos.filter(t => t.status !== 'en_progreso').length > 0 && (
               <div style={{
                 backgroundColor: C.card, borderRadius: 12,
                 border: `1px solid #FDAB3D30`, overflow: 'hidden',
@@ -378,12 +374,12 @@ export function BomberosPage() {
                   <div className="flex items-center gap-2">
                     <Clock size={14} color={C.orange} />
                     <span style={{ fontSize: 13, fontWeight: 700, color: C.orange }}>
-                      PENDIENTES ANTERIORES — PRIORIDAD ALTA ({bomberos.filter(t => t.tipo === 'pendiente_anterior').length})
+                      PENDIENTES — PRIORIDAD ALTA ({bomberos.filter(t => t.status !== 'en_progreso').length})
                     </span>
                   </div>
                 </div>
                 {bomberos
-                  .filter(t => t.tipo === 'pendiente_anterior')
+                  .filter(t => t.status !== 'en_progreso')
                   .map(task => (
                     <BomberoRow
                       key={task.id}

@@ -103,7 +103,7 @@ function SectionHeader({ icon: Icon, title, sub, color = C.accent, action, onAct
 // ─── Bombero row ──────────────────────────────────────────────────────────────
 function BomberoRow({ task, onClick, isLast }: { task: Task; onClick?: () => void; isLast?: boolean }) {
   const clientColor = (task.client as Client & { color: string })?.color || C.red
-  const isUrgent = task.tipo === 'urgente'
+  const isUrgent = task.status === 'en_progreso'  // En Proceso = más urgente visualmente
   return (
     <div
       className="flex items-center gap-3 px-4 py-3 hover:bg-red-50 cursor-pointer transition-colors"
@@ -299,8 +299,8 @@ export function DashboardPage() {
   }, [visibleTasks])
 
   const bomberos = useMemo(() => visibleTasks
-    .filter(t => t.tipo === 'urgente' || (t.tipo === 'pendiente_anterior' && t.priority === 'alta'))
-    .sort((a, b) => (a.tipo === 'urgente' ? 0 : 1) - (b.tipo === 'urgente' ? 0 : 1))
+    .filter(t => t.priority === 'alta' && t.status !== 'completado')
+    .sort((a, b) => (a.status === 'en_progreso' ? 0 : 1) - (b.status === 'en_progreso' ? 0 : 1))
     .slice(0, 7),
   [visibleTasks])
 

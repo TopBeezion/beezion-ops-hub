@@ -187,11 +187,7 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
 
   const statusOpts   = (Object.entries(STATUS_LABELS)   as [TaskStatus, string][]).map(([v, l]) => ({ value: v, label: l, color: STATUS_COLORS[v] }))
   const priorityOpts = (Object.entries(PRIORITY_LABELS) as [Priority,   string][]).map(([v, l]) => ({ value: v, label: l, color: PRIORITY_COLORS[v] }))
-  const tipoOpts = [
-    { value: 'nuevo',              label: 'Nuevo',              color: '#9699A6' },
-    { value: 'pendiente_anterior', label: 'Pendiente anterior', color: '#F97316' },
-    { value: 'urgente',            label: '🚨 Urgente',         color: '#EF4444' },
-  ]
+  // tipo removed from UI — kept in submit payload as default 'nuevo'
   const etapaOpts = [
     { value: '', label: 'Sin etapa', color: '#9699A6' },
     ...ETAPA_ORDER.map(e => ({ value: e, label: ETAPA_LABELS[e as Etapa], color: ETAPA_COLORS[e as Etapa] })),
@@ -241,7 +237,6 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
           <div style={{ display: 'flex', gap: 8 }}>
             <FieldSel label="Status" value={status} onChange={v => setStatus(v as TaskStatus)} options={statusOpts} />
             <FieldSel label="Prioridad" value={priority} onChange={v => setPriority(v as Priority)} options={priorityOpts} />
-            <FieldSel label="Tipo" value={tipo} onChange={v => setTipo(v as TaskTipo)} options={tipoOpts} />
           </div>
 
           {/* Área */}

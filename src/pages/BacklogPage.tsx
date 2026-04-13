@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
-import { Search, Plus, X, ChevronDown } from 'lucide-react'
+import { Search, Plus, X, ChevronDown, AlertTriangle } from 'lucide-react'
+import { getDaysOverdue } from '../lib/dates'
 import { useTasks, useUpdateTask, useUpdateTaskStatus } from '../hooks/useTasks'
 import { useClients } from '../hooks/useClients'
 import { useCampaigns } from '../hooks/useCampaigns'
@@ -477,9 +478,17 @@ export function BacklogPage() {
                   >
                     {/* Tarea */}
                     <td style={{ padding: '9px 14px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                        {task.tipo === 'urgente' && <span style={{ fontSize: 8, fontWeight: 800, padding: '1px 5px', borderRadius: 4, backgroundColor: '#FEE2E2', color: '#DC2626', flexShrink: 0 }}>URG</span>}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
                         <span style={{ color: C.text, fontWeight: 500, fontSize: 12, lineHeight: 1.35 }}>{task.title}</span>
+                        {(() => {
+                          const days = getDaysOverdue(task)
+                          if (days === 0) return null
+                          return (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 4, backgroundColor: '#FEF2F2', color: '#EF4444', border: '1px solid #FECACA', flexShrink: 0, whiteSpace: 'nowrap' }}>
+                              <AlertTriangle size={8} /> {days}d atrasada
+                            </span>
+                          )
+                        })()}
                       </div>
                     </td>
                     {/* Campaña */}

@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useTasks, useUpdateTaskStatus } from '../hooks/useTasks'
+import { getDaysOverdue } from '../lib/dates'
 import { useClients } from '../hooks/useClients'
 import { useOutletContext } from 'react-router-dom'
 import {
@@ -204,6 +205,15 @@ function TaskCard({ task, onOpenDetail }: { task: Task; onOpenDetail: (t: Task) 
           }}>
             {task.priority === 'alta' ? '↑ Alta' : task.priority === 'media' ? '→ Media' : '↓ Baja'}
           </span>
+          {(() => {
+            const days = getDaysOverdue(task)
+            if (days === 0) return null
+            return (
+              <span style={{ fontSize: 9, fontWeight: 700, color: '#EF4444', backgroundColor: '#FEF2F2', padding: '2px 6px', borderRadius: 4, border: '1px solid #FECACA' }}>
+                ⚠️ {days}d atraso
+              </span>
+            )
+          })()}
           {task.campaign && (
             <span style={{
               fontSize: 9, color: C.muted,
