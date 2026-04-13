@@ -104,42 +104,52 @@ function SectionHeader({ icon: Icon, title, sub, color = C.accent, action, onAct
 function BomberoRow({ task, onClick, isLast }: { task: Task; onClick?: () => void; isLast?: boolean }) {
   const clientColor = (task.client as Client & { color: string })?.color || C.red
   const statusColor = STATUS_COLORS[task.status] || C.muted
-  const statusLabel = STATUS_LABELS[task.status] || task.status
+  const assigneeColor = ASSIGNEE_COLORS[task.assignee] || C.muted
+  const isInProgress = task.status === 'en_progreso'
+
   return (
     <div
-      className="flex items-center gap-4 px-5 py-3.5 hover:bg-red-50 cursor-pointer transition-colors"
-      style={{ borderBottom: isLast ? 'none' : `1px solid ${C.border}`, borderLeft: `3px solid ${statusColor}` }}
       onClick={onClick}
+      className="cursor-pointer transition-all"
+      style={{
+        display: 'flex', alignItems: 'center', gap: 10,
+        padding: '10px 16px',
+        borderBottom: isLast ? 'none' : `1px solid ${C.border}`,
+        borderLeft: `3px solid ${statusColor}`,
+        backgroundColor: 'transparent',
+      }}
+      onMouseEnter={e => (e.currentTarget as HTMLElement).style.backgroundColor = '#F7F8FC'}
+      onMouseLeave={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'}
     >
-      <div style={{ flexShrink: 0 }}>
-        <span style={{
-          fontSize: 9, fontWeight: 700, letterSpacing: '0.03em',
-          color: statusColor,
-          backgroundColor: `${statusColor}15`,
-          padding: '2px 6px', borderRadius: 4,
-          border: `1px solid ${statusColor}25`,
-        }}>
-          {statusLabel}
-        </span>
-      </div>
-      <p style={{ fontSize: 12, fontWeight: 500, color: C.text, flex: 1, lineHeight: 1.3 }} className="truncate">
+      {/* Status dot */}
+      <div style={{
+        width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+        backgroundColor: statusColor,
+        boxShadow: isInProgress ? `0 0 5px ${statusColor}80` : 'none',
+      }} />
+
+      {/* Title */}
+      <p style={{ fontSize: 12, fontWeight: 600, color: C.text, flex: 1, lineHeight: 1.3, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {task.title}
       </p>
-      <div className="flex items-center gap-1.5 flex-shrink-0">
+
+      {/* Client + assignee */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
         {task.client && (
           <span style={{
             fontSize: 9, fontWeight: 700, color: clientColor,
-            backgroundColor: `${clientColor}15`, padding: '1px 5px', borderRadius: 3,
+            backgroundColor: `${clientColor}12`, padding: '2px 7px', borderRadius: 4,
+            border: `1px solid ${clientColor}20`,
           }}>
             {(task.client as Client).name}
           </span>
         )}
         <div style={{
-          width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
-          backgroundColor: `${ASSIGNEE_COLORS[task.assignee] || C.muted}25`,
-          color: ASSIGNEE_COLORS[task.assignee] || C.muted,
+          width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+          backgroundColor: `${assigneeColor}20`, color: assigneeColor,
           fontSize: 8, fontWeight: 800,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
+          border: `1.5px solid ${assigneeColor}35`,
         }}>
           {task.assignee.slice(0, 2).toUpperCase()}
         </div>
@@ -151,23 +161,42 @@ function BomberoRow({ task, onClick, isLast }: { task: Task; onClick?: () => voi
 // ─── In-progress row ──────────────────────────────────────────────────────────
 function ProgressRow({ task, onClick, isLast }: { task: Task; onClick?: () => void; isLast?: boolean }) {
   const clientColor = (task.client as Client & { color: string })?.color || C.muted
+  const assigneeColor = ASSIGNEE_COLORS[task.assignee] || C.muted
   return (
     <div
-      className="flex items-center gap-4 px-5 py-3.5 hover:bg-blue-50 cursor-pointer transition-colors"
       onClick={onClick}
-      style={{ borderBottom: isLast ? 'none' : `1px solid ${C.border}` }}
+      className="cursor-pointer transition-all"
+      style={{
+        display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px',
+        borderBottom: isLast ? 'none' : `1px solid ${C.border}`,
+        borderLeft: `3px solid ${C.blue}`,
+        backgroundColor: 'transparent',
+      }}
+      onMouseEnter={e => (e.currentTarget as HTMLElement).style.backgroundColor = '#F7F8FC'}
+      onMouseLeave={e => (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'}
     >
-      <div style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: C.blue, flexShrink: 0 }} />
-      <p style={{ fontSize: 12, fontWeight: 500, color: C.text, flex: 1, lineHeight: 1.4 }} className="truncate">{task.title}</p>
+      <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: C.blue, flexShrink: 0, boxShadow: `0 0 5px ${C.blue}60` }} />
+      <p style={{ fontSize: 12, fontWeight: 600, color: C.text, flex: 1, lineHeight: 1.3, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.title}</p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
       {task.client && (
         <span style={{
           fontSize: 9, fontWeight: 700, color: clientColor,
-          backgroundColor: `${clientColor}15`, padding: '2px 7px', borderRadius: 4, flexShrink: 0,
-          border: `1px solid ${clientColor}25`,
+          backgroundColor: `${clientColor}12`, padding: '2px 7px', borderRadius: 4, flexShrink: 0,
+          border: `1px solid ${clientColor}20`,
         }}>
           {(task.client as Client).name}
         </span>
       )}
+      <div style={{
+        width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+        backgroundColor: `${assigneeColor}20`, color: assigneeColor,
+        fontSize: 8, fontWeight: 800,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        border: `1.5px solid ${assigneeColor}35`,
+      }}>
+        {task.assignee.slice(0, 2).toUpperCase()}
+      </div>
+      </div>
     </div>
   )
 }
@@ -335,7 +364,7 @@ export function DashboardPage() {
     return { hooks, cta, body, scripts, lm }
   }, [visibleTasks])
 
-  const areaStats = useMemo(() => (['copy', 'trafico', 'tech', 'admin'] as Area[]).map(area => {
+  const areaStats = useMemo(() => (['copy', 'trafico', 'tech', 'admin', 'edicion'] as Area[]).map(area => {
     const at = visibleTasks.filter(t => t.area === area)
     return { area, total: at.length, done: at.filter(t => t.status === 'completado').length }
   }).filter(a => a.total > 0), [visibleTasks])

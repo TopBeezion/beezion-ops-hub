@@ -385,7 +385,7 @@ export function SettingsPage() {
         <section>
           <SectionTitle icon={Palette}>Áreas de trabajo</SectionTitle>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            {(['copy', 'trafico', 'tech', 'admin'] as const).map(area => {
+            {(['copy', 'trafico', 'tech', 'admin', 'edicion'] as const).map(area => {
               const areaTaskCount = tasks.filter(t => t.area === area).length
               return (
                 <div key={area} style={{

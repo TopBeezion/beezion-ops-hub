@@ -26,7 +26,7 @@ const SPRINT_META: Record<number, { label: string; sub: string; color: string; o
   4: { label: 'Sprint 4', sub: 'Launch & Optim.',       color: '#22c55e', owner: 'Alec · Jose' },
 }
 
-const AREA_LIST   = ['copy', 'trafico', 'tech', 'admin'] as const
+const AREA_LIST   = ['copy', 'trafico', 'tech', 'admin', 'edicion'] as const
 const ASSIGNEES   = ['Alejandro', 'Alec', 'Jose', 'Luisa', 'Paula', 'David', 'Johan', 'Felipe']
 
 const ASSIGNEE_INITIALS: Record<string, string> = {

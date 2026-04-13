@@ -472,7 +472,7 @@ export function ClientDetailPage() {
                 color: !areaFilter ? '#FFFFFF' : C.muted,
                 backgroundColor: !areaFilter ? clientColor : 'transparent',
               }}>Todas</button>
-              {(['copy', 'trafico', 'tech', 'admin'] as Area[]).map(area => (
+              {(['copy', 'trafico', 'tech', 'admin', 'edicion'] as Area[]).map(area => (
                 <button key={area} onClick={() => setAreaFilter(area)} style={{
                   padding: '4px 10px', borderRadius: 6, fontSize: 10, fontWeight: 600,
                   cursor: 'pointer', border: 'none',
