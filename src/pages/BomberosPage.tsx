@@ -10,6 +10,19 @@ import {
   ChevronDown, Circle, RefreshCw, XCircle, Zap,
 } from 'lucide-react'
 
+// ─── usePopover ──────────────────────────────────────────────────────────────
+function usePopoverB() {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [open])
+  return { open, setOpen, ref }
+}
+
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
   bg: '#F0F2F8',
@@ -31,6 +44,79 @@ const COLUMNS: { status: TaskStatus; label: string; icon: React.ElementType; col
   { status: 'revision',    label: 'BLOCKER',     icon: AlertTriangle,color: C.red,    bg: '#FEF2F2', border: '#FECACA' },
   { status: 'completado',  label: 'DONE',        icon: CheckCircle2, color: C.green,  bg: '#ECFDF5', border: '#A7F3D0' },
 ]
+
+// ─── Filter Dropdown for Bomberos ────────────────────────────────────────────
+function BombFilterDrop({ label, value, onChange, options, placeholder, showAvatar }: {
+  label: string; value: string; onChange: (v: string) => void
+  options: { value: string; label: string; color?: string }[]
+  placeholder?: string; showAvatar?: boolean
+}) {
+  const { open, setOpen, ref } = usePopoverB()
+  const sel = options.find(o => o.value === value)
+  const isActive = !!value
+  const oc = sel?.color ?? '#6366F1'
+
+  return (
+    <div ref={ref} style={{ position: 'relative', flexShrink: 0 }}>
+      <button onClick={() => setOpen(o => !o)} style={{
+        display: 'inline-flex', alignItems: 'center', gap: 5, height: 32, padding: '0 10px',
+        borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: 'none',
+        backgroundColor: isActive ? `${oc}18` : '#F5F6FA',
+        outline: isActive ? `1.5px solid ${oc}50` : `1px solid #E8EAF2`,
+        color: isActive ? oc : '#676879', transition: 'all 0.12s',
+      }}>
+        <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.05em', color: isActive ? oc : '#9699A6' }}>{label}</span>
+        {sel && <>
+          <span style={{ width: 1, height: 10, backgroundColor: `${oc}40` }} />
+          {showAvatar
+            ? <div style={{ width: 18, height: 18, borderRadius: '50%', backgroundColor: oc, color: '#fff', fontSize: 7, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{sel.label.slice(0, 2).toUpperCase()}</div>
+            : <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: oc }} />
+          }
+          <span style={{ fontWeight: 700 }}>{sel.label}</span>
+        </>}
+        <ChevronDown size={10} style={{ opacity: 0.6, transform: open ? 'rotate(180deg)' : 'none', transition: '0.15s' }} />
+      </button>
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 400,
+          backgroundColor: '#fff', border: '1px solid #E6E9EF',
+          borderRadius: 10, boxShadow: '0 8px 28px rgba(0,0,0,0.13)',
+          padding: 4, minWidth: 190,
+        }}>
+          <button onClick={() => { onChange(''); setOpen(false) }} style={{
+            display: 'flex', alignItems: 'center', width: '100%', padding: '7px 10px',
+            borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 12,
+            backgroundColor: !value ? '#F5F6FA' : 'transparent', color: '#9699A6',
+          }}
+          onMouseEnter={e => { if (value) (e.currentTarget as HTMLElement).style.backgroundColor = '#F5F6FA' }}
+          onMouseLeave={e => { if (value) (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent' }}>
+            {placeholder ?? 'Todos'}
+          </button>
+          {options.map(o => {
+            const isSel = value === o.value
+            const tc = o.color ?? '#6366F1'
+            return (
+              <button key={o.value} onClick={() => { onChange(isSel ? '' : o.value); setOpen(false) }} style={{
+                display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+                padding: '7px 10px', borderRadius: 7, border: 'none', cursor: 'pointer',
+                backgroundColor: isSel ? `${tc}12` : 'transparent', textAlign: 'left',
+              }}
+              onMouseEnter={e => { if (!isSel) (e.currentTarget as HTMLElement).style.backgroundColor = '#F5F6FA' }}
+              onMouseLeave={e => { if (!isSel) (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent' }}>
+                {showAvatar
+                  ? <div style={{ width: 22, height: 22, borderRadius: '50%', backgroundColor: isSel ? tc : `${tc}25`, color: isSel ? '#fff' : tc, fontSize: 8, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{o.label.slice(0, 2).toUpperCase()}</div>
+                  : <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: tc, flexShrink: 0 }} />
+                }
+                <span style={{ flex: 1, fontSize: 12, fontWeight: isSel ? 700 : 500, color: isSel ? tc : '#374151' }}>{o.label}</span>
+                {isSel && <span style={{ fontSize: 11, color: tc }}>✓</span>}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
 
 // ─── Status Dropdown (position:fixed para evitar clipping) ────────────────────
 function StatusDropdown({ status, onSelect }: { status: TaskStatus; onSelect: (s: TaskStatus) => void }) {
@@ -366,50 +452,29 @@ export function BomberosPage() {
           })}
         </div>
 
-        {/* Row 2: Client + assignee filters */}
+        {/* Row 2: Client + assignee dropdowns */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 9, fontWeight: 800, color: C.muted, letterSpacing: '0.1em', marginRight: 2 }}>CLIENTE</span>
-          {[{ id: '', name: 'Todos' }, ...clients].map(c => {
-            const col = (c as any).color || C.red
-            const active = filterClient === c.id
-            return (
-              <button key={c.id} onClick={() => setFilterClient(active ? '' : c.id)} style={{
-                display: 'inline-flex', alignItems: 'center', gap: 4,
-                padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600,
-                cursor: 'pointer', border: 'none', transition: 'all 0.12s',
-                backgroundColor: active ? (c.id ? col : C.red) : '#F5F6FA',
-                color: active ? '#fff' : C.sub,
-                boxShadow: active ? `0 2px 6px ${c.id ? col : C.red}40` : `inset 0 0 0 1px ${C.border}`,
-              }}>
-                {c.id && <span style={{ width: 5, height: 5, borderRadius: '50%', backgroundColor: active ? 'rgba(255,255,255,0.8)' : col, flexShrink: 0 }} />}
-                {c.name}
-              </button>
-            )
-          })}
-
-          <span style={{ fontSize: 9, fontWeight: 800, color: C.muted, letterSpacing: '0.1em', marginLeft: 8, marginRight: 4 }}>PERSONA</span>
-          {assignees.map(name => {
-            const ac = ASSIGNEE_COLORS[name] || C.muted
-            const active = filterAssignee === name
-            return (
-              <button key={name} onClick={() => setFilterAssignee(active ? '' : name)} title={name} style={{
-                display: 'inline-flex', alignItems: 'center', gap: 5,
-                padding: '4px 10px 4px 5px', borderRadius: 20, fontSize: 11, fontWeight: 600,
-                cursor: 'pointer', border: 'none', transition: 'all 0.12s',
-                backgroundColor: active ? ac : '#F5F6FA', color: active ? '#fff' : C.sub,
-                boxShadow: active ? `0 2px 8px ${ac}40` : `inset 0 0 0 1px ${C.border}`,
-              }}>
-                <div style={{
-                  width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
-                  backgroundColor: active ? 'rgba(255,255,255,0.25)' : ac,
-                  color: '#fff', fontSize: 8, fontWeight: 800,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  border: active ? '2px solid rgba(255,255,255,0.4)' : 'none',
-                }}>{name.slice(0, 2).toUpperCase()}</div>
-                {name}
-              </button>
-            )
-          })}
+          <BombFilterDrop
+            label="Cliente"
+            value={filterClient}
+            onChange={setFilterClient}
+            options={clients.map(c => ({ value: c.id, label: c.name, color: (c as any).color || C.red }))}
+            placeholder="Todos los clientes"
+          />
+          <BombFilterDrop
+            label="Persona"
+            value={filterAssignee}
+            onChange={setFilterAssignee}
+            options={assignees.map(name => ({ value: name, label: name, color: ASSIGNEE_COLORS[name] || C.muted }))}
+            placeholder="Todas las personas"
+            showAvatar
+          />
+          {(filterClient || filterAssignee) && (
+            <button onClick={() => { setFilterClient(''); setFilterAssignee('') }}
+              style={{ fontSize: 10, fontWeight: 700, cursor: 'pointer', color: '#DC2626', backgroundColor: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: 8, padding: '0 10px', height: 32 }}>
+              ✕
+            </button>
+          )}
         </div>
       </div>
 

@@ -244,7 +244,86 @@ function AssigneePicker({ task, onUpdate }: { task: Task; onUpdate: (id: string,
   )
 }
 
-// ─── Filter Chip ─────────────────────────────────────────────────────────────
+// ─── Filter Dropdown ──────────────────────────────────────────────────────────
+function FilterDropdown({ label, options, value, onChange, multiValues, onMultiChange }: {
+  label: string
+  options: { value: string; label: string; color?: string; count?: number }[]
+  value?: string
+  onChange?: (v: string) => void
+  multiValues?: string[]
+  onMultiChange?: (v: string[]) => void
+}) {
+  const { open, setOpen, ref } = usePopover()
+  const isMulti = !!onMultiChange
+  const selected = isMulti ? (multiValues ?? []) : (value ? [value] : [])
+  const isActive = selected.length > 0
+
+  let btnLabel = ''
+  let btnColor = C.accent
+  if (selected.length === 1) {
+    const opt = options.find(o => o.value === selected[0])
+    btnLabel = opt?.label ?? ''
+    btnColor = opt?.color ?? C.accent
+  } else if (selected.length > 1) {
+    btnLabel = `${selected.length} filtros`
+    btnColor = C.accent
+  }
+
+  const toggle = (v: string) => {
+    if (isMulti && onMultiChange && multiValues !== undefined) {
+      onMultiChange(multiValues.includes(v) ? multiValues.filter(x => x !== v) : [...multiValues, v])
+    } else if (onChange) {
+      onChange(value === v ? '' : v)
+      setOpen(false)
+    }
+  }
+
+  return (
+    <div ref={ref} style={{ position: 'relative', flexShrink: 0 }}>
+      <button onClick={() => setOpen(o => !o)} style={{
+        display: 'inline-flex', alignItems: 'center', gap: 5, height: 32,
+        padding: '0 10px', borderRadius: 8, fontSize: 11, fontWeight: 600,
+        cursor: 'pointer', border: 'none', transition: 'all 0.12s',
+        backgroundColor: isActive ? `${btnColor}14` : C.bg,
+        outline: isActive ? `1.5px solid ${btnColor}50` : `1px solid ${C.border}`,
+        color: isActive ? btnColor : C.sub,
+      }}>
+        <span style={{ fontSize: 10, fontWeight: 800, color: isActive ? btnColor : C.muted, letterSpacing: '0.05em' }}>{label}</span>
+        {btnLabel && <><span style={{ width: 1, height: 10, backgroundColor: isActive ? `${btnColor}40` : C.border }} /><span style={{ fontWeight: 700, fontSize: 11 }}>{btnLabel}</span></>}
+        <ChevronDown size={10} style={{ opacity: 0.6, transform: open ? 'rotate(180deg)' : 'none', transition: '0.15s', flexShrink: 0 }} />
+      </button>
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 400,
+          backgroundColor: '#fff', border: `1px solid ${C.border}`,
+          borderRadius: 10, boxShadow: '0 8px 28px rgba(0,0,0,0.13)',
+          padding: 4, minWidth: 180, maxHeight: 280, overflowY: 'auto',
+        }}>
+          {options.map(o => {
+            const isSel = selected.includes(o.value)
+            const oc = o.color ?? C.accent
+            return (
+              <button key={o.value} onClick={() => toggle(o.value)} style={{
+                display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+                padding: '7px 10px', borderRadius: 7, border: 'none', cursor: 'pointer',
+                backgroundColor: isSel ? `${oc}12` : 'transparent', textAlign: 'left',
+              }}
+              onMouseEnter={e => { if (!isSel) (e.currentTarget as HTMLElement).style.backgroundColor = '#F5F6FA' }}
+              onMouseLeave={e => { if (!isSel) (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent' }}>
+                {o.color && <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: oc, flexShrink: 0 }} />}
+                <span style={{ flex: 1, fontSize: 12, fontWeight: isSel ? 700 : 500, color: isSel ? oc : C.text }}>{o.label}</span>
+                {o.count !== undefined && o.count > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: oc, backgroundColor: `${oc}15`, padding: '0 5px', borderRadius: 10 }}>{o.count}</span>}
+                {isSel && <span style={{ fontSize: 11, color: oc }}>✓</span>}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Filter Chip (kept for compatibility) ────────────────────────────────────
 function Chip({ label, active, color, onClick }: { label: string; active: boolean; color: string; onClick: () => void }) {
   return (
     <button onClick={onClick} style={{
@@ -391,87 +470,49 @@ export function BacklogPage() {
         </div>
 
         {/* ── FILTER BAR ─────────────────────────────────────────────────── */}
-        <div style={{ borderTop: `1px solid ${C.border}`, padding: '8px 20px 10px', display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+        <div style={{ borderTop: `1px solid ${C.border}`, padding: '8px 20px', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
           {/* Search */}
-          <div style={{ position: 'relative', alignSelf: 'center' }}>
+          <div style={{ position: 'relative', flexShrink: 0 }}>
             <Search size={12} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: C.muted }} />
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar tarea..."
-              style={{ paddingLeft: 28, paddingRight: 12, paddingTop: 6, paddingBottom: 6, borderRadius: 10, border: `1px solid ${search ? C.accent : C.border}`, backgroundColor: search ? '#EEF2FF' : C.bg, color: C.text, fontSize: 12, outline: 'none', width: 175 }} />
+              style={{ paddingLeft: 28, paddingRight: 10, height: 32, borderRadius: 8, border: `1px solid ${search ? C.accent : C.border}`, backgroundColor: search ? '#EEF2FF' : C.bg, color: C.text, fontSize: 12, outline: 'none', width: 160 }} />
           </div>
-          <Divider />
-          {/* Estado */}
-          <div>
-            <p style={{ fontSize: 9, fontWeight: 800, color: C.muted, margin: '0 0 5px', letterSpacing: '0.1em' }}>ESTADO</p>
-            <div style={{ display: 'flex', gap: 4 }}>
-              {STATUS_ORDER.map(key => {
-                const active = activeStatuses.includes(key); const sc = STATUS_COLORS[key]
-                return (
-                  <button key={key} onClick={() => toggleArr(activeStatuses, setStats, key)} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: 'none', transition: 'all 0.12s', backgroundColor: active ? sc : C.surface, color: active ? '#fff' : C.sub, boxShadow: active ? `0 2px 8px ${sc}40` : `inset 0 0 0 1px ${C.border}` }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: active ? 'rgba(255,255,255,0.7)' : sc }} />
-                    {STATUS_LABELS[key]}
-                    {statusCounts[key] > 0 && <span style={{ fontSize: 9, fontWeight: 800, backgroundColor: active ? 'rgba(255,255,255,0.25)' : `${sc}20`, color: active ? '#fff' : sc, padding: '0 5px', borderRadius: 10 }}>{statusCounts[key]}</span>}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-          <Divider />
-          {/* Área */}
-          <div>
-            <p style={{ fontSize: 9, fontWeight: 800, color: C.muted, margin: '0 0 5px', letterSpacing: '0.1em' }}>ÁREA</p>
-            <div style={{ display: 'flex', gap: 4 }}>
-              {AREA_ORDER.map(a => <Chip key={a} label={AREA_LABELS[a]} active={activeArea === a} color={AREA_COLORS[a]} onClick={() => setArea(activeArea === a ? '' : a)} />)}
-            </div>
-          </div>
-          <Divider />
-          {/* Etapa */}
-          <div>
-            <p style={{ fontSize: 9, fontWeight: 800, color: C.muted, margin: '0 0 5px', letterSpacing: '0.1em' }}>ETAPA</p>
-            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-              {ETAPA_ORDER.map(e => {
-                const active = activeEtapa === e
-                const ec = ETAPA_COLORS[e]
-                return (
-                  <button key={e} onClick={() => setEtapa(activeEtapa === e ? '' : e)}
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 5,
-                      padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600,
-                      cursor: 'pointer', border: 'none', transition: 'all 0.12s',
-                      backgroundColor: active ? ec : C.surface,
-                      color: active ? '#fff' : C.sub,
-                      boxShadow: active ? `0 2px 8px ${ec}40` : `inset 0 0 0 1px ${C.border}`,
-                    }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: active ? 'rgba(255,255,255,0.7)' : ec, flexShrink: 0 }} />
-                    {ETAPA_LABELS[e]}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-          <Divider />
-          {/* Responsable */}
-          <div>
-            <p style={{ fontSize: 9, fontWeight: 800, color: C.muted, margin: '0 0 5px', letterSpacing: '0.1em' }}>RESPONSABLE</p>
-            <div style={{ display: 'flex', gap: 4 }}>
-              {ASSIGNEES.map(({ name, color }) => {
-                const active = activePersons.includes(name)
-                return (
-                  <button key={name} onClick={() => toggleArr(activePersons, setPersons, name)} title={name}
-                    style={{ width: 30, height: 30, borderRadius: '50%', cursor: 'pointer', border: 'none', backgroundColor: active ? color : `${color}22`, color: active ? '#fff' : color, fontSize: 9, fontWeight: 800, outline: active ? `2px solid ${color}` : `1px solid ${color}35`, outlineOffset: active ? 1 : 0, transition: 'all 0.12s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {name.slice(0, 2).toUpperCase()}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-          <Divider />
-          {/* Cliente */}
-          <div>
-            <p style={{ fontSize: 9, fontWeight: 800, color: C.muted, margin: '0 0 5px', letterSpacing: '0.1em' }}>CLIENTE</p>
-            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-              {clients.map(cl => <Chip key={cl.id} label={cl.name} active={activeClients.includes(cl.id)} color={cl.color} onClick={() => toggleArr(activeClients, setClients, cl.id)} />)}
-            </div>
-          </div>
+          <div style={{ width: 1, height: 20, backgroundColor: C.border, flexShrink: 0 }} />
+          <FilterDropdown
+            label="Estado"
+            options={STATUS_ORDER.map(s => ({ value: s, label: STATUS_LABELS[s], color: STATUS_COLORS[s], count: statusCounts[s] }))}
+            multiValues={activeStatuses}
+            onMultiChange={v => setStats(v as TaskStatus[])}
+          />
+          <FilterDropdown
+            label="Área"
+            options={AREA_ORDER.map(a => ({ value: a, label: AREA_LABELS[a], color: AREA_COLORS[a] }))}
+            value={activeArea}
+            onChange={v => setArea(v as Area | '')}
+          />
+          <FilterDropdown
+            label="Etapa"
+            options={ETAPA_ORDER.map(e => ({ value: e, label: ETAPA_LABELS[e as Etapa], color: ETAPA_COLORS[e as Etapa] }))}
+            value={activeEtapa}
+            onChange={v => setEtapa(v as Etapa | '')}
+          />
+          <FilterDropdown
+            label="Responsable"
+            options={ASSIGNEES.map(({ name, color }) => ({ value: name, label: name, color }))}
+            multiValues={activePersons}
+            onMultiChange={v => setPersons(v)}
+          />
+          <FilterDropdown
+            label="Cliente"
+            options={clients.map(cl => ({ value: cl.id, label: cl.name, color: cl.color }))}
+            multiValues={activeClients}
+            onMultiChange={v => setClients(v)}
+          />
+          {hasFilters && (
+            <button onClick={clearAll} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, cursor: 'pointer', color: '#DC2626', backgroundColor: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: 8, padding: '0 10px', height: 32, flexShrink: 0 }}>
+              <X size={9} /> Limpiar
+            </button>
+          )}
         </div>
       </div>
 
