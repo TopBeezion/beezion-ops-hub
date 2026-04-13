@@ -66,7 +66,7 @@ function BomberoRow({ task, onClick, onStatusChange }: {
 
   return (
     <div
-      className="flex items-center gap-4 px-5 py-4 hover:bg-red-50 transition-colors cursor-pointer"
+      className="flex items-center gap-5 px-6 py-4 hover:bg-red-50 transition-colors cursor-pointer"
       style={{
         borderBottom: `1px solid ${C.border}`,
         borderLeft: `4px solid ${task.status === 'en_progreso' ? C.red : C.orange}`,
@@ -215,10 +215,10 @@ export function BomberosPage() {
       {/* Filters */}
       <div style={{
         backgroundColor: C.card, borderBottom: `1px solid ${C.border}`,
-        padding: '10px 28px', display: 'flex', flexDirection: 'column', gap: 8,
+        padding: '14px 28px', display: 'flex', flexDirection: 'column', gap: 12,
       }}>
         {/* Row 1: Clients */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 9, fontWeight: 800, color: C.muted, letterSpacing: '0.1em', marginRight: 2 }}>CLIENTE</span>
           {[{ id: '', name: 'Todos' }, ...clients].map(c => {
             const col = (c as any).color || C.red
@@ -307,7 +307,7 @@ export function BomberosPage() {
       </div>
 
       {/* List */}
-      <div style={{ maxWidth: 1100, margin: '24px auto', padding: '0 28px' }}>
+      <div style={{ maxWidth: 1100, margin: '28px auto', padding: '0 28px' }}>
         {isLoading ? (
           <div className="flex justify-center py-20">
             <div className="w-8 h-8 rounded-full border-2 border-transparent border-t-current animate-spin" style={{ color: C.red }} />
@@ -330,7 +330,7 @@ export function BomberosPage() {
             {bomberos.filter(t => t.status === 'en_progreso').length > 0 && (
               <div style={{
                 backgroundColor: C.card, borderRadius: 12,
-                border: `1px solid #E2445C30`, overflow: 'hidden', marginBottom: 16,
+                border: `1px solid #E2445C30`, overflow: 'hidden', marginBottom: 18,
               }}>
                 <div style={{ padding: '12px 20px', backgroundColor: '#E2445C08', borderBottom: `1px solid #E2445C20` }}>
                   <div className="flex items-center gap-2">

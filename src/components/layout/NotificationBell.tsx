@@ -22,7 +22,8 @@ const N = {
 
 export function NotificationBell({ onOpenTask }: { onOpenTask?: (taskId: string) => void }) {
   useMeetingTaskWatcher()
-  useOverdueNotifier()
+  // Temporalmente desactivado - activar cuando todas las tareas tengan fecha límite establecida
+  // useOverdueNotifier()
 
   const { notifications, unreadCount, markAllRead } = useNotifications()
   const [open, setOpen] = useState(false)
@@ -78,10 +79,10 @@ export function NotificationBell({ onOpenTask }: { onOpenTask?: (taskId: string)
         >
           {/* Header */}
           <div
-            className="flex items-center justify-between px-4 py-3"
+            className="flex items-center justify-between px-4 py-3.5"
             style={{ borderBottom: `1px solid ${N.headerBorder}` }}
           >
-            <span className="text-xs font-bold" style={{ color: N.text }}>Notificaciones</span>
+            <span className="text-sm font-bold" style={{ color: N.text }}>Notificaciones</span>
             {notifications.length > 0 && (
               <button
                 onClick={markAllRead}
@@ -96,9 +97,9 @@ export function NotificationBell({ onOpenTask }: { onOpenTask?: (taskId: string)
           {/* List */}
           <div className="overflow-auto" style={{ maxHeight: 460 }}>
             {notifications.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-10">
+              <div className="flex flex-col items-center justify-center py-12">
                 <Bell size={20} style={{ color: '#D1D5DB' }} />
-                <p className="text-xs mt-2" style={{ color: N.faint }}>Sin notificaciones</p>
+                <p className="text-xs mt-3 font-medium" style={{ color: '#9CA3AF' }}>Sin notificaciones</p>
               </div>
             ) : (
               notifications.map((n, idx) => (
@@ -121,10 +122,10 @@ export function NotificationBell({ onOpenTask }: { onOpenTask?: (taskId: string)
                         }}
                       >
                         <div className="flex items-center gap-2 mb-0.5">
-                          <AlertTriangle size={12} color="#EF4444" />
-                          <p style={{ fontSize: 12, fontWeight: 700, color: '#EF4444' }}>{n.title}</p>
+                          <AlertTriangle size={12} color="#DC2626" />
+                          <p style={{ fontSize: 12, fontWeight: 700, color: '#DC2626' }}>{n.title}</p>
                         </div>
-                        <p style={{ fontSize: 10, color: '#F87171', marginLeft: 20 }}>{n.body}</p>
+                        <p style={{ fontSize: 10, color: '#991B1B', marginLeft: 20, fontWeight: 500 }}>{n.body}</p>
                       </div>
                       <div className="space-y-1">
                         {n.tasks.slice(0, 6).map(t => (
@@ -145,7 +146,7 @@ export function NotificationBell({ onOpenTask }: { onOpenTask?: (taskId: string)
                             >
                               {t.area}
                             </span>
-                            <span className="flex-1 text-[11px] truncate font-medium" style={{ color: N.text }}>
+                            <span className="flex-1 text-xs truncate font-semibold" style={{ color: '#1F2937' }}>
                               {t.title}
                             </span>
                             {(t.days_overdue ?? 0) > 0 && (
@@ -162,7 +163,7 @@ export function NotificationBell({ onOpenTask }: { onOpenTask?: (taskId: string)
                           </button>
                         ))}
                         {n.tasks.length > 6 && (
-                          <p className="text-[10px] text-center py-1" style={{ color: N.faint }}>
+                          <p className="text-xs text-center py-1 font-medium" style={{ color: '#9CA3AF' }}>
                             +{n.tasks.length - 6} tareas más atrasadas
                           </p>
                         )}
@@ -170,13 +171,13 @@ export function NotificationBell({ onOpenTask }: { onOpenTask?: (taskId: string)
                     </div>
                   ) : (
                     /* Meeting / generic notification */
-                    <div className="px-4 py-3">
+                    <div className="px-4 py-3.5">
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <div>
-                          <p className="text-[12px] font-semibold" style={{ color: N.text }}>{n.title}</p>
-                          <p className="text-[10px] mt-0.5" style={{ color: N.sub }}>{n.body}</p>
+                          <p className="text-sm font-bold" style={{ color: N.text }}>{n.title}</p>
+                          <p className="text-xs mt-1" style={{ color: '#4B5563', fontWeight: 500 }}>{n.body}</p>
                         </div>
-                        <span className="text-[9px] shrink-0" style={{ color: N.faint }}>
+                        <span className="text-xs shrink-0" style={{ color: '#9CA3AF', fontWeight: 500 }}>
                           {new Date(n.timestamp).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
@@ -199,7 +200,7 @@ export function NotificationBell({ onOpenTask }: { onOpenTask?: (taskId: string)
                             >
                               {t.area}
                             </span>
-                            <span className="flex-1 text-[11px] truncate font-medium" style={{ color: N.text }}>
+                            <span className="flex-1 text-xs truncate font-semibold" style={{ color: '#1F2937' }}>
                               {t.title}
                             </span>
                             <div
@@ -215,7 +216,7 @@ export function NotificationBell({ onOpenTask }: { onOpenTask?: (taskId: string)
                           </button>
                         ))}
                         {n.tasks.length > 5 && (
-                          <p className="text-[10px] text-center py-1" style={{ color: N.faint }}>
+                          <p className="text-xs text-center py-1 font-medium" style={{ color: '#9CA3AF' }}>
                             +{n.tasks.length - 5} tareas más en el backlog
                           </p>
                         )}

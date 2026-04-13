@@ -6,6 +6,7 @@ export const AREA_LABELS: Record<Area, string> = {
   trafico: 'Tráfico',
   tech: 'Tech',
   admin: 'Admin',
+  edicion: 'Edición',
 }
 
 export const AREA_COLORS: Record<Area, string> = {
@@ -13,6 +14,7 @@ export const AREA_COLORS: Record<Area, string> = {
   trafico: '#4ade80',
   tech: '#60a5fa',
   admin: '#fbbf24',
+  edicion: '#ec4899',
 }
 
 // ── Priority ─────────────────────────────────────────────────

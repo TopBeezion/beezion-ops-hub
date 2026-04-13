@@ -25,9 +25,9 @@ const ASSIGNEES = [
   { name: 'Jose',      role: 'Trafficker',                   color: '#3b82f6', areas: ['trafico'] },
   { name: 'Luisa',     role: 'Copywriter',                   color: '#ef4444', areas: ['copy'] },
   { name: 'Paula',     role: 'Aux. Marketing · Grabaciones', color: '#ec4899', areas: ['copy','admin'] },
-  { name: 'David',     role: 'Editor',                       color: '#06b6d4', areas: ['copy'] },
-  { name: 'Johan',     role: 'Editor',                       color: '#10b981', areas: ['copy'] },
-  { name: 'Felipe',    role: 'Editor',                       color: '#f97316', areas: ['copy'] },
+  { name: 'David',     role: 'Editor',                       color: '#06b6d4', areas: ['edicion'] },
+  { name: 'Johan',     role: 'Editor',                       color: '#10b981', areas: ['edicion'] },
+  { name: 'Felipe',    role: 'Lead Editor',                  color: '#f97316', areas: ['edicion'] },
 ]
 
 const DELIVERABLE_DEFS: { key: keyof Deliverables; label: string; color: string }[] = [
@@ -255,7 +255,7 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
         <div style={{ height: 3, background: task.client?.color ? `linear-gradient(90deg,${task.client.color},${task.client.color}60)` : '#6366F1', flexShrink: 0 }} />
 
         {/* ── Header ── */}
-        <div style={{ padding: '14px 20px', borderBottom: '1px solid #F3F4F6', flexShrink: 0, backgroundColor: '#FAFBFC' }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid #E5E7EB', flexShrink: 0, backgroundColor: '#FFFFFF' }}>
           {/* Row 1: badges + actions */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -318,24 +318,24 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
           />
 
           {/* Row 3: meta — fecha creación + ID + overdue badge */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 6, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 10, color: '#C4C9D4', fontWeight: 500 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 11, color: '#6B7280', fontWeight: 600 }}>
               Creado{' '}
-              <span style={{ color: '#9CA3AF', fontWeight: 600 }}>
+              <span style={{ color: '#1F2937', fontWeight: 700 }}>
                 {new Date(task.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })}
               </span>
             </span>
-            <span style={{ width: 3, height: 3, borderRadius: '50%', backgroundColor: '#E5E7EB', flexShrink: 0 }} />
-            <span style={{ fontSize: 10, color: '#C4C9D4', fontWeight: 500 }}>
-              ID <span style={{ color: '#9CA3AF', fontWeight: 600, fontFamily: 'monospace' }}>{task.id.slice(0, 8)}</span>
+            <span style={{ width: 3, height: 3, borderRadius: '50%', backgroundColor: '#D1D5DB', flexShrink: 0 }} />
+            <span style={{ fontSize: 11, color: '#6B7280', fontWeight: 600 }}>
+              ID <span style={{ color: '#1F2937', fontWeight: 700, fontFamily: 'monospace' }}>{task.id.slice(0, 8)}</span>
             </span>
             {(() => {
               const days = getDaysOverdue(task)
               if (days === 0) return null
               return (
                 <>
-                  <span style={{ width: 3, height: 3, borderRadius: '50%', backgroundColor: '#E5E7EB', flexShrink: 0 }} />
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, backgroundColor: '#FEF2F2', color: '#EF4444', border: '1px solid #FECACA' }}>
+                  <span style={{ width: 3, height: 3, borderRadius: '50%', backgroundColor: '#D1D5DB', flexShrink: 0 }} />
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 20, backgroundColor: '#FEE2E2', color: '#DC2626', border: '1px solid #FCA5A5' }}>
                     ⚠️ Atrasada {days} {days === 1 ? 'día' : 'días'}
                   </span>
                 </>

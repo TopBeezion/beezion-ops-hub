@@ -1,4 +1,4 @@
-export type Area = 'copy' | 'trafico' | 'tech' | 'admin'
+export type Area = 'copy' | 'trafico' | 'tech' | 'admin' | 'edicion'
 export type Priority = 'alta' | 'media' | 'baja'
 export type TaskStatus = 'pendiente' | 'en_progreso' | 'revision' | 'completado'
 export type TaskTipo = 'nuevo' | 'pendiente_anterior' | 'urgente'

@@ -47,7 +47,7 @@ function KpiCard({ label, value, sub, icon: Icon, color, onClick }: {
     <div
       onClick={onClick}
       className="hover:shadow-md transition-all duration-200"
-      style={{ ...card(), padding: '14px 18px', cursor: onClick ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 14 }}
+      style={{ ...card(), padding: '16px 18px', cursor: onClick ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 14 }}
     >
       <div style={{
         width: 42, height: 42, borderRadius: 12, flexShrink: 0,
@@ -107,7 +107,7 @@ function BomberoRow({ task, onClick, isLast }: { task: Task; onClick?: () => voi
   const statusLabel = STATUS_LABELS[task.status] || task.status
   return (
     <div
-      className="flex items-center gap-3 px-4 py-3 hover:bg-red-50 cursor-pointer transition-colors"
+      className="flex items-center gap-4 px-5 py-3.5 hover:bg-red-50 cursor-pointer transition-colors"
       style={{ borderBottom: isLast ? 'none' : `1px solid ${C.border}`, borderLeft: `3px solid ${statusColor}` }}
       onClick={onClick}
     >
@@ -153,7 +153,7 @@ function ProgressRow({ task, onClick, isLast }: { task: Task; onClick?: () => vo
   const clientColor = (task.client as Client & { color: string })?.color || C.muted
   return (
     <div
-      className="flex items-center gap-3 px-4 py-3 hover:bg-blue-50 cursor-pointer transition-colors"
+      className="flex items-center gap-4 px-5 py-3.5 hover:bg-blue-50 cursor-pointer transition-colors"
       onClick={onClick}
       style={{ borderBottom: isLast ? 'none' : `1px solid ${C.border}` }}
     >
@@ -184,8 +184,8 @@ function ClientCard({ client, total, done, inProg, pending, pct, activeCampaigns
       style={{ ...card(), padding: 0, borderTop: `3px solid ${client.color}` }}
     >
       {/* Header */}
-      <div style={{ padding: '14px 16px 12px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+      <div style={{ padding: '16px 18px 14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ width: 9, height: 9, borderRadius: '50%', backgroundColor: client.color, flexShrink: 0, boxShadow: `0 0 6px ${client.color}60` }} />
             <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{client.name}</span>
@@ -362,12 +362,12 @@ export function DashboardPage() {
   }
 
   return (
-    <div style={{ backgroundColor: C.bg, minHeight: '100vh', padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div style={{ backgroundColor: C.bg, minHeight: '100vh', padding: '20px 28px', display: 'flex', flexDirection: 'column', gap: 18 }}>
 
       {/* ── Mi Vista Filter ───────────────────────────────────────────────────── */}
       <div style={{
         ...card({ overflow: 'visible' }),
-        padding: '10px 16px',
+        padding: '12px 16px',
         display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
       }}>
         <div className="flex items-center gap-1.5" style={{ marginRight: 4 }}>
@@ -411,7 +411,7 @@ export function DashboardPage() {
       </div>
 
       {/* ── KPIs ─────────────────────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14 }}>
         <KpiCard icon={Layers}       label="Tareas totales"    value={stats.total}       sub={`${stats.pct}% completadas`}    color={C.accent}  />
         <KpiCard icon={Activity}     label="En progreso"       value={stats.inProgress}  sub="activas ahora"                  color={C.blue}    />
         <KpiCard icon={CheckCircle2} label="Completadas"       value={stats.completed}   sub={`de ${stats.total} total`}      color={C.green}   />
@@ -496,7 +496,7 @@ export function DashboardPage() {
               <p style={{ fontSize: 11, color: C.muted, margin: 0 }}>{clientStats.length} clientes con tareas activas</p>
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
             {clientStats.map(s => (
               <ClientCard key={s.client.id} {...s} onClick={() => navigate(`/clients/${s.client.id}`)} />
             ))}
@@ -510,7 +510,7 @@ export function DashboardPage() {
         {/* Copy Production */}
         <div style={card({ padding: '18px 18px 16px' })}>
           <SectionHeader icon={BarChart3} title="Producción de copy acumulada" sub="Entregables creados en total" color={C.purple} />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 4 }}>
             {[
               { label: 'Hooks de video', value: copyMetrics.hooks, color: C.purple },
               { label: 'CTAs',           value: copyMetrics.cta,   color: C.orange },

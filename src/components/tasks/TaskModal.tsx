@@ -20,9 +20,9 @@ const ASSIGNEES = [
   { name: 'Jose',      role: 'Trafficker',                   color: '#3b82f6', areas: ['trafico'] },
   { name: 'Luisa',     role: 'Copywriter',                   color: '#ef4444', areas: ['copy'] },
   { name: 'Paula',     role: 'Aux. Marketing · Grabaciones', color: '#ec4899', areas: ['copy','admin'] },
-  { name: 'David',     role: 'Editor',                       color: '#06b6d4', areas: ['copy'] },
-  { name: 'Johan',     role: 'Editor',                       color: '#10b981', areas: ['copy'] },
-  { name: 'Felipe',    role: 'Editor',                       color: '#f97316', areas: ['copy'] },
+  { name: 'David',     role: 'Editor',                       color: '#06b6d4', areas: ['edicion'] },
+  { name: 'Johan',     role: 'Editor',                       color: '#10b981', areas: ['edicion'] },
+  { name: 'Felipe',    role: 'Lead Editor',                  color: '#f97316', areas: ['edicion'] },
 ]
 
 const DELIVERABLE_DEFS: { key: keyof Deliverables; label: string; color: string; areas: Area[] }[] = [
@@ -44,7 +44,7 @@ const SPRINT_COLORS: Record<number, string> = { 1: '#8b5cf6', 2: '#ec4899', 3: '
 // ── Styles ────────────────────────────────────────────────────────────────────
 const lbl: React.CSSProperties = {
   color: '#9CA3AF', fontSize: 10, fontWeight: 600,
-  textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6, display: 'block',
+  textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8, display: 'block',
 }
 const fieldBase: React.CSSProperties = {
   backgroundColor: '#F8F9FC', border: '1px solid #E4E7F0',
@@ -55,10 +55,10 @@ const formCard: React.CSSProperties = {
   backgroundColor: '#FFFFFF',
   border: '1px solid #E8EAF2',
   borderRadius: 12,
-  padding: '14px',
+  padding: '18px',
   display: 'flex',
   flexDirection: 'column',
-  gap: 0,
+  gap: 14,
 }
 
 // ── usePopover ────────────────────────────────────────────────────────────────
@@ -234,11 +234,11 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
         </div>
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-auto"
-          style={{ backgroundColor: '#F0F2F8', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          style={{ backgroundColor: '#F0F2F8', padding: '16px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
 
           {/* ── Card 1: Título + Status + Prioridad ──────────────────────── */}
           <div style={formCard}>
-            <div style={{ marginBottom: 10 }}>
+            <div>
               <label style={lbl}>Título <span style={{ color: '#EF4444' }}>*</span></label>
               <input value={title} onChange={e => setTitle(e.target.value)} required
                 style={{ ...fieldBase, padding: '9px 11px', fontSize: 13 }}
@@ -252,9 +252,9 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
 
           {/* ── Card 2: Área + Responsable ───────────────────────────────── */}
           <div style={formCard}>
-            <div style={{ marginBottom: 10 }}>
+            <div>
               <label style={lbl}>Área</label>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {(Object.entries(AREA_LABELS) as [Area, string][]).map(([v, l]) => {
                   const active = area === v
                   const col    = AREA_COLORS[v]
@@ -271,7 +271,7 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
             </div>
             <div>
               <label style={lbl}>Responsable</label>
-              <div className="grid grid-cols-2 gap-1.5">
+              <div className="grid grid-cols-2 gap-2.5">
                 {ASSIGNEES.map(a => (
                   <button key={a.name} type="button" onClick={() => setAssignee(a.name)}
                     className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left"
@@ -301,14 +301,14 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
 
           {/* ── Card 3: Cliente + Campaña + Etapa + Mini Status ──────────── */}
           <div style={formCard}>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+            <div style={{ display: 'flex', gap: 10 }}>
               <FieldSel label="Cliente" value={clientId}
                 onChange={v => { setClientId(v); setCampaignId('') }}
                 options={clienteOpts}
                 accentColor={(clients ?? []).find(c => c.id === clientId)?.color ?? '#9699A6'} />
               <FieldSel label="Campaña" value={campaignId} onChange={setCampaignId} options={campanaOpts} />
             </div>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 10 }}>
               <FieldSel label="Etapa" value={etapa} onChange={v => setEtapa(v as Etapa | '')} options={etapaOpts}
                 accentColor={etapa ? ETAPA_COLORS[etapa as Etapa] : '#9699A6'} />
               <FieldSel label="Mini Status" value={miniStatus} onChange={v => setMiniStatus(v as MiniStatus | '')} options={miniStatusOpts}
@@ -349,7 +349,7 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
 
           {/* ── Card 5: Descripción + Problema ───────────────────────────── */}
           <div style={formCard}>
-            <div style={{ marginBottom: 8 }}>
+            <div>
               <label style={lbl}>Descripción / Instrucciones</label>
               <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3}
                 style={{ ...fieldBase, padding: '9px 11px', fontSize: 12, color: '#6B7280', resize: 'none', lineHeight: 1.5 }}
@@ -406,7 +406,7 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
           </div>
 
           {/* ── Footer ───────────────────────────────────────────────────── */}
-          <div style={{ display: 'flex', gap: 8, paddingBottom: 4 }}>
+          <div style={{ display: 'flex', gap: 10, paddingTop: 8 }}>
             <button type="button" onClick={onClose}
               style={{ flex: 1, padding: '10px', borderRadius: 10, fontSize: 13, border: '1px solid #E4E7F0', color: '#6B7280', backgroundColor: '#fff', cursor: 'pointer', fontWeight: 500 }}>
               Cancelar
