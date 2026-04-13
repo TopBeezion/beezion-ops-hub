@@ -5,11 +5,39 @@ import { useTasks, useUpdateTask, useUpdateTaskStatus } from '../hooks/useTasks'
 import { useClients } from '../hooks/useClients'
 import { useCampaigns } from '../hooks/useCampaigns'
 import { useOutletContext } from 'react-router-dom'
-import type { Task, Area, Priority, TaskStatus, TaskFilters } from '../types'
+import type { Task, Area, Priority, TaskStatus, TaskFilters, Etapa } from '../types'
 import {
   AREA_LABELS, AREA_COLORS, STATUS_LABELS, STATUS_COLORS,
   PRIORITY_LABELS, PRIORITY_COLORS, CAMPAIGN_TYPE_COLORS,
+  ETAPA_LABELS, ETAPA_COLORS, ETAPA_ORDER,
 } from '../lib/constants'
+
+// ─── Alias map: lo que el usuario escribe → lo que se busca ─────────────────
+const SEARCH_ALIASES: Record<string, string[]> = {
+  'lp':             ['landing page', ' lp ', 'lp de', 'lp del', 'copy lp', 'desarrollar lp', 'crear lp'],
+  'landing page':   ['landing page', ' lp ', 'lp de', 'lp del', 'copy lp', 'desarrollar lp', 'crear lp'],
+  'lm':             ['lead magnet', ' lm ', 'lm de', 'lm del'],
+  'lead magnet':    ['lead magnet', ' lm ', 'lm de', 'lm del'],
+  'typ':            ['thank you page', ' typ', 'typage', 'thank you'],
+  'thank you page': ['thank you page', ' typ', 'typage'],
+  'vsl':            ['vsl', 'video sales letter'],
+  'cta':            ['cta', 'call to action'],
+  'hook':           ['hook', 'hooks'],
+  'hooks':          ['hook', 'hooks'],
+  'script':         ['script', 'scripts'],
+  'scripts':        ['script', 'scripts'],
+  'webinar':        ['webinar'],
+  'quiz':           ['quiz', 'interactivo'],
+}
+
+function matchesSearch(title: string, query: string): boolean {
+  const tl = ' ' + title.toLowerCase() + ' '
+  const ql = query.toLowerCase().trim()
+  if (tl.includes(ql)) return true
+  const aliases = SEARCH_ALIASES[ql]
+  if (aliases) return aliases.some(a => tl.includes(a))
+  return false
+}
 
 // ─── Design tokens ─────────────────────────────────────────────────────────
 const C = {
@@ -240,6 +268,7 @@ export function BacklogPage() {
   const [activeClients, setClients] = useState<string[]>([])
   const [activeStatuses, setStats]  = useState<TaskStatus[]>([])
   const [activeArea, setArea]       = useState<Area | ''>('')
+  const [activeEtapa, setEtapa]     = useState<Etapa | ''>('')
   const [groupBy, setGroupBy]       = useState<GroupByOption>('campaign')
   const [collapsedGroups, setCollapsed] = useState<Set<string>>(new Set())
   const [hoveredRow, setHoveredRow] = useState<string | null>(null)
@@ -250,15 +279,16 @@ export function BacklogPage() {
   const toggleArr = <T,>(arr: T[], set: (v: T[]) => void, val: T) =>
     set(arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val])
 
-  const hasFilters = search || activePersons.length || activeClients.length || activeStatuses.length || activeArea
-  const clearAll = () => { setSearch(''); setPersons([]); setClients([]); setStats([]); setArea('') }
+  const hasFilters = search || activePersons.length || activeClients.length || activeStatuses.length || activeArea || activeEtapa
+  const clearAll = () => { setSearch(''); setPersons([]); setClients([]); setStats([]); setArea(''); setEtapa('') }
 
   const filtered = tasks.filter(t => {
-    if (search && !t.title.toLowerCase().includes(search.toLowerCase())) return false
+    if (search && !matchesSearch(t.title, search)) return false
     if (activePersons.length && !activePersons.includes(t.assignee ?? '')) return false
     if (activeClients.length && !activeClients.includes(t.client_id ?? '')) return false
     if (activeStatuses.length && !activeStatuses.includes(t.status)) return false
     if (activeArea && t.area !== activeArea) return false
+    if (activeEtapa && (t as any).etapa !== activeEtapa) return false
     return true
   })
 
@@ -394,6 +424,31 @@ export function BacklogPage() {
             </div>
           </div>
           <Divider />
+          {/* Etapa */}
+          <div>
+            <p style={{ fontSize: 9, fontWeight: 800, color: C.muted, margin: '0 0 5px', letterSpacing: '0.1em' }}>ETAPA</p>
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+              {ETAPA_ORDER.map(e => {
+                const active = activeEtapa === e
+                const ec = ETAPA_COLORS[e]
+                return (
+                  <button key={e} onClick={() => setEtapa(activeEtapa === e ? '' : e)}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 5,
+                      padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600,
+                      cursor: 'pointer', border: 'none', transition: 'all 0.12s',
+                      backgroundColor: active ? ec : C.surface,
+                      color: active ? '#fff' : C.sub,
+                      boxShadow: active ? `0 2px 8px ${ec}40` : `inset 0 0 0 1px ${C.border}`,
+                    }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: active ? 'rgba(255,255,255,0.7)' : ec, flexShrink: 0 }} />
+                    {ETAPA_LABELS[e]}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+          <Divider />
           {/* Responsable */}
           <div>
             <p style={{ fontSize: 9, fontWeight: 800, color: C.muted, margin: '0 0 5px', letterSpacing: '0.1em' }}>RESPONSABLE</p>
@@ -443,7 +498,7 @@ export function BacklogPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
             <thead style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: C.surface, borderBottom: `1px solid ${C.border}` }}>
               <tr>
-                {([['TAREA', '28%'], ['CAMPAÑA', '16%'], ['CLIENTE', '9%'], ['ESTADO', '11%'], ['PRIORIDAD', '9%'], ['ÁREA', '8%'], ['RESPONSABLE', '12%'], ['SEMANA', '7%']] as [string, string][]).map(([l, w]) => (
+                {([['TAREA', '22%'], ['CAMPAÑA', '14%'], ['CLIENTE', '8%'], ['ESTADO', '10%'], ['PRIORIDAD', '8%'], ['ÁREA', '7%'], ['ETAPA', '10%'], ['RESPONSABLE', '11%'], ['SEMANA', '6%'], ['', '4%']] as [string, string][]).map(([l, w]) => (
                   <th key={l} style={{ padding: '8px 14px', textAlign: 'left', fontSize: 9, fontWeight: 800, letterSpacing: '0.09em', color: C.muted, width: w, whiteSpace: 'nowrap' }}>{l}</th>
                 ))}
               </tr>
@@ -454,7 +509,7 @@ export function BacklogPage() {
                   const isCollapsed = collapsedGroups.has(item.groupKey)
                   return (
                     <tr key={item.key}>
-                      <td colSpan={8} style={{ padding: 0 }}>
+                      <td colSpan={10} style={{ padding: 0 }}>
                         <button onClick={() => toggleGroup(item.groupKey)} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '7px 14px', background: `${item.color}08`, border: 'none', borderLeft: `3px solid ${item.color}`, borderBottom: `1px solid ${item.color}18`, cursor: 'pointer' }}>
                           <span style={{ fontSize: 13, color: item.color, transform: isCollapsed ? 'rotate(0deg)' : 'rotate(90deg)', transition: '0.15s', display: 'inline-block' }}>›</span>
                           <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{item.label}</span>
@@ -501,12 +556,30 @@ export function BacklogPage() {
                     <td style={{ padding: '9px 14px' }}><PriorityPicker task={task} onUpdate={handlePriorityUpdate} /></td>
                     {/* Área */}
                     <td style={{ padding: '9px 14px' }}><AreaPicker task={task} onUpdate={handleAreaUpdate} /></td>
+                    {/* Etapa */}
+                    <td style={{ padding: '9px 14px' }}>
+                      {(task as any).etapa ? (() => {
+                        const e = (task as any).etapa as Etapa
+                        const ec = ETAPA_COLORS[e] ?? '#9699A6'
+                        return (
+                          <span style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 4,
+                            padding: '3px 8px', borderRadius: 6, fontSize: 10, fontWeight: 700,
+                            backgroundColor: `${ec}15`, color: ec,
+                            border: `1px solid ${ec}25`, whiteSpace: 'nowrap',
+                          }}>
+                            {ETAPA_LABELS[e] ?? e}
+                          </span>
+                        )
+                      })() : <span style={{ color: C.muted, fontSize: 11 }}>—</span>}
+                    </td>
                     {/* Responsable */}
                     <td style={{ padding: '9px 14px' }}><AssigneePicker task={task} onUpdate={handleAssigneeUpdate} /></td>
                     {/* Sprint */}
                     <td style={{ padding: '9px 14px' }}>
                       {task.week ? <span style={{ padding: '3px 9px', borderRadius: 8, fontSize: 10, fontWeight: 700, backgroundColor: '#EEF2FF', color: C.accent, border: `1px solid ${C.accent}20`, whiteSpace: 'nowrap' }}>Sem. {task.week}</span> : <span style={{ color: C.muted }}>—</span>}
                     </td>
+                    <td style={{ padding: '9px 14px' }} />
                   </tr>
                 )
               })}
