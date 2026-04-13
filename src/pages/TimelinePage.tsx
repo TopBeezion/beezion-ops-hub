@@ -1,10 +1,90 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useTasks } from '../hooks/useTasks'
 import { useClients } from '../hooks/useClients'
 import { useOutletContext } from 'react-router-dom'
 import type { Task } from '../types'
-import { AREA_COLORS, AREA_LABELS, STATUS_COLORS, STATUS_LABELS } from '../lib/constants'
+import { AREA_COLORS, AREA_LABELS, STATUS_COLORS, STATUS_LABELS, ASSIGNEE_COLORS } from '../lib/constants'
 import { X, ChevronDown, ChevronUp, Zap } from 'lucide-react'
+
+// ─── usePopover ───────────────────────────────────────────────────────────────
+function useTLPopover() {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [open])
+  return { open, setOpen, ref }
+}
+
+// ─── Filter Dropdown ──────────────────────────────────────────────────────────
+function TLFilterDrop({ label, value, onChange, options, showAvatar }: {
+  label: string; value: string; onChange: (v: string) => void
+  options: { value: string; label: string; color?: string }[]
+  showAvatar?: boolean
+}) {
+  const { open, setOpen, ref } = useTLPopover()
+  const sel = options.find(o => o.value === value)
+  const isActive = !!value
+  const oc = sel?.color ?? '#6366F1'
+  const C2 = { bg: '#F0F2F8', border: '#E4E7F0', sub: '#5A5E72', muted: '#9699B0', text: '#1A1D27' }
+
+  return (
+    <div ref={ref} style={{ position: 'relative', flexShrink: 0 }}>
+      <button onClick={() => setOpen(o => !o)} style={{
+        display: 'inline-flex', alignItems: 'center', gap: 5, height: 32, padding: '0 10px',
+        borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: 'none',
+        backgroundColor: isActive ? `${oc}14` : C2.bg,
+        outline: isActive ? `1.5px solid ${oc}50` : `1px solid ${C2.border}`,
+        color: isActive ? oc : C2.sub, transition: 'all 0.12s',
+      }}>
+        <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.05em', color: isActive ? oc : C2.muted }}>{label}</span>
+        {sel && <><span style={{ width: 1, height: 10, backgroundColor: `${oc}40` }} /><span style={{ fontWeight: 700 }}>{sel.label}</span></>}
+        <ChevronDown size={10} style={{ opacity: 0.6, transform: open ? 'rotate(180deg)' : 'none', transition: '0.15s' }} />
+      </button>
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 400,
+          backgroundColor: '#fff', border: `1px solid ${C2.border}`,
+          borderRadius: 10, boxShadow: '0 8px 28px rgba(0,0,0,0.13)',
+          padding: 4, minWidth: 190,
+        }}>
+          <button onClick={() => { onChange(''); setOpen(false) }} style={{
+            display: 'flex', alignItems: 'center', width: '100%', padding: '7px 10px',
+            borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 12,
+            backgroundColor: !value ? '#F5F6FA' : 'transparent', color: C2.muted,
+          }}
+          onMouseEnter={e => { if (value) (e.currentTarget as HTMLElement).style.backgroundColor = '#F5F6FA' }}
+          onMouseLeave={e => { if (value) (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent' }}>
+            Todos
+          </button>
+          {options.map(o => {
+            const isSel = value === o.value
+            const tc = o.color ?? '#6366F1'
+            return (
+              <button key={o.value} onClick={() => { onChange(isSel ? '' : o.value); setOpen(false) }} style={{
+                display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+                padding: '7px 10px', borderRadius: 7, border: 'none', cursor: 'pointer',
+                backgroundColor: isSel ? `${tc}12` : 'transparent', textAlign: 'left',
+              }}
+              onMouseEnter={e => { if (!isSel) (e.currentTarget as HTMLElement).style.backgroundColor = '#F5F6FA' }}
+              onMouseLeave={e => { if (!isSel) (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent' }}>
+                {showAvatar
+                  ? <div style={{ width: 22, height: 22, borderRadius: '50%', backgroundColor: isSel ? tc : `${tc}25`, color: isSel ? '#fff' : tc, fontSize: 8, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{o.label.slice(0, 2).toUpperCase()}</div>
+                  : <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: tc, flexShrink: 0 }} />
+                }
+                <span style={{ flex: 1, fontSize: 12, fontWeight: isSel ? 700 : 500, color: isSel ? tc : C2.text }}>{o.label}</span>
+                {isSel && <span style={{ fontSize: 11, color: tc }}>✓</span>}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
 
 // ─── Design tokens ─────────────────────────────────────────────────────────────
 const C = {
@@ -21,21 +101,17 @@ const WEEKS = [1, 2, 3, 4] as const
 
 const SPRINT_META: Record<number, { label: string; sub: string; color: string; owner: string }> = {
   1: { label: 'Sprint 1', sub: 'Copy & Briefs',       color: '#8b5cf6', owner: 'Alejandro · Editores' },
-  2: { label: 'Sprint 2', sub: 'Producción & Diseño',  color: '#ec4899', owner: 'Paula · Jose Luis' },
+  2: { label: 'Sprint 2', sub: 'Producción & Diseño',  color: '#ec4899', owner: 'Paula · Editores' },
   3: { label: 'Sprint 3', sub: 'Dev & Setup',           color: '#3b82f6', owner: 'Alec · Paula' },
-  4: { label: 'Sprint 4', sub: 'Launch & Optim.',       color: '#22c55e', owner: 'Alec · Jose Luis' },
+  4: { label: 'Sprint 4', sub: 'Launch & Optim.',       color: '#22c55e', owner: 'Alec · Jose' },
 }
 
-const AREA_LIST   = ['copy', 'trafico', 'tech', 'admin'] as const
-const ASSIGNEES   = ['Alejandro', 'Alec', 'Paula', 'Jose Luis', 'Editor 1', 'Editor 2', 'Editor 3']
+const AREA_LIST   = ['copy', 'trafico', 'tech', 'admin', 'edicion'] as const
+const ASSIGNEES   = ['Alejandro', 'Alec', 'Jose', 'Luisa', 'Paula', 'David', 'Johan', 'Felipe']
 
 const ASSIGNEE_INITIALS: Record<string, string> = {
-  Alejandro: 'AL', Alec: 'AC', Paula: 'PL', 'Jose Luis': 'JL',
-  'Editor 1': 'E1', 'Editor 2': 'E2', 'Editor 3': 'E3',
-}
-const ASSIGNEE_COLORS: Record<string, string> = {
-  Alejandro: '#8b5cf6', Alec: '#f5a623', Paula: '#ec4899',
-  'Jose Luis': '#3b82f6', 'Editor 1': '#06b6d4', 'Editor 2': '#10b981', 'Editor 3': '#f97316',
+  Alejandro: 'AL', Alec: 'AC', Jose: 'JO', Luisa: 'LU',
+  Paula: 'PL', David: 'DA', Johan: 'JH', Felipe: 'FE',
 }
 
 // ── Progress Ring ─────────────────────────────────────────────────
@@ -387,12 +463,13 @@ export function TimelinePage() {
     allTasks.some(t => t.client_id === c.id),
   )
 
-  const selectStyle = (active: boolean): React.CSSProperties => ({
-    fontSize: 12, fontWeight: active ? 600 : 400, cursor: 'pointer', outline: 'none',
-    padding: '5px 10px', borderRadius: 8,
-    border: `1px solid ${active ? '#6366F1' : C.border}`,
-    backgroundColor: active ? '#EEF2FF' : C.card,
-    color: active ? '#4F46E5' : C.sub,
+  // chipStyle kept for any legacy use
+  const chipStyle = (active: boolean, color = '#6366F1'): React.CSSProperties => ({
+    padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600,
+    cursor: 'pointer', border: 'none', transition: 'all 0.12s',
+    backgroundColor: active ? color : `${color}12`,
+    color: active ? '#fff' : color,
+    boxShadow: active ? `0 2px 6px ${color}40` : `inset 0 0 0 1.5px ${color}35`,
   })
 
   if (isLoading) {
@@ -408,41 +485,35 @@ export function TimelinePage() {
 
       {/* ── Filter toolbar ─────────────────────────────────────────── */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
-        padding: '10px 16px',
-        backgroundColor: C.card, borderBottom: `1px solid ${C.border}`,
+        padding: '8px 16px', backgroundColor: C.card, borderBottom: `1px solid ${C.border}`,
+        display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
       }}>
-        <select style={selectStyle(!!areaFilter)} value={areaFilter} onChange={e => setAreaFilter(e.target.value)}>
-          <option value="">Todas las áreas</option>
-          {AREA_LIST.map(a => <option key={a} value={a}>{AREA_LABELS[a]}</option>)}
-        </select>
-
-        <select style={selectStyle(!!assigneeFilter)} value={assigneeFilter} onChange={e => setAssigneeFilter(e.target.value)}>
-          <option value="">Todo el equipo</option>
-          {ASSIGNEES.map(n => <option key={n} value={n}>{n}</option>)}
-        </select>
-
-        <select style={selectStyle(!!clientFilter)} value={clientFilter} onChange={e => setClientFilter(e.target.value)}>
-          <option value="">Todos los clientes</option>
-          {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
-
+        <TLFilterDrop
+          label="Área"
+          value={areaFilter}
+          onChange={setAreaFilter}
+          options={AREA_LIST.map(a => ({ value: a, label: AREA_LABELS[a], color: AREA_COLORS[a] }))}
+        />
+        <TLFilterDrop
+          label="Cliente"
+          value={clientFilter}
+          onChange={setClientFilter}
+          options={clients.map(c => ({ value: c.id, label: c.name, color: c.color }))}
+        />
+        <TLFilterDrop
+          label="Persona"
+          value={assigneeFilter}
+          onChange={setAssigneeFilter}
+          options={ASSIGNEES.map(name => ({ value: name, label: name, color: ASSIGNEE_COLORS[name] || '#9699B0' }))}
+          showAvatar
+        />
         {hasFilters && (
-          <button
-            onClick={() => { setAreaFilter(''); setAssigneeFilter(''); setClientFilter('') }}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600,
-              padding: '5px 10px', borderRadius: 8, cursor: 'pointer',
-              backgroundColor: '#FEF2F2', color: '#DC2626',
-              border: '1px solid #FCA5A5',
-            }}
-          >
-            <X size={10} strokeWidth={3} />Limpiar
+          <button onClick={() => { setAreaFilter(''); setAssigneeFilter(''); setClientFilter('') }}
+            style={{ fontSize: 10, fontWeight: 700, cursor: 'pointer', color: '#DC2626', backgroundColor: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: 8, padding: '0 10px', height: 32 }}>
+            <X size={9} strokeWidth={3} /> Limpiar
           </button>
         )}
-        <span style={{ fontSize: 11, color: C.muted, marginLeft: 'auto', fontWeight: 500 }}>
-          {tasks.length} tareas
-        </span>
+        <span style={{ fontSize: 11, color: C.muted, marginLeft: 'auto', fontWeight: 500 }}>{tasks.length} tareas</span>
       </div>
 
       {/* ── Grid ──────────────────────────────────────────────────── */}
