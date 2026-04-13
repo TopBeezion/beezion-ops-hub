@@ -43,16 +43,22 @@ const SPRINT_COLORS: Record<number, string> = { 1: '#8b5cf6', 2: '#ec4899', 3: '
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 const lbl: React.CSSProperties = {
-  color: '#9699A6', fontSize: 10, fontWeight: 700,
-  textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5, display: 'block',
+  color: '#9CA3AF', fontSize: 10, fontWeight: 600,
+  textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6, display: 'block',
 }
 const fieldBase: React.CSSProperties = {
-  backgroundColor: '#FFFFFF', border: '1px solid #DDE0EA',
+  backgroundColor: '#F8F9FC', border: '1px solid #E4E7F0',
   color: '#1F2128', outline: 'none', width: '100%', borderRadius: 8,
 }
-// Subtle section divider
-const sectionDivider: React.CSSProperties = {
-  borderTop: '1px solid #EEF0F6', margin: '4px 0',
+// White card — groups related fields visually
+const formCard: React.CSSProperties = {
+  backgroundColor: '#FFFFFF',
+  border: '1px solid #E8EAF2',
+  borderRadius: 12,
+  padding: '14px',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 0,
 }
 
 // ── usePopover ────────────────────────────────────────────────────────────────
@@ -227,175 +233,170 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 overflow-auto p-5 space-y-3" style={{ backgroundColor: '#F8F9FC' }}>
+        <form onSubmit={handleSubmit} className="flex-1 overflow-auto"
+          style={{ backgroundColor: '#F0F2F8', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
 
-          {/* Título */}
-          <div>
-            <label style={lbl}>Título <span style={{ color: '#ef4444' }}>*</span></label>
-            <input value={title} onChange={e => setTitle(e.target.value)} required
-              style={{ ...fieldBase, padding: '10px 12px', fontSize: 13 }}
-              placeholder="Ej: 50 hooks para campañas de Finkargo..." />
-          </div>
-
-          {/* Row: Status · Prioridad */}
-          <div style={{ display: 'flex', gap: 8 }}>
-            <FieldSel label="Status" value={status} onChange={v => setStatus(v as TaskStatus)} options={statusOpts} />
-            <FieldSel label="Prioridad" value={priority} onChange={v => setPriority(v as Priority)} options={priorityOpts} />
-          </div>
-
-          <div style={sectionDivider} />
-
-          {/* Área */}
-          <div>
-            <label style={lbl}>Área</label>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {(Object.entries(AREA_LABELS) as [Area, string][]).map(([v, l]) => {
-                const active = area === v
-                const col    = AREA_COLORS[v]
-                return (
-                  <button key={v} type="button" onClick={() => setArea(v)} style={{
-                    padding: '5px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700,
-                    cursor: 'pointer', border: 'none', transition: 'all 0.12s',
-                    backgroundColor: active ? col : `${col}12`, color: active ? '#fff' : col,
-                    boxShadow: active ? `0 2px 8px ${col}40` : `inset 0 0 0 1.5px ${col}35`,
-                  }}>{l}</button>
-                )
-              })}
+          {/* ── Card 1: Título + Status + Prioridad ──────────────────────── */}
+          <div style={formCard}>
+            <div style={{ marginBottom: 10 }}>
+              <label style={lbl}>Título <span style={{ color: '#EF4444' }}>*</span></label>
+              <input value={title} onChange={e => setTitle(e.target.value)} required
+                style={{ ...fieldBase, padding: '9px 11px', fontSize: 13 }}
+                placeholder="Ej: 50 hooks para campañas de Finkargo..." />
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <FieldSel label="Status" value={status} onChange={v => setStatus(v as TaskStatus)} options={statusOpts} />
+              <FieldSel label="Prioridad" value={priority} onChange={v => setPriority(v as Priority)} options={priorityOpts} />
             </div>
           </div>
 
-          {/* Responsable */}
-          <div>
-            <label style={lbl}>Responsable</label>
-            <div className="grid grid-cols-2 gap-1.5">
-              {ASSIGNEES.map(a => (
-                <button key={a.name} type="button" onClick={() => setAssignee(a.name)}
-                  className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left"
-                  style={{
-                    backgroundColor: assignee === a.name ? `${a.color}10` : '#FFFFFF',
-                    border: assignee === a.name ? `1px solid ${a.color}40` : '1px solid #DDE0EA',
-                    boxShadow: assignee === a.name ? `0 0 10px ${a.color}15` : 'none',
-                    cursor: 'pointer', transition: 'all 0.12s',
-                  }}>
-                  <div style={{ width: 22, height: 22, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 800, background: `linear-gradient(135deg,${a.color}40,${a.color}20)`, color: a.color, border: `1px solid ${a.color}30` }}>
-                    {a.name.slice(0, 2).toUpperCase()}
-                  </div>
-                  <div style={{ minWidth: 0 }}>
-                    <p style={{ fontSize: 11, fontWeight: 600, color: assignee === a.name ? '#1F2128' : '#676879', margin: 0 }}>{a.name}</p>
-                    <p style={{ fontSize: 9, color: '#9699A6', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.role}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-            {assigneeInfo && !assigneeInfo.areas.includes(area) && (
-              <p style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: '#F59E0B', marginTop: 6, padding: '0 4px' }}>
-                <AlertTriangle size={10} /> {assignee} normalmente cubre {assigneeInfo.areas.join(', ')}, no <strong>{AREA_LABELS[area]}</strong>.
-              </p>
-            )}
-          </div>
-
-          <div style={sectionDivider} />
-
-          {/* Row: Cliente · Campaña */}
-          <div style={{ display: 'flex', gap: 8 }}>
-            <FieldSel label="Cliente" value={clientId}
-              onChange={v => { setClientId(v); setCampaignId('') }}
-              options={clienteOpts}
-              accentColor={(clients ?? []).find(c => c.id === clientId)?.color ?? '#9699A6'} />
-            <FieldSel label="Campaña" value={campaignId} onChange={setCampaignId} options={campanaOpts} />
-          </div>
-
-          {/* Row: Etapa · Mini Status */}
-          <div style={{ display: 'flex', gap: 8 }}>
-            <FieldSel label="Etapa" value={etapa} onChange={v => setEtapa(v as Etapa | '')} options={etapaOpts}
-              accentColor={etapa ? ETAPA_COLORS[etapa as Etapa] : '#9699A6'} />
-            <FieldSel label="Mini Status" value={miniStatus} onChange={v => setMiniStatus(v as MiniStatus | '')} options={miniStatusOpts}
-              accentColor={miniStatus ? MINI_STATUS_COLORS[miniStatus as MiniStatus] : '#9699A6'} />
-          </div>
-
-          <div style={sectionDivider} />
-
-          {/* Fecha + Sprint */}
-          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-            <div style={{ flex: 1 }}>
-              <label style={lbl}>Fecha límite</label>
-              <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
-                style={{ ...fieldBase, padding: '7px 12px', fontSize: 13 }} />
-            </div>
-            <div style={{ flex: 1.4 }}>
-              <label style={lbl}>Sprint</label>
-              <div style={{ display: 'flex', gap: 4 }}>
-                {[1, 2, 3, 4].map(w => {
-                  const sc = SPRINT_COLORS[w]
-                  const s  = getSprintDateRange(w)
+          {/* ── Card 2: Área + Responsable ───────────────────────────────── */}
+          <div style={formCard}>
+            <div style={{ marginBottom: 10 }}>
+              <label style={lbl}>Área</label>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {(Object.entries(AREA_LABELS) as [Area, string][]).map(([v, l]) => {
+                  const active = area === v
+                  const col    = AREA_COLORS[v]
                   return (
-                    <button key={w} type="button" onClick={() => setWeek(w)} style={{
-                      flex: 1, borderRadius: 8, padding: '6px 4px', textAlign: 'center',
-                      backgroundColor: week === w ? `${sc}14` : '#FFFFFF',
-                      border: week === w ? `1.5px solid ${sc}50` : '1px solid #DDE0EA',
-                      cursor: 'pointer', transition: 'all 0.12s',
-                    }}>
-                      <p style={{ fontSize: 11, fontWeight: 700, color: week === w ? sc : '#9699A6', margin: 0 }}>S{w}</p>
-                      <p style={{ fontSize: 8, color: '#C4C7D0', margin: 0 }}>{s.startFmt}</p>
-                    </button>
+                    <button key={v} type="button" onClick={() => setArea(v)} style={{
+                      padding: '5px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700,
+                      cursor: 'pointer', border: 'none', transition: 'all 0.12s',
+                      backgroundColor: active ? col : `${col}12`, color: active ? '#fff' : col,
+                      boxShadow: active ? `0 2px 8px ${col}40` : `inset 0 0 0 1.5px ${col}35`,
+                    }}>{l}</button>
                   )
                 })}
               </div>
             </div>
+            <div>
+              <label style={lbl}>Responsable</label>
+              <div className="grid grid-cols-2 gap-1.5">
+                {ASSIGNEES.map(a => (
+                  <button key={a.name} type="button" onClick={() => setAssignee(a.name)}
+                    className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left"
+                    style={{
+                      backgroundColor: assignee === a.name ? `${a.color}10` : '#F8F9FC',
+                      border: assignee === a.name ? `1.5px solid ${a.color}50` : '1px solid #E8EAF2',
+                      boxShadow: assignee === a.name ? `0 0 12px ${a.color}20` : 'none',
+                      cursor: 'pointer', transition: 'all 0.12s',
+                    }}>
+                    <div style={{ width: 22, height: 22, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 800, background: `linear-gradient(135deg,${a.color}40,${a.color}20)`, color: a.color, border: `1px solid ${a.color}30` }}>
+                      {a.name.slice(0, 2).toUpperCase()}
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <p style={{ fontSize: 11, fontWeight: 600, color: assignee === a.name ? '#1F2128' : '#6B7280', margin: 0 }}>{a.name}</p>
+                      <p style={{ fontSize: 9, color: '#9CA3AF', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.role}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+              {assigneeInfo && !assigneeInfo.areas.includes(area) && (
+                <p style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: '#F59E0B', marginTop: 6 }}>
+                  <AlertTriangle size={10} /> {assignee} normalmente cubre {assigneeInfo.areas.join(', ')}, no <strong>{AREA_LABELS[area]}</strong>.
+                </p>
+              )}
+            </div>
           </div>
 
-          {/* Descripción */}
-          <div>
-            <label style={lbl}>Descripción / Instrucciones</label>
-            <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3}
-              style={{ ...fieldBase, padding: '10px 12px', fontSize: 12, color: '#676879', resize: 'none', lineHeight: 1.5 }}
-              placeholder="Detalla qué hay que hacer, cómo, referencias, observaciones..." />
+          {/* ── Card 3: Cliente + Campaña + Etapa + Mini Status ──────────── */}
+          <div style={formCard}>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+              <FieldSel label="Cliente" value={clientId}
+                onChange={v => { setClientId(v); setCampaignId('') }}
+                options={clienteOpts}
+                accentColor={(clients ?? []).find(c => c.id === clientId)?.color ?? '#9699A6'} />
+              <FieldSel label="Campaña" value={campaignId} onChange={setCampaignId} options={campanaOpts} />
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <FieldSel label="Etapa" value={etapa} onChange={v => setEtapa(v as Etapa | '')} options={etapaOpts}
+                accentColor={etapa ? ETAPA_COLORS[etapa as Etapa] : '#9699A6'} />
+              <FieldSel label="Mini Status" value={miniStatus} onChange={v => setMiniStatus(v as MiniStatus | '')} options={miniStatusOpts}
+                accentColor={miniStatus ? MINI_STATUS_COLORS[miniStatus as MiniStatus] : '#9699A6'} />
+            </div>
           </div>
 
-          {/* Problema */}
-          <div>
-            <label style={lbl}>Problema que resuelve</label>
-            <input value={problema} onChange={e => setProblema(e.target.value)}
-              style={{ ...fieldBase, padding: '8px 12px', fontSize: 12 }}
-              placeholder="Ej: Show rate de Book Demos bajo" />
+          {/* ── Card 4: Fecha límite + Sprint ─────────────────────────────── */}
+          <div style={formCard}>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+              <div style={{ flex: '0 0 140px' }}>
+                <label style={lbl}>Fecha límite</label>
+                <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
+                  style={{ ...fieldBase, padding: '7px 10px', fontSize: 12 }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={lbl}>Sprint</label>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {[1, 2, 3, 4].map(w => {
+                    const sc = SPRINT_COLORS[w]
+                    const s  = getSprintDateRange(w)
+                    return (
+                      <button key={w} type="button" onClick={() => setWeek(w)} style={{
+                        flex: 1, borderRadius: 8, padding: '6px 2px', textAlign: 'center',
+                        backgroundColor: week === w ? `${sc}14` : '#F8F9FC',
+                        border: week === w ? `1.5px solid ${sc}50` : '1px solid #E8EAF2',
+                        cursor: 'pointer', transition: 'all 0.12s',
+                      }}>
+                        <p style={{ fontSize: 11, fontWeight: 700, color: week === w ? sc : '#9CA3AF', margin: 0 }}>S{w}</p>
+                        <p style={{ fontSize: 8, color: '#BFC3CF', margin: 0, whiteSpace: 'nowrap' }}>{s.startFmt}</p>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Entregables */}
-          <div>
+          {/* ── Card 5: Descripción + Problema ───────────────────────────── */}
+          <div style={formCard}>
+            <div style={{ marginBottom: 8 }}>
+              <label style={lbl}>Descripción / Instrucciones</label>
+              <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3}
+                style={{ ...fieldBase, padding: '9px 11px', fontSize: 12, color: '#6B7280', resize: 'none', lineHeight: 1.5 }}
+                placeholder="Detalla qué hay que hacer, cómo, referencias, observaciones..." />
+            </div>
+            <div>
+              <label style={lbl}>Problema que resuelve</label>
+              <input value={problema} onChange={e => setProblema(e.target.value)}
+                style={{ ...fieldBase, padding: '8px 11px', fontSize: 12 }}
+                placeholder="Ej: Show rate de Book Demos bajo" />
+            </div>
+          </div>
+
+          {/* ── Card 6: Entregables ───────────────────────────────────────── */}
+          <div style={formCard}>
             <button type="button" onClick={() => setShowDel(v => !v)}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
-                padding: '10px 12px', borderRadius: 8, cursor: 'pointer',
-                backgroundColor: showDel ? 'rgba(99,102,241,0.06)' : '#FFFFFF',
-                border: `1px solid ${showDel ? 'rgba(99,102,241,0.2)' : '#E6E9EF'}`,
+                background: 'none', border: 'none', cursor: 'pointer', padding: 0,
               }}>
-              <span style={{ fontSize: 12, fontWeight: 600, color: showDel ? '#6366F1' : '#676879' }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#6366F1' }}>
                 📦 Entregables y cantidades
                 {totalDel > 0 && (
-                  <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 99, backgroundColor: 'rgba(99,102,241,0.15)', color: '#6366F1' }}>
+                  <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 99, backgroundColor: 'rgba(99,102,241,0.1)', color: '#6366F1' }}>
                     {totalDel} total
                   </span>
                 )}
               </span>
-              <ChevronDown size={12} style={{ color: '#9699A6', transform: showDel ? 'rotate(180deg)' : 'none', transition: '150ms' }} />
+              <ChevronDown size={12} style={{ color: '#9CA3AF', transform: showDel ? 'rotate(180deg)' : 'none', transition: '150ms' }} />
             </button>
             {showDel && (
-              <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 5 }}>
                 {relevantDel.map(({ key, label, color }) => {
                   const val = deliverables[key] ?? 0
                   return (
                     <div key={key} style={{
-                      display: 'flex', alignItems: 'center', gap: 12, padding: '8px 12px', borderRadius: 8,
-                      backgroundColor: val > 0 ? `${color}10` : '#FFFFFF',
-                      border: val > 0 ? `1px solid ${color}30` : '1px solid #DDE0EA',
+                      display: 'flex', alignItems: 'center', gap: 10, padding: '7px 10px', borderRadius: 8,
+                      backgroundColor: val > 0 ? `${color}08` : '#F8F9FC',
+                      border: val > 0 ? `1px solid ${color}25` : '1px solid #E8EAF2',
                     }}>
-                      <span style={{ flex: 1, fontSize: 11, fontWeight: 500, color: val > 0 ? color : '#9699A6' }}>{label}</span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ flex: 1, fontSize: 11, fontWeight: 500, color: val > 0 ? color : '#9CA3AF' }}>{label}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                         <button type="button" onClick={() => setDeliverable(key, Math.max(0, val - 1))}
-                          style={{ width: 24, height: 24, borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 16, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: val > 0 ? `${color}20` : '#E6E9EF', color: val > 0 ? color : '#9699A6' }}>−</button>
-                        <span style={{ width: 28, textAlign: 'center', fontSize: 12, fontWeight: 700, color: val > 0 ? color : '#9699A6' }}>{val}</span>
+                          style={{ width: 22, height: 22, borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: val > 0 ? `${color}20` : '#E8EAF2', color: val > 0 ? color : '#9CA3AF' }}>−</button>
+                        <span style={{ width: 26, textAlign: 'center', fontSize: 12, fontWeight: 700, color: val > 0 ? color : '#9CA3AF' }}>{val}</span>
                         <button type="button" onClick={() => setDeliverable(key, val + 1)}
-                          style={{ width: 24, height: 24, borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 16, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: `${color}20`, color }}>+</button>
+                          style={{ width: 22, height: 22, borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: `${color}20`, color }}>+</button>
                       </div>
                     </div>
                   )
@@ -404,14 +405,14 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
             )}
           </div>
 
-          {/* Footer */}
-          <div style={{ paddingTop: 8, display: 'flex', gap: 8 }}>
+          {/* ── Footer ───────────────────────────────────────────────────── */}
+          <div style={{ display: 'flex', gap: 8, paddingBottom: 4 }}>
             <button type="button" onClick={onClose}
-              style={{ flex: 1, padding: '10px', borderRadius: 8, fontSize: 13, border: '1px solid #DDE0EA', color: '#676879', backgroundColor: '#fff', cursor: 'pointer' }}>
+              style={{ flex: 1, padding: '10px', borderRadius: 10, fontSize: 13, border: '1px solid #E4E7F0', color: '#6B7280', backgroundColor: '#fff', cursor: 'pointer', fontWeight: 500 }}>
               Cancelar
             </button>
             <button type="submit" disabled={createTask.isPending || !title.trim()}
-              style={{ flex: 1, padding: '10px', borderRadius: 8, fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', background: '#6366F1', color: '#fff', boxShadow: '0 0 16px rgba(99,102,241,0.2)', opacity: (createTask.isPending || !title.trim()) ? 0.5 : 1 }}>
+              style={{ flex: 1, padding: '10px', borderRadius: 10, fontSize: 13, fontWeight: 700, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #6366F1, #4F46E5)', color: '#fff', boxShadow: '0 4px 16px rgba(99,102,241,0.3)', opacity: (createTask.isPending || !title.trim()) ? 0.5 : 1 }}>
               {createTask.isPending ? 'Creando…' : 'Crear tarea'}
             </button>
           </div>

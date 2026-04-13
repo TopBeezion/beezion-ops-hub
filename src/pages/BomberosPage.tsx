@@ -108,18 +108,6 @@ function BomberoRow({ task, onClick, onStatusChange }: {
         </div>
       </div>
 
-      {/* Type badge */}
-      <span style={{
-        fontSize: 10, fontWeight: 700,
-        color: task.status === 'en_progreso' ? C.red : C.orange,
-        backgroundColor: task.status === 'en_progreso' ? `${C.red}12` : `${C.orange}12`,
-        padding: '2px 8px', borderRadius: 6,
-        border: `1px solid ${task.status === 'en_progreso' ? C.red : C.orange}30`,
-        flexShrink: 0,
-      }}>
-        {task.status === 'en_progreso' ? '🔴 ACT' : '🟡 PEND'}
-      </span>
-
       {/* Assignee */}
       <div
         style={{
