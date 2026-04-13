@@ -39,7 +39,7 @@ export function AppLayout() {
   const closeTaskDetail = useCallback(() => setSelectedTask(null), [])
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ backgroundColor: '#111318' }}>
+    <div className="flex h-screen overflow-hidden" style={{ backgroundColor: '#F0F2F8' }}>
       <Sidebar collapsed={collapsed} onToggle={() => setCollapsed(c => !c)} />
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <Header title={title} onNewTask={open} onOpenTaskById={openTaskById} onOpenTaskDetail={openTaskDetail} />

@@ -24,19 +24,18 @@ const NAV = [
   { id: 'settings',  label: 'Config',       icon: Settings,        path: '/settings' },
 ]
 
-// Dark palette
+// Light palette
 const S = {
-  bg:         '#111318',
-  surface:    '#1C1F26',
-  hover:      '#22262F',
-  active:     '#2A2F3C',
-  border:     'rgba(255,255,255,0.07)',
-  text:       '#E8EAED',
-  sub:        '#8B8FA8',
-  muted:      '#525669',
-  accent:     '#7C83F7',
-  accentBg:   'rgba(124,131,247,0.15)',
-  red:        '#F87171',
+  bg:       '#FFFFFF',
+  hover:    '#F5F6FA',
+  active:   '#EEF2FF',
+  border:   '#E4E7F0',
+  text:     '#1A1D27',
+  sub:      '#5A5E72',
+  muted:    '#9699B0',
+  accent:   '#6366F1',
+  accentBg: 'rgba(99,102,241,0.08)',
+  red:      '#EF4444',
 }
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
@@ -49,7 +48,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
   return (
     <div style={{
-      width: collapsed ? 58 : 232,
+      width: collapsed ? 58 : 220,
       backgroundColor: S.bg,
       borderRight: `1px solid ${S.border}`,
       display: 'flex',
@@ -63,17 +62,14 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       <div style={{
         padding: collapsed ? '14px 0' : '14px 16px',
         borderBottom: `1px solid ${S.border}`,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        minHeight: 58,
-        justifyContent: collapsed ? 'center' : 'flex-start',
+        display: 'flex', alignItems: 'center', gap: 10,
+        minHeight: 58, justifyContent: collapsed ? 'center' : 'flex-start',
       }}>
         <div style={{
           width: 32, height: 32, borderRadius: 10, flexShrink: 0,
           background: 'linear-gradient(135deg, #F5A623 0%, #E8760A 100%)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 0 16px rgba(245,166,35,0.4)',
+          boxShadow: '0 2px 10px rgba(245,166,35,0.35)',
         }}>
           <Zap size={16} color="white" strokeWidth={2.5} />
         </div>
@@ -101,30 +97,26 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                 end={item.id === 'dashboard'}
                 title={collapsed ? item.label : undefined}
                 style={({ isActive }) => ({
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 9,
+                  display: 'flex', alignItems: 'center', gap: 9,
                   padding: collapsed ? '9px 0' : '8px 11px',
-                  borderRadius: 9,
-                  fontSize: 13,
+                  borderRadius: 9, fontSize: 13,
                   fontWeight: isActive ? 600 : 500,
                   color: isActive ? S.accent : S.sub,
                   backgroundColor: isActive ? S.accentBg : 'transparent',
-                  textDecoration: 'none',
-                  transition: 'all 0.12s',
+                  textDecoration: 'none', transition: 'all 0.12s',
                   justifyContent: collapsed ? 'center' : 'flex-start',
-                  border: isActive ? `1px solid rgba(124,131,247,0.2)` : '1px solid transparent',
+                  border: isActive ? `1px solid rgba(99,102,241,0.18)` : '1px solid transparent',
                 })}
                 onMouseEnter={e => {
                   const el = e.currentTarget
-                  if (!el.style.backgroundColor.includes('124')) {
+                  if (!el.style.backgroundColor.includes('99,102')) {
                     el.style.backgroundColor = S.hover
                     el.style.color = S.text
                   }
                 }}
                 onMouseLeave={e => {
                   const el = e.currentTarget
-                  if (!el.style.backgroundColor.includes('124')) {
+                  if (!el.style.backgroundColor.includes('99,102')) {
                     el.style.backgroundColor = 'transparent'
                     el.style.color = S.sub
                   }
@@ -133,9 +125,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                 {({ isActive }) => (
                   <>
                     <Icon
-                      size={16}
-                      strokeWidth={isActive ? 2.5 : 2}
-                      color={item.hot ? (isActive ? '#FB923C' : '#EF4444') : undefined}
+                      size={16} strokeWidth={isActive ? 2.5 : 2}
+                      color={item.hot ? (isActive ? '#FB923C' : '#EF4444') : (isActive ? S.accent : S.sub)}
                       style={{ flexShrink: 0 }}
                     />
                     {!collapsed && (
@@ -185,15 +176,14 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                     })}
                     onMouseEnter={e => { e.currentTarget.style.backgroundColor = S.hover; e.currentTarget.style.color = S.text }}
                     onMouseLeave={e => {
-                      const isActive = e.currentTarget.style.backgroundColor === S.active
-                      if (!isActive) { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = S.sub }
+                      const isActive = e.currentTarget.getAttribute('aria-current') === 'page'
+                      e.currentTarget.style.backgroundColor = isActive ? S.active : 'transparent'
+                      e.currentTarget.style.color = isActive ? S.text : S.sub
                     }}
                   >
                     <div style={{
                       width: 7, height: 7, borderRadius: '50%',
-                      backgroundColor: client.color,
-                      flexShrink: 0,
-                      boxShadow: `0 0 6px ${client.color}80`,
+                      backgroundColor: client.color, flexShrink: 0,
                     }} />
                     <span className="truncate">{client.name}</span>
                   </NavLink>
@@ -211,11 +201,11 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 0' }}>
               <div style={{
                 width: 30, height: 30, borderRadius: '50%',
-                backgroundColor: `${ASSIGNEE_COLORS[user.name] || '#7C83F7'}25`,
+                backgroundColor: `${ASSIGNEE_COLORS[user.name] || S.accent}15`,
                 color: ASSIGNEE_COLORS[user.name] || S.accent,
                 fontSize: 10, fontWeight: 800,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                border: `1.5px solid ${ASSIGNEE_COLORS[user.name] || S.accent}40`,
+                border: `1.5px solid ${ASSIGNEE_COLORS[user.name] || S.accent}30`,
               }}>
                 {user.name.slice(0, 2).toUpperCase()}
               </div>
@@ -224,16 +214,15 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             <div style={{
               display: 'flex', alignItems: 'center', gap: 9,
               padding: '8px 10px', borderRadius: 10,
-              backgroundColor: S.surface,
+              backgroundColor: '#F5F6FA',
               border: `1px solid ${S.border}`,
             }}>
               <div style={{
                 width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
-                backgroundColor: `${ASSIGNEE_COLORS[user.name] || S.accent}25`,
-                color: ASSIGNEE_COLORS[user.name] || S.accent,
+                background: `linear-gradient(135deg, ${ASSIGNEE_COLORS[user.name] || S.accent}, ${ASSIGNEE_COLORS[user.name] || S.accent}80)`,
+                color: '#fff',
                 fontSize: 10, fontWeight: 800,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                border: `1.5px solid ${ASSIGNEE_COLORS[user.name] || S.accent}40`,
               }}>
                 {user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
               </div>
