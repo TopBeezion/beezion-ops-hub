@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { useTasks, useUpdateTaskStatus } from '../hooks/useTasks'
 import { getDaysOverdue } from '../lib/dates'
 import { useClients } from '../hooks/useClients'
@@ -16,7 +16,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical, Plus } from 'lucide-react'
+import { GripVertical, Plus, ChevronDown } from 'lucide-react'
 import type { Task, TaskStatus, Area, Client } from '../types'
 import {
   AREA_LABELS, AREA_COLORS,
@@ -53,57 +53,79 @@ const KANBAN_ASSIGNEES = [
   { name: 'Felipe',    color: '#F97316' },
 ]
 
-// ─── Filter chip ──────────────────────────────────────────────────────────────
-function FilterChip({ label, active, color, dot, onClick }: {
-  label: string; active: boolean; color: string; dot?: string; onClick: () => void
-}) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        display: 'inline-flex', alignItems: 'center', gap: 5,
-        padding: '4px 11px', borderRadius: 20,
-        fontSize: 11, fontWeight: 600,
-        cursor: 'pointer', border: 'none', transition: 'all 0.12s',
-        backgroundColor: active ? color : C.card,
-        color: active ? '#fff' : C.sub,
-        boxShadow: active ? `0 2px 8px ${color}40` : `inset 0 0 0 1px ${C.border}`,
-      }}
-    >
-      {dot && <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: active ? 'rgba(255,255,255,0.7)' : dot, flexShrink: 0 }} />}
-      {label}
-    </button>
-  )
+// ─── usePopover ───────────────────────────────────────────────────────────────
+function useKanbanPopover() {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [open])
+  return { open, setOpen, ref }
 }
 
-function AvatarChip({ name, color, active, onClick }: {
-  name: string; color: string; active: boolean; onClick: () => void
+// ─── Filter Dropdown ──────────────────────────────────────────────────────────
+function KFDrop({ label, options, multiValues, onMultiChange, showAvatar }: {
+  label: string
+  options: { value: string; label: string; color?: string }[]
+  multiValues: string[]
+  onMultiChange: (v: string[]) => void
+  showAvatar?: boolean
 }) {
+  const { open, setOpen, ref } = useKanbanPopover()
+  const isActive = multiValues.length > 0
+  const firstSel = options.find(o => o.value === multiValues[0])
+  const btnColor = firstSel?.color ?? C.accent
+  const btnLabel = multiValues.length === 1 ? firstSel?.label ?? '' : multiValues.length > 1 ? `${multiValues.length} filtros` : ''
+
+  const toggle = (v: string) =>
+    onMultiChange(multiValues.includes(v) ? multiValues.filter(x => x !== v) : [...multiValues, v])
+
   return (
-    <button
-      onClick={onClick}
-      title={name}
-      style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-        padding: '4px 6px', borderRadius: 8,
-        cursor: 'pointer', border: 'none', transition: 'all 0.12s',
-        backgroundColor: active ? `${color}18` : 'transparent',
-        outline: active ? `2px solid ${color}` : `1px solid ${C.border}`,
-      }}
-    >
-      <div style={{
-        width: 24, height: 24, borderRadius: '50%',
-        backgroundColor: active ? color : `${color}28`,
-        color: active ? '#fff' : color,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 9, fontWeight: 800,
+    <div ref={ref} style={{ position: 'relative', flexShrink: 0 }}>
+      <button onClick={() => setOpen(o => !o)} style={{
+        display: 'inline-flex', alignItems: 'center', gap: 5, height: 32, padding: '0 10px',
+        borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: 'none',
+        backgroundColor: isActive ? `${btnColor}14` : C.bg,
+        outline: isActive ? `1.5px solid ${btnColor}50` : `1px solid ${C.border}`,
+        color: isActive ? btnColor : C.sub, transition: 'all 0.12s',
       }}>
-        {name.slice(0, 2).toUpperCase()}
-      </div>
-      <span style={{ fontSize: 9, fontWeight: 600, color: active ? color : C.muted }}>
-        {name.split(' ')[0]}
-      </span>
-    </button>
+        <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.05em', color: isActive ? btnColor : C.muted }}>{label}</span>
+        {btnLabel && <><span style={{ width: 1, height: 10, backgroundColor: isActive ? `${btnColor}40` : C.border }} /><span style={{ fontWeight: 700 }}>{btnLabel}</span></>}
+        <ChevronDown size={10} style={{ opacity: 0.6, transform: open ? 'rotate(180deg)' : 'none', transition: '0.15s' }} />
+      </button>
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 400,
+          backgroundColor: '#fff', border: `1px solid ${C.border}`,
+          borderRadius: 10, boxShadow: '0 8px 28px rgba(0,0,0,0.13)',
+          padding: 4, minWidth: 190,
+        }}>
+          {options.map(o => {
+            const isSel = multiValues.includes(o.value)
+            const oc = o.color ?? C.accent
+            return (
+              <button key={o.value} onClick={() => toggle(o.value)} style={{
+                display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+                padding: '7px 10px', borderRadius: 7, border: 'none', cursor: 'pointer',
+                backgroundColor: isSel ? `${oc}12` : 'transparent', textAlign: 'left',
+              }}
+              onMouseEnter={e => { if (!isSel) (e.currentTarget as HTMLElement).style.backgroundColor = '#F5F6FA' }}
+              onMouseLeave={e => { if (!isSel) (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent' }}>
+                {showAvatar
+                  ? <div style={{ width: 22, height: 22, borderRadius: '50%', backgroundColor: isSel ? oc : `${oc}25`, color: isSel ? '#fff' : oc, fontSize: 8, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{o.label.slice(0, 2).toUpperCase()}</div>
+                  : <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: oc, flexShrink: 0 }} />
+                }
+                <span style={{ flex: 1, fontSize: 12, fontWeight: isSel ? 700 : 500, color: isSel ? oc : C.text }}>{o.label}</span>
+                {isSel && <span style={{ fontSize: 11, color: oc }}>✓</span>}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -402,62 +424,43 @@ export function KanbanPage() {
       {/* ── Filter bar ─────────────────────────────────────────────────────── */}
       <div style={{
         backgroundColor: C.card, borderBottom: `1px solid ${C.border}`,
-        padding: '10px 20px', display: 'flex', flexDirection: 'column', gap: 8,
+        padding: '8px 20px', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
         flexShrink: 0,
       }}>
-        {/* Row 1: cliente + responsable */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 9, fontWeight: 800, color: C.muted, letterSpacing: '0.1em', marginRight: 2, whiteSpace: 'nowrap' }}>CLIENTE</span>
-          {clients.map(cl => (
-            <FilterChip
-              key={cl.id} label={cl.name} dot={cl.color}
-              active={filterClients.includes(cl.id)} color={cl.color}
-              onClick={() => setFilterClients(toggle(filterClients, cl.id))}
-            />
+        <KFDrop
+          label="Cliente"
+          options={clients.map(cl => ({ value: cl.id, label: cl.name, color: cl.color }))}
+          multiValues={filterClients}
+          onMultiChange={setFilterClients}
+        />
+        <KFDrop
+          label="Responsable"
+          options={KANBAN_ASSIGNEES.map(({ name, color }) => ({ value: name, label: name, color }))}
+          multiValues={filterAssignees}
+          onMultiChange={setFilterAssignees}
+          showAvatar
+        />
+        <KFDrop
+          label="Área"
+          options={(Object.entries(AREA_LABELS) as [Area, string][]).map(([key, label]) => ({ value: key, label, color: AREA_COLORS[key] }))}
+          multiValues={filterAreas}
+          onMultiChange={v => setFilterAreas(v as Area[])}
+        />
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+          {COLUMNS.map(col => (
+            <div key={col.id} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: col.color }} />
+              <span style={{ fontSize: 11, fontWeight: 600, color: C.sub }}>{tasksByStatus[col.id].length}</span>
+            </div>
           ))}
-          <div style={{ width: 1, height: 20, backgroundColor: C.border, flexShrink: 0, margin: '0 4px' }} />
-          <span style={{ fontSize: 9, fontWeight: 800, color: C.muted, letterSpacing: '0.1em', marginRight: 2, whiteSpace: 'nowrap' }}>RESPONSABLE</span>
-          {KANBAN_ASSIGNEES.map(({ name, color }) => (
-            <AvatarChip
-              key={name} name={name} color={color}
-              active={filterAssignees.includes(name)}
-              onClick={() => setFilterAssignees(toggle(filterAssignees, name))}
-            />
-          ))}
-        </div>
-
-        {/* Row 2: área + stats + clear */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 9, fontWeight: 800, color: C.muted, letterSpacing: '0.1em', marginRight: 2, whiteSpace: 'nowrap' }}>ÁREA</span>
-          {(Object.entries(AREA_LABELS) as [Area, string][]).map(([key, label]) => (
-            <FilterChip
-              key={key} label={label}
-              active={filterAreas.includes(key)} color={AREA_COLORS[key]}
-              onClick={() => setFilterAreas(toggle(filterAreas, key))}
-            />
-          ))}
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
-            {/* Status counts */}
-            {COLUMNS.map(col => (
-              <div key={col.id} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: col.color }} />
-                <span style={{ fontSize: 11, fontWeight: 600, color: C.sub }}>
-                  {tasksByStatus[col.id].length}
-                </span>
-              </div>
-            ))}
-            <span style={{ fontSize: 10, color: C.muted, marginLeft: 4 }}>{filteredTasks.length} tareas</span>
-            {hasFilters && (
-              <button onClick={clearFilters} style={{
-                display: 'flex', alignItems: 'center', gap: 3,
-                fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                color: '#DC2626', backgroundColor: '#FEF2F2',
-                border: '1px solid #FCA5A5', borderRadius: 20, padding: '3px 10px',
-              }}>
-                ✕ Limpiar
-              </button>
-            )}
-          </div>
+          <span style={{ fontSize: 10, color: C.muted, marginLeft: 4 }}>{filteredTasks.length} tareas</span>
+          {hasFilters && (
+            <button onClick={clearFilters} style={{
+              fontSize: 10, fontWeight: 700, cursor: 'pointer',
+              color: '#DC2626', backgroundColor: '#FEF2F2',
+              border: '1px solid #FCA5A5', borderRadius: 8, padding: '0 10px', height: 32,
+            }}>✕ Limpiar</button>
+          )}
         </div>
       </div>
 

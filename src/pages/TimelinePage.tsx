@@ -1,10 +1,90 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useTasks } from '../hooks/useTasks'
 import { useClients } from '../hooks/useClients'
 import { useOutletContext } from 'react-router-dom'
 import type { Task } from '../types'
 import { AREA_COLORS, AREA_LABELS, STATUS_COLORS, STATUS_LABELS, ASSIGNEE_COLORS } from '../lib/constants'
 import { X, ChevronDown, ChevronUp, Zap } from 'lucide-react'
+
+// ─── usePopover ───────────────────────────────────────────────────────────────
+function useTLPopover() {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [open])
+  return { open, setOpen, ref }
+}
+
+// ─── Filter Dropdown ──────────────────────────────────────────────────────────
+function TLFilterDrop({ label, value, onChange, options, showAvatar }: {
+  label: string; value: string; onChange: (v: string) => void
+  options: { value: string; label: string; color?: string }[]
+  showAvatar?: boolean
+}) {
+  const { open, setOpen, ref } = useTLPopover()
+  const sel = options.find(o => o.value === value)
+  const isActive = !!value
+  const oc = sel?.color ?? '#6366F1'
+  const C2 = { bg: '#F0F2F8', border: '#E4E7F0', sub: '#5A5E72', muted: '#9699B0', text: '#1A1D27' }
+
+  return (
+    <div ref={ref} style={{ position: 'relative', flexShrink: 0 }}>
+      <button onClick={() => setOpen(o => !o)} style={{
+        display: 'inline-flex', alignItems: 'center', gap: 5, height: 32, padding: '0 10px',
+        borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: 'none',
+        backgroundColor: isActive ? `${oc}14` : C2.bg,
+        outline: isActive ? `1.5px solid ${oc}50` : `1px solid ${C2.border}`,
+        color: isActive ? oc : C2.sub, transition: 'all 0.12s',
+      }}>
+        <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.05em', color: isActive ? oc : C2.muted }}>{label}</span>
+        {sel && <><span style={{ width: 1, height: 10, backgroundColor: `${oc}40` }} /><span style={{ fontWeight: 700 }}>{sel.label}</span></>}
+        <ChevronDown size={10} style={{ opacity: 0.6, transform: open ? 'rotate(180deg)' : 'none', transition: '0.15s' }} />
+      </button>
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 400,
+          backgroundColor: '#fff', border: `1px solid ${C2.border}`,
+          borderRadius: 10, boxShadow: '0 8px 28px rgba(0,0,0,0.13)',
+          padding: 4, minWidth: 190,
+        }}>
+          <button onClick={() => { onChange(''); setOpen(false) }} style={{
+            display: 'flex', alignItems: 'center', width: '100%', padding: '7px 10px',
+            borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 12,
+            backgroundColor: !value ? '#F5F6FA' : 'transparent', color: C2.muted,
+          }}
+          onMouseEnter={e => { if (value) (e.currentTarget as HTMLElement).style.backgroundColor = '#F5F6FA' }}
+          onMouseLeave={e => { if (value) (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent' }}>
+            Todos
+          </button>
+          {options.map(o => {
+            const isSel = value === o.value
+            const tc = o.color ?? '#6366F1'
+            return (
+              <button key={o.value} onClick={() => { onChange(isSel ? '' : o.value); setOpen(false) }} style={{
+                display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+                padding: '7px 10px', borderRadius: 7, border: 'none', cursor: 'pointer',
+                backgroundColor: isSel ? `${tc}12` : 'transparent', textAlign: 'left',
+              }}
+              onMouseEnter={e => { if (!isSel) (e.currentTarget as HTMLElement).style.backgroundColor = '#F5F6FA' }}
+              onMouseLeave={e => { if (!isSel) (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent' }}>
+                {showAvatar
+                  ? <div style={{ width: 22, height: 22, borderRadius: '50%', backgroundColor: isSel ? tc : `${tc}25`, color: isSel ? '#fff' : tc, fontSize: 8, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{o.label.slice(0, 2).toUpperCase()}</div>
+                  : <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: tc, flexShrink: 0 }} />
+                }
+                <span style={{ flex: 1, fontSize: 12, fontWeight: isSel ? 700 : 500, color: isSel ? tc : C2.text }}>{o.label}</span>
+                {isSel && <span style={{ fontSize: 11, color: tc }}>✓</span>}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
 
 // ─── Design tokens ─────────────────────────────────────────────────────────────
 const C = {
@@ -383,6 +463,7 @@ export function TimelinePage() {
     allTasks.some(t => t.client_id === c.id),
   )
 
+  // chipStyle kept for any legacy use
   const chipStyle = (active: boolean, color = '#6366F1'): React.CSSProperties => ({
     padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600,
     cursor: 'pointer', border: 'none', transition: 'all 0.12s',
@@ -404,79 +485,35 @@ export function TimelinePage() {
 
       {/* ── Filter toolbar ─────────────────────────────────────────── */}
       <div style={{
-        display: 'flex', flexDirection: 'column', gap: 6,
-        padding: '10px 16px',
-        backgroundColor: C.card, borderBottom: `1px solid ${C.border}`,
+        padding: '8px 16px', backgroundColor: C.card, borderBottom: `1px solid ${C.border}`,
+        display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
       }}>
-        {/* Row 1: Area + Cliente */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.04em', marginRight: 2 }}>Área</span>
-          <button onClick={() => setAreaFilter('')} style={chipStyle(!areaFilter)}>Todas</button>
-          {AREA_LIST.map(a => (
-            <button key={a} onClick={() => setAreaFilter(areaFilter === a ? '' : a)} style={chipStyle(areaFilter === a, AREA_COLORS[a])}>
-              {AREA_LABELS[a]}
-            </button>
-          ))}
-
-          <span style={{ width: 1, height: 14, backgroundColor: C.border, margin: '0 4px' }} />
-
-          <span style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.04em', marginRight: 2 }}>Cliente</span>
-          <button onClick={() => setClientFilter('')} style={chipStyle(!clientFilter)}>Todos</button>
-          {clients.map(c => (
-            <button key={c.id} onClick={() => setClientFilter(clientFilter === c.id ? '' : c.id)}
-              style={{ ...chipStyle(clientFilter === c.id, c.color), display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ width: 5, height: 5, borderRadius: '50%', backgroundColor: clientFilter === c.id ? 'rgba(255,255,255,0.7)' : c.color, display: 'inline-block' }} />
-              {c.name}
-            </button>
-          ))}
-
-          <span style={{ fontSize: 11, color: C.muted, marginLeft: 'auto', fontWeight: 500 }}>{tasks.length} tareas</span>
-        </div>
-
-        {/* Row 2: Assignee */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.04em', marginRight: 2 }}>Persona</span>
-          <button onClick={() => setAssigneeFilter('')} style={chipStyle(!assigneeFilter)}>Todos</button>
-          {ASSIGNEES.map(name => {
-            const color = ASSIGNEE_COLORS[name] || '#9699B0'
-            const active = assigneeFilter === name
-            return (
-              <button key={name} onClick={() => setAssigneeFilter(active ? '' : name)} style={{
-                display: 'flex', alignItems: 'center', gap: 4,
-                padding: '3px 9px 3px 5px', borderRadius: 20, fontSize: 11, fontWeight: 600,
-                cursor: 'pointer', border: 'none', transition: 'all 0.12s',
-                backgroundColor: active ? color : `${color}12`,
-                color: active ? '#fff' : color,
-                boxShadow: active ? `0 2px 6px ${color}40` : `inset 0 0 0 1.5px ${color}35`,
-              }}>
-                <div style={{
-                  width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
-                  backgroundColor: active ? 'rgba(255,255,255,0.25)' : `${color}20`,
-                  color: active ? '#fff' : color,
-                  fontSize: 8, fontWeight: 800,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  {name.slice(0, 2).toUpperCase()}
-                </div>
-                {name}
-              </button>
-            )
-          })}
-
-          {hasFilters && (
-            <button
-              onClick={() => { setAreaFilter(''); setAssigneeFilter(''); setClientFilter('') }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700,
-                padding: '4px 9px', borderRadius: 20, cursor: 'pointer', border: 'none',
-                backgroundColor: '#FEF2F2', color: '#DC2626',
-                boxShadow: 'inset 0 0 0 1.5px #FCA5A5',
-              }}
-            >
-              <X size={9} strokeWidth={3} /> Limpiar
-            </button>
-          )}
-        </div>
+        <TLFilterDrop
+          label="Área"
+          value={areaFilter}
+          onChange={setAreaFilter}
+          options={AREA_LIST.map(a => ({ value: a, label: AREA_LABELS[a], color: AREA_COLORS[a] }))}
+        />
+        <TLFilterDrop
+          label="Cliente"
+          value={clientFilter}
+          onChange={setClientFilter}
+          options={clients.map(c => ({ value: c.id, label: c.name, color: c.color }))}
+        />
+        <TLFilterDrop
+          label="Persona"
+          value={assigneeFilter}
+          onChange={setAssigneeFilter}
+          options={ASSIGNEES.map(name => ({ value: name, label: name, color: ASSIGNEE_COLORS[name] || '#9699B0' }))}
+          showAvatar
+        />
+        {hasFilters && (
+          <button onClick={() => { setAreaFilter(''); setAssigneeFilter(''); setClientFilter('') }}
+            style={{ fontSize: 10, fontWeight: 700, cursor: 'pointer', color: '#DC2626', backgroundColor: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: 8, padding: '0 10px', height: 32 }}>
+            <X size={9} strokeWidth={3} /> Limpiar
+          </button>
+        )}
+        <span style={{ fontSize: 11, color: C.muted, marginLeft: 'auto', fontWeight: 500 }}>{tasks.length} tareas</span>
       </div>
 
       {/* ── Grid ──────────────────────────────────────────────────── */}
