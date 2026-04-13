@@ -291,7 +291,7 @@ function CampaignCard({
   return (
     <div style={{
       backgroundColor: '#FFFFFF', border: '1px solid #E6E9EF',
-      borderRadius: 10, overflow: 'hidden', transition: 'box-shadow 0.2s',
+      borderRadius: 10, transition: 'box-shadow 0.2s',
     }}
       onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)')}
       onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}

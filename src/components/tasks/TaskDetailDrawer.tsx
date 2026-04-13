@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import {
-  X, Save, ChevronDown, AlertTriangle, FileText,
+  X, Save, ChevronDown, AlertTriangle, FileText, Check,
   Paperclip, Upload, Trash2, Download, File, Image, FileVideo, FileAudio,
   Bot, Hand,
 } from 'lucide-react'
@@ -17,7 +17,7 @@ import {
 } from '../../lib/constants'
 import { getSprintDateRange } from '../../lib/dates'
 
-// ── Team ────────────────────────────────────────────────────────────────────
+// ── Team ─────────────────────────────────────────────────────────────────────
 const ASSIGNEES = [
   { name: 'Alejandro', role: 'CEO · Copy · Estrategia',      color: '#8b5cf6', areas: ['copy','trafico','tech','admin'] },
   { name: 'Alec',      role: 'Head of Paid · Estrategia',    color: '#f5a623', areas: ['trafico','tech'] },
@@ -45,18 +45,32 @@ const DELIVERABLE_DEFS: { key: keyof Deliverables; label: string; color: string 
 
 const SPRINT_COLORS: Record<number, string> = { 1: '#8b5cf6', 2: '#ec4899', 3: '#3b82f6', 4: '#22c55e' }
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
+// ── Shared styles ─────────────────────────────────────────────────────────────
 const lbl: React.CSSProperties = {
   color: '#9699A6', fontSize: 10, fontWeight: 700,
   textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5, display: 'block',
 }
-
 const inputBase: React.CSSProperties = {
   backgroundColor: '#FFFFFF', border: '1px solid #E6E9EF',
   color: '#1F2128', outline: 'none', width: '100%', borderRadius: 8,
 }
 
-// Styled select dropdown
+// ── usePopover hook ───────────────────────────────────────────────────────────
+function usePopover() {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const h = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [open])
+  return { open, setOpen, ref }
+}
+
+// ── Custom dropdown ───────────────────────────────────────────────────────────
 function FieldSel({
   label, value, onChange, options, accentColor,
 }: {
@@ -66,36 +80,71 @@ function FieldSel({
   options: { value: string; label: string; color?: string }[]
   accentColor?: string
 }) {
+  const { open, setOpen, ref } = usePopover()
   const sel = options.find(o => o.value === value)
   const color = accentColor ?? sel?.color ?? '#6366F1'
+
   return (
-    <div style={{ flex: 1 }}>
+    <div style={{ flex: 1, position: 'relative' }} ref={ref}>
       <label style={lbl}>{label}</label>
-      <div style={{ position: 'relative' }}>
-        <select
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          style={{
-            width: '100%', padding: '7px 28px 7px 10px',
-            borderRadius: 8, fontSize: 12, fontWeight: 600,
-            appearance: 'none', cursor: 'pointer', outline: 'none',
-            border: `1px solid ${color}35`,
-            backgroundColor: `${color}0D`,
-            color,
-          }}
-        >
-          {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
-        <ChevronDown size={12} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', color: '#9699A6', pointerEvents: 'none' }} />
-      </div>
+      {/* Trigger */}
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', gap: 6,
+          padding: '7px 10px', borderRadius: 8, cursor: 'pointer',
+          border: `1px solid ${color}40`,
+          backgroundColor: `${color}0D`,
+          outline: 'none',
+        }}
+      >
+        <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: color, flexShrink: 0 }} />
+        <span style={{ flex: 1, textAlign: 'left', fontSize: 12, fontWeight: 600, color }}>{sel?.label ?? ''}</span>
+        <ChevronDown size={11} style={{ color: '#9699A6', flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: '150ms' }} />
+      </button>
+      {/* Dropdown list */}
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
+          zIndex: 600, backgroundColor: '#fff',
+          border: '1px solid #E4E7F0', borderRadius: 10,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.12)', padding: 4,
+          maxHeight: 220, overflowY: 'auto',
+        }}>
+          {options.map(o => {
+            const isActive = o.value === value
+            const oc = o.color ?? '#6366F1'
+            return (
+              <button
+                key={o.value}
+                type="button"
+                onClick={() => { onChange(o.value); setOpen(false) }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+                  padding: '7px 10px', borderRadius: 7, border: 'none', cursor: 'pointer',
+                  backgroundColor: isActive ? `${oc}12` : 'transparent',
+                  transition: 'background 0.1s', textAlign: 'left',
+                }}
+                onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.backgroundColor = '#F5F5F5' }}
+                onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent' }}
+              >
+                <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: oc, flexShrink: 0 }} />
+                <span style={{ flex: 1, fontSize: 12, fontWeight: isActive ? 700 : 500, color: isActive ? oc : '#374151' }}>{o.label}</span>
+                {isActive && <Check size={11} color={oc} />}
+              </button>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
 
-// ── Props ────────────────────────────────────────────────────────────────────
+// ── Props ─────────────────────────────────────────────────────────────────────
 interface Props { task: Task; onClose: () => void }
 
-// ── Component ────────────────────────────────────────────────────────────────
+// ── Component ─────────────────────────────────────────────────────────────────
 export function TaskDetailDrawer({ task, onClose }: Props) {
   const updateTask = useUpdateTask()
   const { data: clients = [] } = useClients()
@@ -123,8 +172,8 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const { data: campaigns = [] } = useCampaignsByClient(clientId || undefined)
-  const sprint      = getSprintDateRange(week)
-  const sprintColor = SPRINT_COLORS[week] ?? '#6b7280'
+  const sprint       = getSprintDateRange(week)
+  const sprintColor  = SPRINT_COLORS[week] ?? '#6b7280'
   const assigneeInfo = ASSIGNEES.find(a => a.name === assignee)
 
   useEffect(() => {
@@ -134,12 +183,10 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
   }, [onClose])
 
   const isDirty =
-    title !== task.title ||
-    description !== (task.description ?? '') ||
-    problema !== (task.problema ?? '') ||
-    area !== task.area || assignee !== task.assignee ||
-    priority !== task.priority || status !== task.status ||
-    week !== task.week || tipo !== task.tipo ||
+    title !== task.title || description !== (task.description ?? '') ||
+    problema !== (task.problema ?? '') || area !== task.area ||
+    assignee !== task.assignee || priority !== task.priority ||
+    status !== task.status || week !== task.week || tipo !== task.tipo ||
     clientId !== (task.client_id ?? '') || campaignId !== (task.campaign_id ?? '') ||
     etapa !== (task.etapa ?? '') || miniStatus !== (task.mini_status ?? '') ||
     dueDate !== (task.due_date ?? '') ||
@@ -206,16 +253,15 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
     return File
   }
   const fmtBytes = (b: number) => b < 1024 ? `${b} B` : b < 1048576 ? `${(b/1024).toFixed(0)} KB` : `${(b/1048576).toFixed(1)} MB`
-
   const totalDel = Object.values(deliverables).reduce((s, v) => s + (v ?? 0), 0)
 
-  // Build select options
-  const statusOpts = (Object.entries(STATUS_LABELS) as [TaskStatus, string][]).map(([v, l]) => ({ value: v, label: l, color: STATUS_COLORS[v] }))
-  const priorityOpts = (Object.entries(PRIORITY_LABELS) as [Priority, string][]).map(([v, l]) => ({ value: v, label: l, color: PRIORITY_COLORS[v] }))
+  // Options
+  const statusOpts   = (Object.entries(STATUS_LABELS)   as [TaskStatus, string][]).map(([v, l]) => ({ value: v, label: l, color: STATUS_COLORS[v] }))
+  const priorityOpts = (Object.entries(PRIORITY_LABELS) as [Priority,   string][]).map(([v, l]) => ({ value: v, label: l, color: PRIORITY_COLORS[v] }))
   const tipoOpts = [
-    { value: 'nuevo', label: 'Nuevo', color: '#9699A6' },
+    { value: 'nuevo',              label: 'Nuevo',              color: '#9699A6' },
     { value: 'pendiente_anterior', label: 'Pendiente anterior', color: '#F97316' },
-    { value: 'urgente', label: '🚨 Urgente', color: '#EF4444' },
+    { value: 'urgente',            label: '🚨 Urgente',         color: '#EF4444' },
   ]
   const etapaOpts = [
     { value: '', label: 'Sin etapa', color: '#9699A6' },
@@ -236,18 +282,12 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-stretch justify-end">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0"
-        onClick={onClose}
-        style={{ backgroundColor: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(4px)' }}
-      />
+      <div className="absolute inset-0" onClick={onClose}
+        style={{ backgroundColor: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(4px)' }} />
 
-      {/* Drawer */}
-      <div
-        className="relative flex flex-col h-full w-full overflow-hidden"
-        style={{ maxWidth: 520, backgroundColor: '#FFFFFF', borderLeft: '1px solid #E6E9EF', boxShadow: '-8px 0 32px rgba(0,0,0,0.1)' }}
-      >
+      <div className="relative flex flex-col h-full w-full overflow-hidden"
+        style={{ maxWidth: 520, backgroundColor: '#FFFFFF', borderLeft: '1px solid #E6E9EF', boxShadow: '-8px 0 32px rgba(0,0,0,0.1)' }}>
+
         {/* Client stripe */}
         <div className="absolute top-0 left-0 right-0 h-0.5" style={{ backgroundColor: task.client?.color ?? '#f5a623' }} />
 
@@ -274,12 +314,12 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
             {isDirty && (
               <button onClick={handleSave} disabled={saving}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold disabled:opacity-60"
-                style={{ background: '#6366F1', color: '#fff', boxShadow: '0 0 14px rgba(99,102,241,0.2)' }}>
+                style={{ background: '#6366F1', color: '#fff', boxShadow: '0 0 14px rgba(99,102,241,0.2)', border: 'none', cursor: 'pointer' }}>
                 <Save size={11} />
                 {saving ? 'Guardando…' : saved ? '✓ Guardado' : 'Guardar'}
               </button>
             )}
-            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors" style={{ color: '#9699A6' }}>
+            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors" style={{ color: '#9699A6', background: 'none', border: 'none', cursor: 'pointer' }}>
               <X size={15} />
             </button>
           </div>
@@ -291,24 +331,19 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
           {/* Título */}
           <div>
             <label style={lbl}>Título de la tarea</label>
-            <textarea
-              value={title}
-              onChange={e => setTitle(e.target.value)}
-              rows={2}
+            <textarea value={title} onChange={e => setTitle(e.target.value)} rows={2}
               className="mt-0.5 w-full px-3 py-2.5 rounded-lg text-sm font-medium resize-none leading-relaxed"
-              style={inputBase}
-              placeholder="Describe la tarea..."
-            />
+              style={inputBase} placeholder="Describe la tarea..." />
           </div>
 
-          {/* Row 1: Status · Prioridad · Tipo */}
+          {/* Row: Status · Prioridad · Tipo */}
           <div style={{ display: 'flex', gap: 8 }}>
             <FieldSel label="Status" value={status} onChange={v => setStatus(v as TaskStatus)} options={statusOpts} />
             <FieldSel label="Prioridad" value={priority} onChange={v => setPriority(v as Priority)} options={priorityOpts} />
             <FieldSel label="Tipo" value={tipo} onChange={v => setTipo(v as TaskTipo)} options={tipoOpts} />
           </div>
 
-          {/* Área — pills (visual distinction is useful here) */}
+          {/* Área */}
           <div>
             <label style={lbl}>Área</label>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -317,7 +352,7 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
                 const col = AREA_COLORS[v]
                 return (
                   <button key={v} onClick={() => setArea(v)} style={{
-                    padding: '6px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700,
+                    padding: '6px 16px', borderRadius: 20, fontSize: 12, fontWeight: 700,
                     cursor: 'pointer', border: 'none', transition: 'all 0.12s',
                     backgroundColor: active ? col : `${col}12`,
                     color: active ? '#fff' : col,
@@ -328,21 +363,19 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
             </div>
           </div>
 
-          {/* Responsable — grid (need to see all members) */}
+          {/* Responsable */}
           <div>
             <label style={lbl}>Responsable</label>
             <div className="grid grid-cols-2 gap-1.5">
               {ASSIGNEES.map(a => (
-                <button
-                  key={a.name}
-                  onClick={() => setAssignee(a.name)}
+                <button key={a.name} onClick={() => setAssignee(a.name)}
                   className="flex items-center gap-2 px-2.5 py-2 rounded-lg text-left transition-all"
                   style={{
                     backgroundColor: assignee === a.name ? `${a.color}10` : '#FAFBFC',
                     border: assignee === a.name ? `1px solid ${a.color}40` : '1px solid #E6E9EF',
                     boxShadow: assignee === a.name ? `0 0 10px ${a.color}15` : 'none',
-                  }}
-                >
+                    cursor: 'pointer',
+                  }}>
                   <div className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0"
                     style={{ background: `linear-gradient(135deg,${a.color}40,${a.color}20)`, color: a.color, border: `1px solid ${a.color}30` }}>
                     {a.name.slice(0, 2).toUpperCase()}
@@ -363,54 +396,30 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
 
           {/* Row: Cliente · Campaña */}
           <div style={{ display: 'flex', gap: 8 }}>
-            <FieldSel
-              label="Cliente"
-              value={clientId}
+            <FieldSel label="Cliente" value={clientId}
               onChange={v => { setClientId(v); setCampaignId('') }}
               options={clienteOpts}
-              accentColor={clients.find(c => c.id === clientId)?.color ?? '#6366F1'}
+              accentColor={clients.find(c => c.id === clientId)?.color ?? '#9699A6'}
             />
-            {clientId && (
-              <FieldSel
-                label="Campaña"
-                value={campaignId}
-                onChange={setCampaignId}
-                options={campanaOpts}
-              />
-            )}
+            <FieldSel label="Campaña" value={campaignId} onChange={setCampaignId} options={campanaOpts} />
           </div>
 
           {/* Row: Etapa · Mini Status */}
           <div style={{ display: 'flex', gap: 8 }}>
-            <FieldSel
-              label="Etapa"
-              value={etapa}
-              onChange={v => setEtapa(v as Etapa | '')}
-              options={etapaOpts}
-              accentColor={etapa ? ETAPA_COLORS[etapa as Etapa] : '#9699A6'}
-            />
-            <FieldSel
-              label="Mini Status"
-              value={miniStatus}
-              onChange={v => setMiniStatus(v as MiniStatus | '')}
-              options={miniStatusOpts}
-              accentColor={miniStatus ? MINI_STATUS_COLORS[miniStatus as MiniStatus] : '#9699A6'}
-            />
+            <FieldSel label="Etapa" value={etapa} onChange={v => setEtapa(v as Etapa | '')} options={etapaOpts}
+              accentColor={etapa ? ETAPA_COLORS[etapa as Etapa] : '#9699A6'} />
+            <FieldSel label="Mini Status" value={miniStatus} onChange={v => setMiniStatus(v as MiniStatus | '')} options={miniStatusOpts}
+              accentColor={miniStatus ? MINI_STATUS_COLORS[miniStatus as MiniStatus] : '#9699A6'} />
           </div>
 
-          {/* Fecha límite + Sprint en la misma área */}
+          {/* Fecha límite + Sprint */}
           <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-            {/* Fecha */}
             <div style={{ flex: 1 }}>
               <label style={lbl}>Fecha límite</label>
-              <input
-                type="date" value={dueDate}
-                onChange={e => setDueDate(e.target.value)}
+              <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
                 className="px-3 py-2 rounded-lg text-sm w-full"
-                style={{ ...inputBase, color: dueDate && new Date(dueDate) < new Date() ? '#E2445C' : '#1F2128' }}
-              />
+                style={{ ...inputBase, color: dueDate && new Date(dueDate) < new Date() ? '#E2445C' : '#1F2128' }} />
             </div>
-            {/* Sprint pills compactos */}
             <div style={{ flex: 1.4 }}>
               <label style={lbl}>Sprint</label>
               <div style={{ display: 'flex', gap: 4 }}>
@@ -418,21 +427,22 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
                   const sc = SPRINT_COLORS[w]
                   const s  = getSprintDateRange(w)
                   return (
-                    <button key={w} onClick={() => setWeek(w)} className="flex-1 rounded-lg py-2 text-center transition-all"
-                      style={{
-                        backgroundColor: week === w ? `${sc}14` : '#FAFBFC',
-                        border: week === w ? `1.5px solid ${sc}50` : '1px solid #E6E9EF',
-                      }}>
-                      <p className="text-[11px] font-bold" style={{ color: week === w ? sc : '#9699A6' }}>S{w}</p>
-                      <p className="text-[8px] leading-tight" style={{ color: '#C4C7D0' }}>{s.startFmt}</p>
+                    <button key={w} onClick={() => setWeek(w)} style={{
+                      flex: 1, borderRadius: 8, padding: '6px 4px', textAlign: 'center',
+                      backgroundColor: week === w ? `${sc}14` : '#FAFBFC',
+                      border: week === w ? `1.5px solid ${sc}50` : '1px solid #E6E9EF',
+                      cursor: 'pointer', transition: 'all 0.12s',
+                    }}>
+                      <p style={{ fontSize: 11, fontWeight: 700, color: week === w ? sc : '#9699A6', margin: 0 }}>S{w}</p>
+                      <p style={{ fontSize: 8, color: '#C4C7D0', margin: 0 }}>{s.startFmt}</p>
                     </button>
                   )
                 })}
               </div>
               <div className="flex items-center gap-1.5 mt-1.5 px-1">
                 <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: sprintColor }} />
-                <span className="text-[10px] font-medium" style={{ color: sprintColor }}>Sprint {week}</span>
-                <span className="text-[10px]" style={{ color: '#9699A6' }}>· {sprint.label}</span>
+                <span style={{ fontSize: 10, fontWeight: 600, color: sprintColor }}>Sprint {week}</span>
+                <span style={{ fontSize: 10, color: '#9699A6' }}>· {sprint.label}</span>
               </div>
             </div>
           </div>
@@ -443,44 +453,29 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
           {/* Descripción */}
           <div>
             <label style={lbl}><FileText size={9} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />Descripción / Instrucciones</label>
-            <textarea
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              rows={3}
+            <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3}
               className="w-full px-3 py-2.5 rounded-lg text-xs leading-relaxed resize-none"
               style={{ ...inputBase, color: '#676879' }}
-              placeholder="Qué hay que hacer, cómo hacerlo, referencias, links..."
-            />
+              placeholder="Qué hay que hacer, cómo hacerlo, referencias, links..." />
           </div>
 
           {/* Problema */}
           <div>
             <label style={lbl}>Problema que resuelve</label>
-            <input
-              value={problema}
-              onChange={e => setProblema(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg text-xs"
-              style={inputBase}
-              placeholder="Ej: Show rate de Book Demos bajo"
-            />
+            <input value={problema} onChange={e => setProblema(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg text-xs" style={inputBase}
+              placeholder="Ej: Show rate de Book Demos bajo" />
           </div>
 
-          {/* Entregables — collapsible */}
+          {/* Entregables */}
           <div>
-            <button
-              type="button"
-              onClick={() => setShowDel(v => !v)}
+            <button type="button" onClick={() => setShowDel(v => !v)}
               className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg transition-colors"
-              style={{
-                backgroundColor: showDel ? 'rgba(99,102,241,0.06)' : '#FAFBFC',
-                border: `1px solid ${showDel ? 'rgba(99,102,241,0.2)' : '#E6E9EF'}`,
-              }}
-            >
-              <span className="text-xs font-semibold" style={{ color: showDel ? '#6366F1' : '#676879' }}>
+              style={{ backgroundColor: showDel ? 'rgba(99,102,241,0.06)' : '#FAFBFC', border: `1px solid ${showDel ? 'rgba(99,102,241,0.2)' : '#E6E9EF'}`, cursor: 'pointer' }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: showDel ? '#6366F1' : '#676879' }}>
                 📦 Entregables y cantidades
                 {totalDel > 0 && (
-                  <span className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                    style={{ backgroundColor: 'rgba(99,102,241,0.15)', color: '#6366F1' }}>
+                  <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 99, backgroundColor: 'rgba(99,102,241,0.15)', color: '#6366F1' }}>
                     {totalDel} total
                   </span>
                 )}
@@ -493,19 +488,14 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
                   const val = deliverables[key] ?? 0
                   return (
                     <div key={key} className="flex items-center gap-3 px-3 py-2 rounded-lg"
-                      style={{
-                        backgroundColor: val > 0 ? `${color}10` : '#FAFBFC',
-                        border: val > 0 ? `1px solid ${color}30` : '1px solid #E6E9EF',
-                      }}>
-                      <span className="flex-1 text-[11px] font-medium" style={{ color: val > 0 ? color : '#9699A6' }}>{label}</span>
-                      <div className="flex items-center gap-1.5">
+                      style={{ backgroundColor: val > 0 ? `${color}10` : '#FAFBFC', border: val > 0 ? `1px solid ${color}30` : '1px solid #E6E9EF' }}>
+                      <span style={{ flex: 1, fontSize: 11, fontWeight: 500, color: val > 0 ? color : '#9699A6' }}>{label}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <button type="button" onClick={() => setDeliverable(key, Math.max(0, val - 1))}
-                          className="w-6 h-6 rounded-md flex items-center justify-center text-sm font-bold"
-                          style={{ backgroundColor: val > 0 ? `${color}20` : '#E6E9EF', color: val > 0 ? color : '#9699A6' }}>−</button>
-                        <span className="w-7 text-center text-[12px] font-bold tabular-nums" style={{ color: val > 0 ? color : '#9699A6' }}>{val}</span>
+                          style={{ width: 24, height: 24, borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 16, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: val > 0 ? `${color}20` : '#E6E9EF', color: val > 0 ? color : '#9699A6' }}>−</button>
+                        <span style={{ width: 28, textAlign: 'center', fontSize: 12, fontWeight: 700, color: val > 0 ? color : '#9699A6' }}>{val}</span>
                         <button type="button" onClick={() => setDeliverable(key, val + 1)}
-                          className="w-6 h-6 rounded-md flex items-center justify-center text-sm font-bold"
-                          style={{ backgroundColor: `${color}20`, color }}>+</button>
+                          style={{ width: 24, height: 24, borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 16, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: `${color}20`, color }}>+</button>
                       </div>
                     </div>
                   )
@@ -517,25 +507,23 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
           {/* Adjuntos */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label style={lbl} className="flex items-center gap-1 !mb-0">
-                <Paperclip size={9} style={{ display: 'inline' }} /> Archivos adjuntos
+              <label style={{ ...lbl, marginBottom: 0 }}>
+                <Paperclip size={9} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />
+                Archivos adjuntos
                 {attachments.length > 0 && (
-                  <span className="ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: '#EEF2FF', color: '#6366F1' }}>
+                  <span style={{ marginLeft: 4, fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 99, backgroundColor: '#EEF2FF', color: '#6366F1' }}>
                     {attachments.length}
                   </span>
                 )}
               </label>
               <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading}
-                className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg"
-                style={{ backgroundColor: uploading ? '#F3F4F6' : '#EEF2FF', color: uploading ? '#9699A6' : '#6366F1', border: 'none', cursor: uploading ? 'not-allowed' : 'pointer' }}>
-                <Upload size={11} />
-                {uploading ? 'Subiendo…' : 'Subir archivo'}
+                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 8, border: 'none', cursor: uploading ? 'not-allowed' : 'pointer', fontSize: 11, fontWeight: 600, backgroundColor: uploading ? '#F3F4F6' : '#EEF2FF', color: uploading ? '#9699A6' : '#6366F1' }}>
+                <Upload size={11} />{uploading ? 'Subiendo…' : 'Subir archivo'}
               </button>
               <input ref={fileInputRef} type="file" multiple style={{ display: 'none' }}
                 onChange={handleFileUpload}
                 accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip" />
             </div>
-
             {attachments.length === 0 && !uploading && (
               <div style={{ border: '2px dashed #E4E7F0', borderRadius: 10, padding: 16, textAlign: 'center', cursor: 'pointer' }}
                 onClick={() => fileInputRef.current?.click()}>
@@ -543,7 +531,6 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
                 <p style={{ fontSize: 11, color: '#9699A6', margin: 0 }}>Arrastra o haz click para adjuntar</p>
               </div>
             )}
-
             {attachments.length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {attachments.map(att => {
@@ -553,15 +540,15 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
                       style={{ backgroundColor: '#FAFBFC', border: '1px solid #E6E9EF' }}>
                       <FileIcon size={14} style={{ color: '#9699A6', flexShrink: 0 }} />
                       <div className="flex-1 min-w-0">
-                        <p className="text-[11px] font-medium truncate" style={{ color: '#1F2128' }}>{att.name}</p>
-                        <p className="text-[9px]" style={{ color: '#9699A6' }}>{fmtBytes(att.size)}</p>
+                        <p style={{ fontSize: 11, fontWeight: 500, color: '#1F2128', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{att.name}</p>
+                        <p style={{ fontSize: 9, color: '#9699A6', margin: 0 }}>{fmtBytes(att.size)}</p>
                       </div>
                       <a href={att.url} download target="_blank" rel="noreferrer"
-                        className="p-1 rounded hover:bg-gray-100" style={{ color: '#9699A6' }}>
+                        style={{ padding: 4, borderRadius: 6, color: '#9699A6', display: 'flex' }}>
                         <Download size={12} />
                       </a>
                       <button type="button" onClick={() => removeAttachment(att)}
-                        className="p-1 rounded hover:bg-red-50" style={{ color: '#E2445C', border: 'none', cursor: 'pointer', backgroundColor: 'transparent' }}>
+                        style={{ padding: 4, borderRadius: 6, color: '#E2445C', border: 'none', cursor: 'pointer', backgroundColor: 'transparent', display: 'flex' }}>
                         <Trash2 size={12} />
                       </button>
                     </div>
@@ -570,8 +557,6 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
               </div>
             )}
           </div>
-
-          {/* Bottom padding */}
           <div className="h-4" />
         </div>
       </div>
