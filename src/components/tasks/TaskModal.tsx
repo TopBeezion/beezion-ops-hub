@@ -172,6 +172,53 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
   const assigneeInfo = ASSIGNEES.find(a => a.name === assignee)
   const relevantDel  = DELIVERABLE_DEFS.filter(d => d.areas.includes(area))
 
+  // ── Auto-detect etapa from title ──────────────────────────────────────────
+  // Tracks the last etapa that was auto-suggested (so we don't override manual picks)
+  const autoEtapaRef = useRef<Etapa | ''>('')
+
+  useEffect(() => {
+    if (!title.trim()) return
+    const tl = ' ' + title.toLowerCase() + ' '
+    const isLP =
+      tl.includes('landing page') ||
+      /\blp\b/.test(tl) ||
+      tl.includes('copy lp') ||
+      tl.includes('crear lp') ||
+      tl.includes('desarrollar lp') ||
+      tl.includes('lp de ') ||
+      tl.includes('lp del ')
+    const isLM =
+      tl.includes('lead magnet') ||
+      /\blm\b/.test(tl) ||
+      tl.includes('lm de ') ||
+      tl.includes('lm del ')
+    const isProduccion =
+      tl.includes('grabar') ||
+      tl.includes('grabaci') ||
+      tl.includes('footage') ||
+      tl.includes('producir') ||
+      tl.includes('producci')
+    const isTYP =
+      tl.includes('thank you page') ||
+      /\btyp\b/.test(tl)
+
+    let detected: Etapa | '' = ''
+    if (isLP || isTYP) detected = 'landing_page'
+    else if (isLM)     detected = 'lead_magnet'
+    else if (isProduccion) detected = 'produccion'
+
+    if (detected && detected !== autoEtapaRef.current) {
+      // Only auto-set if current etapa is empty OR was previously auto-set (not manually chosen)
+      setEtapa(prev => {
+        if (prev === '' || prev === autoEtapaRef.current) {
+          autoEtapaRef.current = detected
+          return detected
+        }
+        return prev // user manually selected something — keep it
+      })
+    }
+  }, [title])
+
   const setDeliverable = (key: keyof Deliverables, val: number) => {
     setDeliverables(prev => {
       const next = { ...prev }
