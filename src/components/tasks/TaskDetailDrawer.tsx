@@ -5,7 +5,7 @@ import {
   Bot, Hand,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
-import { useUpdateTask } from '../../hooks/useTasks'
+import { useUpdateTask, useDeleteTask } from '../../hooks/useTasks'
 import { useClients } from '../../hooks/useClients'
 import { useCampaignsByClient } from '../../hooks/useCampaigns'
 import type { Task, Area, Priority, TaskStatus, TaskTipo, Etapa, MiniStatus, Deliverables, TaskAttachment } from '../../types'
@@ -127,6 +127,7 @@ interface Props { task: Task; onClose: () => void }
 
 export function TaskDetailDrawer({ task, onClose }: Props) {
   const updateTask  = useUpdateTask()
+  const deleteTask  = useDeleteTask()
   const { data: clients = [] } = useClients()
 
   const [title,        setTitle]        = useState(task.title)
@@ -145,10 +146,11 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
   const [dueDate,      setDueDate]      = useState(task.due_date ?? '')
   const [deliverables, setDeliverables] = useState<Deliverables>(task.deliverables ?? {})
   const [attachments,  setAttachments]  = useState<TaskAttachment[]>(task.attachments ?? [])
-  const [uploading,    setUploading]    = useState(false)
-  const [saving,       setSaving]       = useState(false)
-  const [saved,        setSaved]        = useState(false)
-  const [showDel,      setShowDel]      = useState(false)
+  const [uploading,     setUploading]    = useState(false)
+  const [saving,        setSaving]       = useState(false)
+  const [saved,         setSaved]        = useState(false)
+  const [showDel,       setShowDel]      = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const { data: campaigns = [] } = useCampaignsByClient(clientId || undefined)
@@ -272,6 +274,26 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg,#6366F1,#8B5CF6)', color: '#fff', boxShadow: '0 2px 12px rgba(99,102,241,0.35)', opacity: saving ? 0.7 : 1 }}>
                   <Save size={12} />
                   {saving ? 'Guardando…' : saved ? '✓ Guardado' : 'Guardar'}
+                </button>
+              )}
+              {/* Delete */}
+              {confirmDelete ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span style={{ fontSize: 11, color: '#EF4444', fontWeight: 600 }}>¿Eliminar?</span>
+                  <button
+                    onClick={async () => { await deleteTask.mutateAsync(task.id); onClose() }}
+                    style={{ padding: '5px 10px', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 700, backgroundColor: '#EF4444', color: '#fff' }}>
+                    Sí, eliminar
+                  </button>
+                  <button onClick={() => setConfirmDelete(false)}
+                    style={{ padding: '5px 8px', borderRadius: 7, border: '1px solid #E5E7EB', cursor: 'pointer', fontSize: 11, fontWeight: 600, backgroundColor: '#fff', color: '#6B7280' }}>
+                    No
+                  </button>
+                </div>
+              ) : (
+                <button onClick={() => setConfirmDelete(true)} title="Eliminar tarea"
+                  style={{ padding: 7, borderRadius: 8, border: '1px solid #FEE2E2', cursor: 'pointer', backgroundColor: '#FFF5F5', color: '#EF4444', display: 'flex' }}>
+                  <Trash2 size={14} />
                 </button>
               )}
               <button onClick={onClose}

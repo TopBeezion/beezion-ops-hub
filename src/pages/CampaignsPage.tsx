@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Plus, ChevronDown, ChevronRight, Flame, Zap, RefreshCw, TrendingUp, Circle, Check, UserPlus } from 'lucide-react'
+import { Plus, ChevronDown, ChevronRight, Flame, Zap, RefreshCw, TrendingUp, Circle, Check, UserPlus, Pencil } from 'lucide-react'
 import { useClients } from '../hooks/useClients'
 import { useCampaigns, useUpdateCampaign, useUpdateCampaignStatus, useCreateCampaign } from '../hooks/useCampaigns'
 import { useTasks } from '../hooks/useTasks'
@@ -276,15 +276,28 @@ function AssigneePicker({ campaign, onUpdate }: {
 
 // ─── Campaign Card ────────────────────────────────────────────────────────────
 function CampaignCard({
-  campaign, tasks, onOpenTask, onStatusUpdate, onAssigneesUpdate,
+  campaign, tasks, onOpenTask, onStatusUpdate, onAssigneesUpdate, onNameUpdate,
 }: {
   campaign: Campaign
   tasks: Task[]
   onOpenTask?: (t: Task) => void
   onStatusUpdate: (id: string, status: CampaignStatus) => void
   onAssigneesUpdate: (id: string, assignees: string[]) => void
+  onNameUpdate: (id: string, name: string) => void
 }) {
   const [expanded, setExpanded] = useState(false)
+  const [editingName, setEditingName] = useState(false)
+  const [nameVal, setNameVal] = useState(campaign.name)
+  const nameInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => { if (editingName) nameInputRef.current?.focus() }, [editingName])
+
+  const commitName = () => {
+    const trimmed = nameVal.trim()
+    if (trimmed && trimmed !== campaign.name) onNameUpdate(campaign.id, trimmed)
+    else setNameVal(campaign.name)
+    setEditingName(false)
+  }
   const campaignTasks = tasks.filter(t => t.campaign_id === campaign.id)
   const completedCount = campaignTasks.filter(t => t.status === 'completado').length
 
@@ -307,9 +320,36 @@ function CampaignCard({
             <span style={{ color: '#9CA3AF', flexShrink: 0, fontSize: 14 }}>
               {expanded ? '▾' : '▸'}
             </span>
-            <span style={{ fontSize: 13, fontWeight: 600, color: '#1F2128', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {campaign.name}
-            </span>
+            {editingName ? (
+              <input
+                ref={nameInputRef}
+                value={nameVal}
+                onChange={e => setNameVal(e.target.value)}
+                onBlur={commitName}
+                onKeyDown={e => { if (e.key === 'Enter') commitName(); if (e.key === 'Escape') { setNameVal(campaign.name); setEditingName(false) } }}
+                onClick={e => e.stopPropagation()}
+                style={{
+                  fontSize: 13, fontWeight: 600, color: '#1F2128',
+                  border: '1.5px solid #6366F1', borderRadius: 6, outline: 'none',
+                  padding: '2px 8px', backgroundColor: '#FAFBFF', flex: 1, minWidth: 0,
+                }}
+              />
+            ) : (
+              <div className="flex items-center gap-1 flex-1 min-w-0">
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#1F2128', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {campaign.name}
+                </span>
+                <button
+                  onClick={e => { e.stopPropagation(); setEditingName(true) }}
+                  title="Editar nombre"
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C4C9D4', padding: '2px 3px', borderRadius: 4, display: 'flex', flexShrink: 0, transition: 'color 0.15s' }}
+                  onMouseEnter={e => (e.currentTarget.style.color = '#6366F1')}
+                  onMouseLeave={e => (e.currentTarget.style.color = '#C4C9D4')}
+                >
+                  <Pencil size={11} />
+                </button>
+              </div>
+            )}
             <span style={{
               display: 'inline-flex', alignItems: 'center', gap: 4,
               padding: '2px 8px', borderRadius: 99, fontSize: 11, fontWeight: 600,
@@ -514,6 +554,10 @@ export function CampaignsPage() {
     updateCampaign.mutate({ id, assignees } as Parameters<typeof updateCampaign.mutate>[0])
   }
 
+  const handleNameUpdate = (id: string, name: string) => {
+    updateCampaign.mutate({ id, name } as Parameters<typeof updateCampaign.mutate>[0])
+  }
+
   const handleCreateCampaign = (clientId: string, data: { name: string; type: CampaignType; objective: string }) => {
     createCampaign.mutate({ name: data.name, client_id: clientId, type: data.type, status: 'activa', objective: data.objective })
     setNewCampaignFor(null)
@@ -635,6 +679,7 @@ export function CampaignsPage() {
                   onOpenTask={ctx?.openTaskDetail}
                   onStatusUpdate={handleStatusUpdate}
                   onAssigneesUpdate={handleAssigneesUpdate}
+                  onNameUpdate={handleNameUpdate}
                 />
               ))}
             </div>
@@ -682,6 +727,7 @@ export function CampaignsPage() {
                       onOpenTask={ctx?.openTaskDetail}
                       onStatusUpdate={handleStatusUpdate}
                       onAssigneesUpdate={handleAssigneesUpdate}
+                      onNameUpdate={handleNameUpdate}
                     />
                   ))}
                 </div>
