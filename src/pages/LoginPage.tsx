@@ -4,14 +4,14 @@ import { Navigate } from 'react-router-dom'
 import { Zap, ArrowRight, Mail } from 'lucide-react'
 
 const TEAM = [
-  { name: 'Alejandro', email: 'alejandro@beezion.com', color: '#8B5CF6', role: 'CEO' },
-  { name: 'Alec',      email: 'marketing@beezion.com',  color: '#F59E0B', role: 'Head of Paid' },
-  { name: 'Jose',      email: 'jose@beezion.com',       color: '#3B82F6', role: 'Trafficker' },
-  { name: 'Luisa',     email: 'luisa@beezion.com',      color: '#EF4444', role: 'Copywriter' },
-  { name: 'Paula',     email: 'paula@beezion.com',      color: '#EC4899', role: 'Aux. Marketing' },
-  { name: 'David',     email: 'david@beezion.com',      color: '#06B6D4', role: 'Editor' },
-  { name: 'Johan',     email: 'johan@beezion.com',      color: '#10B981', role: 'Editor' },
-  { name: 'Felipe',    email: 'felipe@beezion.com',     color: '#F97316', role: 'Editor' },
+  { name: 'Alejandro', color: '#8B5CF6', role: 'CEO' },
+  { name: 'Alec',      color: '#F59E0B', role: 'Head of Paid' },
+  { name: 'Jose',      color: '#3B82F6', role: 'Trafficker' },
+  { name: 'Luisa',     color: '#EF4444', role: 'Copywriter' },
+  { name: 'Paula',     color: '#EC4899', role: 'Aux. Marketing' },
+  { name: 'David',     color: '#06B6D4', role: 'Editor' },
+  { name: 'Johan',     color: '#10B981', role: 'Editor' },
+  { name: 'Felipe',    color: '#F97316', role: 'Editor' },
 ]
 
 export function LoginPage() {
@@ -25,8 +25,8 @@ export function LoginPage() {
 
   const selectProfile = (member: typeof TEAM[0]) => {
     setSelectedUser(member.name)
-    setEmail(member.email)
     setError('')
+    // No auto-fill del email — cada quien ingresa el suyo
   }
 
   const handleLogin = async () => {
@@ -138,7 +138,7 @@ export function LoginPage() {
         {/* Email field */}
         <div style={{ marginBottom: 16 }}>
           <p style={{ fontSize: 10, fontWeight: 700, color: '#525669', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
-            Email
+            Tu email
           </p>
           <div style={{ position: 'relative' }}>
             <Mail size={14} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#525669', pointerEvents: 'none' }} />
