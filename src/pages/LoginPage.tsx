@@ -1,35 +1,43 @@
 import { useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { Navigate } from 'react-router-dom'
-import { Zap, Eye, EyeOff, ArrowRight } from 'lucide-react'
+import { Zap, ArrowRight, Mail } from 'lucide-react'
 
 const TEAM = [
-  { name: 'Alejandro', color: '#8B5CF6', role: 'CEO' },
-  { name: 'Alec',      color: '#F59E0B', role: 'Head of Paid' },
-  { name: 'Jose',      color: '#3B82F6', role: 'Trafficker' },
-  { name: 'Luisa',     color: '#EF4444', role: 'Copywriter' },
-  { name: 'Paula',     color: '#EC4899', role: 'Aux. Marketing' },
-  { name: 'David',     color: '#06B6D4', role: 'Editor' },
-  { name: 'Johan',     color: '#10B981', role: 'Editor' },
-  { name: 'Felipe',    color: '#F97316', role: 'Editor' },
+  { name: 'Alejandro', email: 'alejandro@beezion.com', color: '#8B5CF6', role: 'CEO' },
+  { name: 'Alec',      email: 'marketing@beezion.com',  color: '#F59E0B', role: 'Head of Paid' },
+  { name: 'Jose',      email: 'jose@beezion.com',       color: '#3B82F6', role: 'Trafficker' },
+  { name: 'Luisa',     email: 'luisa@beezion.com',      color: '#EF4444', role: 'Copywriter' },
+  { name: 'Paula',     email: 'paula@beezion.com',      color: '#EC4899', role: 'Aux. Marketing' },
+  { name: 'David',     email: 'david@beezion.com',      color: '#06B6D4', role: 'Editor' },
+  { name: 'Johan',     email: 'johan@beezion.com',      color: '#10B981', role: 'Editor' },
+  { name: 'Felipe',    email: 'felipe@beezion.com',     color: '#F97316', role: 'Editor' },
 ]
 
 export function LoginPage() {
   const { user, signIn } = useAuth()
-  const [password, setPassword] = useState('')
-  const [error, setError]       = useState('')
-  const [loading, setLoading]   = useState(false)
-  const [showPw, setShowPw]     = useState(false)
+  const [email, setEmail]             = useState('')
+  const [error, setError]             = useState('')
+  const [loading, setLoading]         = useState(false)
   const [selectedUser, setSelectedUser] = useState<string | null>(null)
 
   if (user) return <Navigate to="/" replace />
 
+  const selectProfile = (member: typeof TEAM[0]) => {
+    setSelectedUser(member.name)
+    setEmail(member.email)
+    setError('')
+  }
+
   const handleLogin = async () => {
-    if (!selectedUser) { setError('Selecciona tu perfil'); return }
-    if (!password.trim()) { setError('Ingresa la contraseña'); return }
+    if (!selectedUser) { setError('Selecciona tu perfil primero'); return }
+    if (!email.trim()) { setError('Confirma tu email'); return }
     setLoading(true); setError('')
-    const ok = await signIn(selectedUser, password)
-    if (!ok) { setError('Contraseña incorrecta'); setLoading(false) }
+    const result = await signIn(email.trim().toLowerCase())
+    if (result.error) {
+      setError(result.error)
+      setLoading(false)
+    }
   }
 
   return (
@@ -37,7 +45,7 @@ export function LoginPage() {
       minHeight: '100vh', display: 'flex',
       background: 'radial-gradient(ellipse at 30% 20%, rgba(124,131,247,0.08) 0%, transparent 60%), radial-gradient(ellipse at 70% 80%, rgba(245,166,35,0.06) 0%, transparent 50%), #0D1117',
     }}>
-      {/* Left panel */}
+      {/* ── Left panel ─────────────────────────────────────────────────── */}
       <div style={{
         flex: 1, display: 'flex', flexDirection: 'column',
         justifyContent: 'center', alignItems: 'flex-start',
@@ -68,9 +76,9 @@ export function LoginPage() {
           Campañas, tareas, Kanban, adjuntos y métricas — todo en un solo lugar para la agencia.
         </p>
 
-        {/* Team avatars */}
+        {/* Stacked team avatars */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <p style={{ fontSize: 10, fontWeight: 700, color: '#3A3D4E', textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>Equipo</p>
+          <p style={{ fontSize: 10, fontWeight: 700, color: '#3A3D4E', textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>Equipo Beezion</p>
           <div style={{ display: 'flex' }}>
             {TEAM.map((m, i) => (
               <div key={m.name} title={`${m.name} · ${m.role}`} style={{
@@ -88,26 +96,33 @@ export function LoginPage() {
         </div>
       </div>
 
-      {/* Right login panel */}
+      {/* ── Right login panel ───────────────────────────────────────────── */}
       <div style={{ width: 460, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '60px 48px' }}>
-        <div style={{ marginBottom: 32 }}>
+        <div style={{ marginBottom: 28 }}>
           <h2 style={{ fontSize: 22, fontWeight: 700, color: '#E8EAED', margin: '0 0 6px' }}>Bienvenido de nuevo</h2>
-          <p style={{ fontSize: 13, color: '#525669', margin: 0 }}>Selecciona tu perfil y entra</p>
+          <p style={{ fontSize: 13, color: '#525669', margin: 0 }}>Selecciona tu perfil para entrar</p>
         </div>
 
         {/* Profile grid */}
-        <div style={{ marginBottom: 24 }}>
+        <div style={{ marginBottom: 22 }}>
           <p style={{ fontSize: 10, fontWeight: 700, color: '#525669', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Tu perfil</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             {TEAM.map(m => {
               const sel = selectedUser === m.name
               return (
-                <button key={m.name} onClick={() => { setSelectedUser(m.name); setError('') }} style={{
+                <button key={m.name} onClick={() => selectProfile(m)} style={{
                   display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10,
                   border: sel ? `1.5px solid ${m.color}60` : '1.5px solid rgba(255,255,255,0.07)',
-                  cursor: 'pointer', backgroundColor: sel ? `${m.color}15` : 'rgba(255,255,255,0.03)', transition: 'all 0.15s', textAlign: 'left',
+                  cursor: 'pointer', backgroundColor: sel ? `${m.color}15` : 'rgba(255,255,255,0.03)',
+                  transition: 'all 0.15s', textAlign: 'left',
                 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0, backgroundColor: sel ? m.color : `${m.color}30`, color: sel ? '#fff' : m.color, fontSize: 10, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+                    backgroundColor: sel ? m.color : `${m.color}30`,
+                    color: sel ? '#fff' : m.color,
+                    fontSize: 10, fontWeight: 800,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
                     {m.name.slice(0, 2).toUpperCase()}
                   </div>
                   <div>
@@ -120,18 +135,21 @@ export function LoginPage() {
           </div>
         </div>
 
-        {/* Password */}
+        {/* Email field */}
         <div style={{ marginBottom: 16 }}>
-          <p style={{ fontSize: 10, fontWeight: 700, color: '#525669', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>Contraseña</p>
+          <p style={{ fontSize: 10, fontWeight: 700, color: '#525669', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
+            Email
+          </p>
           <div style={{ position: 'relative' }}>
+            <Mail size={14} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#525669', pointerEvents: 'none' }} />
             <input
-              type={showPw ? 'text' : 'password'}
-              value={password}
-              onChange={e => { setPassword(e.target.value); setError('') }}
+              type="email"
+              value={email}
+              onChange={e => { setEmail(e.target.value); setError('') }}
               onKeyDown={e => e.key === 'Enter' && handleLogin()}
-              placeholder="••••••••"
+              placeholder="tu@beezion.com"
               style={{
-                width: '100%', padding: '12px 44px 12px 16px', borderRadius: 10,
+                width: '100%', padding: '12px 16px 12px 40px', borderRadius: 10,
                 border: error ? '1.5px solid #F87171' : '1.5px solid rgba(255,255,255,0.1)',
                 backgroundColor: 'rgba(255,255,255,0.04)', color: '#E8EAED', fontSize: 14,
                 outline: 'none', boxSizing: 'border-box',
@@ -139,9 +157,6 @@ export function LoginPage() {
               onFocus={e => { e.target.style.borderColor = 'rgba(124,131,247,0.5)' }}
               onBlur={e => { if (!error) e.target.style.borderColor = 'rgba(255,255,255,0.1)' }}
             />
-            <button type="button" onClick={() => setShowPw(v => !v)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#525669' }}>
-              {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
-            </button>
           </div>
           {error && <p style={{ fontSize: 11, color: '#F87171', marginTop: 6 }}>{error}</p>}
         </div>
@@ -150,15 +165,24 @@ export function LoginPage() {
         <button onClick={handleLogin} disabled={loading} style={{
           width: '100%', padding: '13px', borderRadius: 10, border: 'none',
           background: loading ? 'rgba(124,131,247,0.4)' : 'linear-gradient(135deg, #7C83F7, #5B63F0)',
-          color: '#fff', fontSize: 14, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
+          color: '#fff', fontSize: 14, fontWeight: 700,
+          cursor: loading ? 'not-allowed' : 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-          boxShadow: loading ? 'none' : '0 4px 20px rgba(124,131,247,0.35)', transition: 'all 0.15s',
+          boxShadow: loading ? 'none' : '0 4px 20px rgba(124,131,247,0.35)',
+          transition: 'all 0.15s',
         }}>
           {loading
             ? <div style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', animation: 'spin 0.7s linear infinite' }} />
-            : <><span>Entrar</span><ArrowRight size={16} /></>
+            : <><span>Entrar al Hub</span><ArrowRight size={16} /></>
           }
         </button>
+
+        <p style={{ fontSize: 11, color: '#3A3D4E', marginTop: 16, textAlign: 'center', lineHeight: 1.5 }}>
+          Solo el equipo Beezion tiene acceso.<br />
+          Si tu email no funciona, escríbele a Alejandro.
+        </p>
+
+        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </div>
     </div>
   )
