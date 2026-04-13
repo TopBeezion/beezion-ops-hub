@@ -201,11 +201,29 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
     const isTYP =
       tl.includes('thank you page') ||
       /\btyp\b/.test(tl)
+    const isTracking =
+      tl.includes('tracking') ||
+      tl.includes('utm') ||
+      tl.includes('evento de conversi') ||
+      tl.includes('eventos de conversi') ||
+      tl.includes('pixel') ||
+      tl.includes('google tag') ||
+      tl.includes('conversion event')
+    const isMediaBuying =
+      tl.includes('media buying') ||
+      tl.includes('estructurar campa') ||
+      tl.includes('estructuraci') ||
+      tl.includes('presupuesto') ||
+      tl.includes('budget') ||
+      tl.includes('distribuir presupuesto') ||
+      tl.includes('pautar')
 
     let detected: Etapa | '' = ''
-    if (isLP || isTYP) detected = 'landing_page'
-    else if (isLM)     detected = 'lead_magnet'
+    if (isLP || isTYP)     detected = 'landing_page'
+    else if (isLM)         detected = 'lead_magnet'
     else if (isProduccion) detected = 'produccion'
+    else if (isTracking)   detected = 'tracking'
+    else if (isMediaBuying) detected = 'media_buying'
 
     if (detected && detected !== autoEtapaRef.current) {
       // Only auto-set if current etapa is empty OR was previously auto-set (not manually chosen)

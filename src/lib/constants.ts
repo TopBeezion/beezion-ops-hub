@@ -19,12 +19,14 @@ export const AREA_COLORS: Record<Area, string> = {
 
 // ── Priority ─────────────────────────────────────────────────
 export const PRIORITY_LABELS: Record<Priority, string> = {
+  alerta_roja: '🚨 Alerta Roja',
   alta:  'Alta',
   media: 'Media',
   baja:  'Baja',
 }
 
 export const PRIORITY_COLORS: Record<Priority, string> = {
+  alerta_roja: '#DC2626',
   alta: '#EF4444',
   media: '#F59E0B',
   baja: '#9CA3AF',
@@ -88,6 +90,8 @@ export const ETAPA_LABELS: Record<Etapa, string> = {
   landing_page: 'Landing Page',
   lead_magnet: 'Lead Magnet',
   trafico: 'Tráfico',
+  tracking: 'Tracking',
+  media_buying: 'Media Buying',
   revision_final: 'Revisión Final',
 }
 
@@ -98,6 +102,8 @@ export const ETAPA_COLORS: Record<Etapa, string> = {
   landing_page: '#3B82F6',
   lead_magnet: '#10B981',
   trafico: '#F97316',
+  tracking: '#0EA5E9',
+  media_buying: '#A855F7',
   revision_final: '#6366F1',
 }
 
@@ -108,6 +114,8 @@ export const ETAPA_ORDER: Etapa[] = [
   'landing_page',
   'lead_magnet',
   'trafico',
+  'tracking',
+  'media_buying',
   'revision_final',
 ]
 
@@ -138,12 +146,14 @@ export const MINI_STATUS_ORDER: MiniStatus[] = [
 
 // ── Client colors ─────────────────────────────────────────────
 export const CLIENT_COLORS: Record<string, string> = {
-  'Bink': '#F59E0B',
-  'On The Fuze': '#8B5CF6',
-  'Dapta': '#3B82F6',
-  'Finkargo': '#10B981',
-  'Treble': '#EC4899',
-  'ColombiatechWeek': '#F97316',
+  'Bink': '#ec4899',
+  'On The Fuze': '#f97316',
+  'OTF': '#f97316',
+  'Dapta': '#10b981',
+  'Finkargo': '#3b82f6',
+  'Treble': '#94a3b8',
+  'ColombiatechWeek': '#5d00ff',
+  'CTW': '#5d00ff',
 }
 
 // ── Team members ──────────────────────────────────────────────

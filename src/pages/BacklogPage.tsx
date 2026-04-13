@@ -47,7 +47,7 @@ const C = {
 }
 
 const STATUS_ORDER: TaskStatus[] = ['pendiente', 'en_progreso', 'revision', 'completado']
-const PRIORITY_ORDER: Priority[] = ['alta', 'media', 'baja']
+const PRIORITY_ORDER: Priority[] = ['alerta_roja', 'alta', 'media', 'baja']
 const AREA_ORDER: Area[] = ['copy', 'trafico', 'tech', 'admin', 'edicion']
 const ASSIGNEES = [
   { name: 'Alejandro', color: '#8B5CF6', role: 'CEO · Estrategia' },

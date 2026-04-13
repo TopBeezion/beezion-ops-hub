@@ -5,14 +5,10 @@ interface AssigneeAvatarProps {
 }
 
 const ASSIGNEE_COLORS: Record<string, string> = {
-  Alejandro: '#8B5CF6',
-  Alec: '#F59E0B',
-  Jose: '#3B82F6',
-  Luisa: '#EF4444',
-  Paula: '#EC4899',
-  David: '#06B6D4',
-  Johan: '#10B981',
-  Felipe: '#F97316',
+  Alejandro: '#fbbf24',
+  Alec: '#818cf8',
+  Paula: '#f472b6',
+  'Jose Luis': '#4ade80',
 }
 
 export function AssigneeAvatar({ name, color, size = 'sm' }: AssigneeAvatarProps) {

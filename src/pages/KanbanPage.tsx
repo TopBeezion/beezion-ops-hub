@@ -225,7 +225,7 @@ function TaskCard({ task, onOpenDetail }: { task: Task; onOpenDetail: (t: Task) 
             color: priorityColor, backgroundColor: `${priorityColor}18`,
             padding: '2px 6px', borderRadius: 4,
           }}>
-            {task.priority === 'alta' ? '↑ Alta' : task.priority === 'media' ? '→ Media' : '↓ Baja'}
+            {task.priority === 'alerta_roja' ? '🚨 Alerta' : task.priority === 'alta' ? '↑ Alta' : task.priority === 'media' ? '→ Media' : '↓ Baja'}
           </span>
           {(() => {
             const days = getDaysOverdue(task)

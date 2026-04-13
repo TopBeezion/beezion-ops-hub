@@ -1,5 +1,5 @@
 export type Area = 'copy' | 'trafico' | 'tech' | 'admin' | 'edicion'
-export type Priority = 'alta' | 'media' | 'baja'
+export type Priority = 'alerta_roja' | 'alta' | 'media' | 'baja'
 export type TaskStatus = 'pendiente' | 'en_progreso' | 'revision' | 'completado'
 export type TaskTipo = 'nuevo' | 'pendiente_anterior' | 'urgente'
 export type TeamRole = 'admin' | 'maintainer' | 'contributor'
@@ -16,6 +16,8 @@ export type Etapa =
   | 'landing_page'
   | 'lead_magnet'
   | 'trafico'
+  | 'tracking'
+  | 'media_buying'
   | 'revision_final'
 
 // Mini-status dentro de cada etapa
@@ -131,6 +133,7 @@ export interface TaskFilters {
   priority?: Priority
   etapa?: Etapa
   search?: string
+  priorities?: Priority[]
 }
 
 export interface CampaignFilters {

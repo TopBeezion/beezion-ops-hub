@@ -1,271 +1,205 @@
 import { useState } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
-import {
-  LayoutDashboard, List, Kanban, CalendarDays, Settings,
-  ChevronLeft, ChevronRight, ChevronDown, Rocket, Flame, LogOut,
-  Zap,
-} from 'lucide-react'
+import { NavLink } from 'react-router-dom'
+import { LayoutDashboard, List, Kanban, CalendarDays, Settings, ChevronLeft, ChevronRight, Zap, ChevronDown, Rocket, Flame, AlertTriangle } from 'lucide-react'
 import { useClients } from '../../hooks/useClients'
-import { useAuth } from '../../hooks/useAuth'
-import { ASSIGNEE_COLORS, TEAM_ROLES } from '../../lib/constants'
 
 interface SidebarProps {
   collapsed: boolean
   onToggle: () => void
 }
 
-const NAV = [
-  { id: 'dashboard', label: 'Dashboard',    icon: LayoutDashboard, path: '/' },
-  { id: 'bomberos',  label: 'Bomberos',     icon: Flame,           path: '/bomberos',  hot: true },
-  { id: 'campaigns', label: 'Campañas',     icon: Rocket,          path: '/campaigns' },
-  { id: 'backlog',   label: 'Backlog',      icon: List,            path: '/backlog' },
-  { id: 'kanban',    label: 'Kanban',       icon: Kanban,          path: '/kanban' },
-  { id: 'timeline',  label: 'Timeline',     icon: CalendarDays,    path: '/timeline' },
-  { id: 'settings',  label: 'Config',       icon: Settings,        path: '/settings' },
+const NAV_ITEMS = [
+  { id: 'dashboard',  label: 'Dashboard',    icon: LayoutDashboard, path: '/',          accent: null },
+  { id: 'bomberos',   label: '🔥 Bomberos',  icon: Flame,           path: '/bomberos',  accent: '#E2445C' },
+  { id: 'campaigns',  label: 'Campañas',     icon: Rocket,          path: '/campaigns', accent: null },
+  { id: 'backlog',    label: 'Backlog',      icon: List,            path: '/backlog',   accent: null },
+  { id: 'kanban',     label: 'Kanban',       icon: Kanban,          path: '/kanban',    accent: null },
+  { id: 'timeline',   label: 'Timeline',     icon: CalendarDays,    path: '/timeline',  accent: null },
+  { id: 'settings',   label: 'Configuración',icon: Settings,        path: '/settings',  accent: null },
 ]
-
-// Light palette
-const S = {
-  bg:       '#FFFFFF',
-  hover:    '#F5F6FA',
-  active:   '#EEF2FF',
-  border:   '#E4E7F0',
-  text:     '#1A1D27',
-  sub:      '#5A5E72',
-  muted:    '#9699B0',
-  accent:   '#6366F1',
-  accentBg: 'rgba(99,102,241,0.08)',
-  red:      '#EF4444',
-}
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const { data: clients } = useClients()
-  const { user, signOut } = useAuth()
-  const navigate = useNavigate()
   const [clientsOpen, setClientsOpen] = useState(true)
 
-  const handleSignOut = () => { signOut(); navigate('/login') }
+  const toggleClientsSection = () => setClientsOpen(o => !o)
 
   return (
-    <div style={{
-      width: collapsed ? 58 : 220,
-      backgroundColor: S.bg,
-      borderRight: `1px solid ${S.border}`,
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100%',
-      transition: 'width 0.2s ease',
-      flexShrink: 0,
-    }}>
+    <div
+      style={{
+        width: collapsed ? '56px' : '240px',
+        backgroundColor: '#292D34',
+        borderRight: '1px solid #E6E9EF',
+      }}
+      className="flex flex-col h-full transition-all duration-220 relative"
+    >
+      {/* Top Accent Gradient */}
+      <div
+        style={{
+          background: 'linear-gradient(90deg, #6366F1 0%, transparent 100%)',
+          height: '3px',
+        }}
+      />
 
-      {/* ── Logo ────────────────────────────────────── */}
-      <div style={{
-        padding: collapsed ? '14px 0' : '14px 16px',
-        borderBottom: `1px solid ${S.border}`,
-        display: 'flex', alignItems: 'center', gap: 10,
-        minHeight: 58, justifyContent: collapsed ? 'center' : 'flex-start',
-      }}>
-        <div style={{
-          width: 32, height: 32, borderRadius: 10, flexShrink: 0,
-          background: 'linear-gradient(135deg, #F5A623 0%, #E8760A 100%)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 2px 10px rgba(245,166,35,0.35)',
-        }}>
-          <Zap size={16} color="white" strokeWidth={2.5} />
-        </div>
-        {!collapsed && (
-          <div>
-            <p style={{ fontSize: 14, fontWeight: 800, color: S.text, margin: 0, letterSpacing: '-0.3px' }}>
-              beezion
-            </p>
-            <p style={{ fontSize: 9, fontWeight: 600, color: S.muted, margin: 0, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-              ops hub
-            </p>
+      {/* Logo Section */}
+      <div className="px-3 py-4 border-b" style={{ borderColor: '#3E4450' }}>
+        <div className="flex items-center gap-2">
+          <div
+            style={{
+              background: 'linear-gradient(135deg, #6366F1 0%, #818CF8 100%)',
+              padding: '6px 8px',
+              borderRadius: '6px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <Zap size={16} color="white" />
           </div>
-        )}
+          {!collapsed && (
+            <div className="flex flex-col min-w-0">
+              <span
+                style={{ color: '#FFFFFF', fontSize: '13px', fontWeight: '700', lineHeight: '1.2' }}
+              >
+                Beezion
+              </span>
+              <span
+                style={{
+                  color: '#6366F1',
+                  fontSize: '10px',
+                  fontWeight: '600',
+                  lineHeight: '1.2',
+                  letterSpacing: '0.5px',
+                }}
+              >
+                OPS HUB
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* ── Nav ─────────────────────────────────────── */}
-      <nav style={{ flex: 1, overflowY: 'auto', padding: '10px 8px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          {NAV.map(item => {
+      {/* Main Navigation */}
+      <nav className="px-2 py-3 flex-1 overflow-y-auto">
+        <div className="space-y-1">
+          {NAV_ITEMS.map((item) => {
             const Icon = item.icon
             return (
               <NavLink
                 key={item.id}
                 to={item.path}
                 end={item.id === 'dashboard'}
-                title={collapsed ? item.label : undefined}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2 rounded-md text-13px font-medium transition-all duration-150 relative group ${
+                    isActive ? 'text-[#FFFFFF]' : 'text-[#C8CCD3] hover:text-[#FFFFFF]'
+                  }`
+                }
                 style={({ isActive }) => ({
-                  display: 'flex', alignItems: 'center', gap: 9,
-                  padding: collapsed ? '9px 0' : '8px 11px',
-                  borderRadius: 9, fontSize: 13,
-                  fontWeight: isActive ? 600 : 500,
-                  color: isActive ? S.accent : S.sub,
-                  backgroundColor: isActive ? S.accentBg : 'transparent',
-                  textDecoration: 'none', transition: 'all 0.12s',
-                  justifyContent: collapsed ? 'center' : 'flex-start',
-                  border: isActive ? `1px solid rgba(99,102,241,0.18)` : '1px solid transparent',
+                  backgroundColor: isActive ? '#3E4450' : 'transparent',
+                  borderLeft: isActive ? '3px solid #6366F1' : '3px solid transparent',
+                  paddingLeft: isActive ? '12px' : '12px',
                 })}
-                onMouseEnter={e => {
-                  const el = e.currentTarget
-                  if (!el.style.backgroundColor.includes('99,102')) {
-                    el.style.backgroundColor = S.hover
-                    el.style.color = S.text
-                  }
-                }}
-                onMouseLeave={e => {
-                  const el = e.currentTarget
-                  if (!el.style.backgroundColor.includes('99,102')) {
-                    el.style.backgroundColor = 'transparent'
-                    el.style.color = S.sub
-                  }
-                }}
               >
-                {({ isActive }) => (
-                  <>
-                    <Icon
-                      size={16} strokeWidth={isActive ? 2.5 : 2}
-                      color={item.hot ? (isActive ? '#FB923C' : '#EF4444') : (isActive ? S.accent : S.sub)}
-                      style={{ flexShrink: 0 }}
-                    />
-                    {!collapsed && (
-                      <span style={{ flex: 1 }}>
-                        {item.hot ? `🔥 ${item.label}` : item.label}
-                      </span>
-                    )}
-                  </>
+                <Icon size={15} className="flex-shrink-0" />
+                {!collapsed && <span className="truncate">{item.label}</span>}
+                {collapsed && item.label && (
+                  <div
+                    className="absolute left-full ml-2 px-2 py-1 rounded text-[#FFFFFF] text-12px whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50"
+                    style={{ color: '#FFFFFF', fontSize: '12px', backgroundColor: '#3E4450' }}
+                  >
+                    {item.label}
+                  </div>
                 )}
               </NavLink>
             )
           })}
         </div>
 
-        {/* ── Clients ──────────────────────────────── */}
-        {!collapsed && clients && clients.length > 0 && (
-          <div style={{ marginTop: 22, paddingTop: 16, borderTop: `1px solid ${S.border}` }}>
+        {/* Clients Section */}
+        {!collapsed && (
+          <div className="mt-6 pt-4" style={{ borderTop: '1px solid #3E4450' }}>
             <button
-              onClick={() => setClientsOpen(o => !o)}
-              style={{
-                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '3px 11px 6px', background: 'none', border: 'none', cursor: 'pointer',
-              }}
+              onClick={toggleClientsSection}
+              className="flex items-center justify-between w-full px-3 py-2 transition-colors duration-150 group"
+              style={{ color: '#9CA3AF' }}
             >
-              <span style={{ fontSize: 10, fontWeight: 700, color: S.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              <span
+                style={{
+                  fontSize: '10px',
+                  fontWeight: '600',
+                  letterSpacing: '0.5px',
+                  textTransform: 'uppercase',
+                  color: '#9CA3AF',
+                }}
+              >
                 Clientes
               </span>
               <ChevronDown
-                size={11} color={S.muted}
-                style={{ transform: clientsOpen ? 'rotate(0)' : 'rotate(-90deg)', transition: 'transform 0.2s' }}
+                size={14}
+                className={`transition-transform duration-200 ${clientsOpen ? '' : '-rotate-90'}`}
+                style={{ color: '#9CA3AF' }}
               />
             </button>
 
             {clientsOpen && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {clients.map(client => (
-                  <NavLink
-                    key={client.id}
-                    to={`/clients/${client.id}`}
-                    style={({ isActive }) => ({
-                      display: 'flex', alignItems: 'center', gap: 9,
-                      padding: '6px 11px', borderRadius: 8,
-                      fontSize: 12, fontWeight: isActive ? 600 : 400,
-                      color: isActive ? S.text : S.sub,
-                      backgroundColor: isActive ? S.active : 'transparent',
-                      textDecoration: 'none', transition: 'all 0.12s',
-                    })}
-                    onMouseEnter={e => { e.currentTarget.style.backgroundColor = S.hover; e.currentTarget.style.color = S.text }}
-                    onMouseLeave={e => {
-                      const isActive = e.currentTarget.getAttribute('aria-current') === 'page'
-                      e.currentTarget.style.backgroundColor = isActive ? S.active : 'transparent'
-                      e.currentTarget.style.color = isActive ? S.text : S.sub
-                    }}
-                  >
-                    <div style={{
-                      width: 7, height: 7, borderRadius: '50%',
-                      backgroundColor: client.color, flexShrink: 0,
-                    }} />
-                    <span className="truncate">{client.name}</span>
-                  </NavLink>
-                ))}
+              <div className="space-y-1 mt-2">
+                {clients?.map(client => (
+                    <NavLink
+                      key={client.id}
+                      to={`/clients/${client.id}`}
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-md transition-all duration-150"
+                      style={({ isActive }) => ({
+                        color: isActive ? '#FFFFFF' : '#C8CCD3',
+                        backgroundColor: isActive ? '#3E4450' : 'transparent',
+                      })}
+                    >
+                      {({ isActive }) => (
+                        <>
+                          <div
+                            style={{
+                              width: '8px',
+                              height: '8px',
+                              borderRadius: '50%',
+                              backgroundColor: client.color,
+                              flexShrink: 0,
+                              boxShadow: isActive ? `0 0 8px ${client.color}` : 'none',
+                            }}
+                          />
+                          <span className="truncate" style={{ fontSize: '12px', fontWeight: 500, color: isActive ? '#FFFFFF' : '#C8CCD3' }}>
+                            {client.name}
+                          </span>
+                        </>
+                      )}
+                    </NavLink>
+                  ))}
               </div>
             )}
           </div>
         )}
       </nav>
 
-      {/* ── User ────────────────────────────────────── */}
-      {user && (
-        <div style={{ padding: '8px', borderTop: `1px solid ${S.border}` }}>
-          {collapsed ? (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 0' }}>
-              <div style={{
-                width: 30, height: 30, borderRadius: '50%',
-                backgroundColor: `${ASSIGNEE_COLORS[user.name] || S.accent}15`,
-                color: ASSIGNEE_COLORS[user.name] || S.accent,
-                fontSize: 10, fontWeight: 800,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                border: `1.5px solid ${ASSIGNEE_COLORS[user.name] || S.accent}30`,
-              }}>
-                {user.name.slice(0, 2).toUpperCase()}
-              </div>
-            </div>
-          ) : (
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 9,
-              padding: '8px 10px', borderRadius: 10,
-              backgroundColor: '#F5F6FA',
-              border: `1px solid ${S.border}`,
-            }}>
-              <div style={{
-                width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
-                background: `linear-gradient(135deg, ${ASSIGNEE_COLORS[user.name] || S.accent}, ${ASSIGNEE_COLORS[user.name] || S.accent}80)`,
-                color: '#fff',
-                fontSize: 10, fontWeight: 800,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                {user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: 12, fontWeight: 700, color: S.text, margin: 0 }} className="truncate">
-                  {user.name}
-                </p>
-                <p style={{ fontSize: 9, color: S.muted, margin: 0 }} className="truncate">
-                  {TEAM_ROLES[user.name] || user.role}
-                </p>
-              </div>
-              <button
-                onClick={handleSignOut}
-                title="Salir"
-                style={{
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  color: S.muted, padding: '4px', borderRadius: 6, flexShrink: 0,
-                  display: 'flex', alignItems: 'center', gap: 4,
-                  fontSize: 10, fontWeight: 600, transition: 'all 0.15s',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.color = S.red }}
-                onMouseLeave={e => { e.currentTarget.style.color = S.muted }}
-              >
-                <LogOut size={13} />
-                <span>Salir</span>
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ── Collapse toggle ──────────────────────────── */}
-      <div style={{ padding: '8px', borderTop: `1px solid ${S.border}`, display: 'flex', justifyContent: 'center' }}>
+      {/* Collapse Toggle Button */}
+      <div
+        className="px-2 py-3 border-t flex items-center justify-center"
+        style={{ borderColor: '#3E4450' }}
+      >
         <button
           onClick={onToggle}
+          className="p-1.5 rounded-md transition-colors duration-150 group"
           style={{
-            padding: '6px', borderRadius: 7, background: 'none', border: 'none',
-            cursor: 'pointer', color: S.muted, transition: 'all 0.15s',
+            color: '#C8CCD3',
           }}
-          onMouseEnter={e => { e.currentTarget.style.backgroundColor = S.hover; e.currentTarget.style.color = S.text }}
-          onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = S.muted }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = '#FFFFFF'
+            e.currentTarget.style.backgroundColor = '#3E4450'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = '#C8CCD3'
+            e.currentTarget.style.backgroundColor = 'transparent'
+          }}
         >
-          {collapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
+          {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
         </button>
       </div>
     </div>

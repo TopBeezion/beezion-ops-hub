@@ -1,570 +1,720 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import {
-  X, Save, ChevronDown, AlertTriangle, Check,
-  Paperclip, Upload, Trash2, Download, File, Image, FileVideo, FileAudio,
-  Bot, Hand,
+  X, Save, Calendar, User, Tag, Layers, AlertTriangle, Clock, FileText, Hash,
+  Anchor, Video, PenTool, Target, FileDown, Film, Globe, ThumbsUp, LayoutGrid,
+  Type, HelpCircle, BarChart3, RefreshCw, Bot, Hand, Zap, Hourglass, Package,
 } from 'lucide-react'
-import { supabase } from '../../lib/supabase'
-import { useUpdateTask, useDeleteTask } from '../../hooks/useTasks'
-import { getDaysOverdue } from '../../lib/dates'
+import { useUpdateTask } from '../../hooks/useTasks'
 import { useClients } from '../../hooks/useClients'
 import { useCampaignsByClient } from '../../hooks/useCampaigns'
-import type { Task, Area, Priority, TaskStatus, TaskTipo, Etapa, MiniStatus, Deliverables, TaskAttachment } from '../../types'
+import type { Task, Area, Priority, TaskStatus, TaskTipo, Etapa, MiniStatus, Deliverables } from '../../types'
 import {
   AREA_LABELS, AREA_COLORS, STATUS_LABELS, STATUS_COLORS,
   PRIORITY_LABELS, PRIORITY_COLORS,
   ETAPA_LABELS, ETAPA_COLORS, ETAPA_ORDER,
   MINI_STATUS_LABELS, MINI_STATUS_COLORS, MINI_STATUS_ORDER,
 } from '../../lib/constants'
-import { getSprintDateRange } from '../../lib/dates'
+import { getSprintDateRange, formatFullDate } from '../../lib/dates'
 
-// ── Team ─────────────────────────────────────────────────────────────────────
 const ASSIGNEES = [
-  { name: 'Alejandro', role: 'CEO · Copy · Estrategia',      color: '#8b5cf6', areas: ['copy','trafico','tech','admin'] },
-  { name: 'Alec',      role: 'Head of Paid · Estrategia',    color: '#f5a623', areas: ['trafico','tech'] },
-  { name: 'Jose',      role: 'Trafficker',                   color: '#3b82f6', areas: ['trafico'] },
-  { name: 'Luisa',     role: 'Copywriter',                   color: '#ef4444', areas: ['copy'] },
-  { name: 'Paula',     role: 'Aux. Marketing · Grabaciones', color: '#ec4899', areas: ['copy','admin'] },
-  { name: 'David',     role: 'Editor',                       color: '#06b6d4', areas: ['edicion'] },
-  { name: 'Johan',     role: 'Editor',                       color: '#10b981', areas: ['edicion'] },
-  { name: 'Felipe',    role: 'Lead Editor',                  color: '#f97316', areas: ['edicion'] },
+  { name: 'Alejandro', role: 'CEO · Copy & Estrategia',              color: '#8b5cf6', areas: ['copy'] },
+  { name: 'Alec',      role: 'COO · Head Tech & Paid Media',          color: '#f5a623', areas: ['tech', 'trafico'] },
+  { name: 'Paula',     role: 'Aux. Marketing · Producción · Admin',   color: '#ec4899', areas: ['copy', 'admin'] },
+  { name: 'Jose Luis', role: 'Trafficker Digital',                    color: '#3b82f6', areas: ['trafico'] },
+  { name: 'Editor 1',  role: 'Edición de Video',                     color: '#06b6d4', areas: ['copy'] },
+  { name: 'Editor 2',  role: 'Edición de Video',                     color: '#10b981', areas: ['copy'] },
+  { name: 'Editor 3',  role: 'Edición de Video',                     color: '#f97316', areas: ['copy'] },
 ]
 
-const DELIVERABLE_DEFS: { key: keyof Deliverables; label: string; color: string }[] = [
-  { key: 'hooks',               label: 'Hooks de video',       color: '#8b5cf6' },
-  { key: 'scripts_video',       label: 'Scripts video',        color: '#ec4899' },
-  { key: 'body_copy',           label: 'Body copy',            color: '#3b82f6' },
-  { key: 'cta',                 label: 'CTAs',                 color: '#f5a623' },
-  { key: 'lead_magnet_pdf',     label: 'Lead magnets',         color: '#22c55e' },
-  { key: 'vsl_script',          label: 'Scripts VSL',          color: '#06b6d4' },
-  { key: 'landing_copy',        label: 'Landing copy',         color: '#f97316' },
-  { key: 'thank_you_page_copy', label: 'Thank you page',       color: '#fbbf24' },
-  { key: 'carousel_slides',     label: 'Slides / Carrusel',    color: '#a78bfa' },
-  { key: 'headline_options',    label: 'Headlines',            color: '#f472b6' },
-  { key: 'retargeting_scripts', label: 'Retargeting',          color: '#34d399' },
+const SPRINT_COLORS: Record<number, string> = {
+  1: '#8b5cf6', 2: '#ec4899', 3: '#3b82f6', 4: '#22c55e',
+}
+
+const DELIVERABLE_DEFS: { key: keyof Deliverables; label: string; color: string; Icon: React.ElementType }[] = [
+  { key: 'hooks',              label: 'Hooks de video',        color: '#8b5cf6', Icon: Anchor },
+  { key: 'scripts_video',      label: 'Scripts video',         color: '#ec4899', Icon: Video },
+  { key: 'body_copy',          label: 'Body copy / Ad copy',   color: '#3b82f6', Icon: PenTool },
+  { key: 'cta',                label: 'CTAs',                  color: '#f5a623', Icon: Target },
+  { key: 'lead_magnet_pdf',    label: 'Lead magnets (PDF)',    color: '#22c55e', Icon: FileDown },
+  { key: 'vsl_script',         label: 'Scripts VSL',           color: '#06b6d4', Icon: Film },
+  { key: 'landing_copy',       label: 'Landing page copy',     color: '#f97316', Icon: Globe },
+  { key: 'thank_you_page_copy',label: 'Thank you page copy',   color: '#fbbf24', Icon: ThumbsUp },
+  { key: 'carousel_slides',    label: 'Slides / Carrusel',     color: '#a78bfa', Icon: LayoutGrid },
+  { key: 'headline_options',   label: 'Opciones de headline',  color: '#f472b6', Icon: Type },
+  { key: 'quiz_preguntas',     label: 'Preguntas de quiz',     color: '#818cf8', Icon: HelpCircle },
+  { key: 'quiz_resultados',    label: 'Resultados de quiz',    color: '#6ee7b7', Icon: BarChart3 },
+  { key: 'retargeting_scripts',label: 'Scripts de retargeting',color: '#34d399', Icon: RefreshCw },
 ]
 
-const SPRINT_COLORS: Record<number, string> = { 1: '#8b5cf6', 2: '#ec4899', 3: '#3b82f6', 4: '#22c55e' }
-
-// ── usePopover ────────────────────────────────────────────────────────────────
-function usePopover() {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    if (!open) return
-    const h = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', h)
-    return () => document.removeEventListener('mousedown', h)
-  }, [open])
-  return { open, setOpen, ref }
+interface Props {
+  task: Task
+  onClose: () => void
 }
 
-// ── Custom dropdown ───────────────────────────────────────────────────────────
-function FieldSel({
-  label, value, onChange, options, accentColor,
-}: {
-  label: string
-  value: string
-  onChange: (v: string) => void
-  options: { value: string; label: string; color?: string }[]
-  accentColor?: string
-}) {
-  const { open, setOpen, ref } = usePopover()
-  const sel = options.find(o => o.value === value)
-  const color = accentColor ?? sel?.color ?? '#6366F1'
-
-  return (
-    <div style={{ flex: 1, position: 'relative' }} ref={ref}>
-      <p style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>{label}</p>
-      <button type="button" onClick={() => setOpen(v => !v)} style={{
-        width: '100%', display: 'flex', alignItems: 'center', gap: 6,
-        padding: '8px 10px', borderRadius: 8, cursor: 'pointer', outline: 'none',
-        backgroundColor: value ? `${color}08` : '#FAFBFC',
-        border: `1px solid ${open ? color + '50' : value ? color + '30' : '#E5E7EB'}`,
-        transition: 'all 0.15s',
-      }}>
-        <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: color, flexShrink: 0 }} />
-        <span style={{ flex: 1, textAlign: 'left', fontSize: 12, fontWeight: 600, color: value ? color : '#9CA3AF' }}>{sel?.label ?? ''}</span>
-        <ChevronDown size={11} style={{ color: '#D1D5DB', flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: '150ms' }} />
-      </button>
-      {open && (
-        <div style={{
-          position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 600,
-          backgroundColor: '#FFFFFF', border: '1px solid #E5E7EB',
-          borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.10)', padding: 4,
-          maxHeight: 220, overflowY: 'auto',
-        }}>
-          {options.map(o => {
-            const isActive = o.value === value
-            const oc = o.color ?? '#6366F1'
-            return (
-              <button key={o.value} type="button"
-                onClick={() => { onChange(o.value); setOpen(false) }}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-                  padding: '7px 10px', borderRadius: 7, border: 'none', cursor: 'pointer',
-                  backgroundColor: isActive ? `${oc}10` : 'transparent', textAlign: 'left',
-                  transition: 'background 0.1s',
-                }}
-                onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.backgroundColor = '#F5F5F5' }}
-                onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent' }}
-              >
-                <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: oc, flexShrink: 0 }} />
-                <span style={{ flex: 1, fontSize: 12, fontWeight: isActive ? 700 : 400, color: isActive ? oc : '#374151' }}>{o.label}</span>
-                {isActive && <Check size={11} color={oc} />}
-              </button>
-            )
-          })}
-        </div>
-      )}
-    </div>
-  )
+const inputBase: React.CSSProperties = {
+  backgroundColor: '#FFFFFF',
+  border: '1px solid #E6E9EF',
+  color: '#1F2128',
+  outline: 'none',
+  width: '100%',
+  borderRadius: 8,
 }
 
-// ── Props ─────────────────────────────────────────────────────────────────────
-interface Props { task: Task; onClose: () => void }
+const sectionLabel: React.CSSProperties = {
+  color: '#9699A6',
+  fontSize: 11,
+  fontWeight: 600,
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em',
+}
 
 export function TaskDetailDrawer({ task, onClose }: Props) {
-  const updateTask  = useUpdateTask()
-  const deleteTask  = useDeleteTask()
+  const updateTask = useUpdateTask()
   const { data: clients = [] } = useClients()
 
-  const [title,        setTitle]        = useState(task.title)
-  const [description,  setDescription]  = useState(task.description ?? '')
-  const [problema,     setProblema]     = useState(task.problema ?? '')
-  const [area,         setArea]         = useState<Area>(task.area)
-  const [assignee,     setAssignee]     = useState(task.assignee)
-  const [priority,     setPriority]     = useState<Priority>(task.priority)
-  const [status,       setStatus]       = useState<TaskStatus>(task.status)
-  const [week,         setWeek]         = useState(task.week)
-  const [tipo,         setTipo]         = useState<TaskTipo>(task.tipo)
-  const [clientId,     setClientId]     = useState(task.client_id ?? '')
-  const [campaignId,   setCampaignId]   = useState(task.campaign_id ?? '')
-  const [etapa,        setEtapa]        = useState<Etapa | ''>(task.etapa ?? '')
-  const [miniStatus,   setMiniStatus]   = useState<MiniStatus | ''>(task.mini_status ?? '')
-  const [dueDate,      setDueDate]      = useState(task.due_date ?? '')
+  // Editable state
+  const [title,       setTitle]       = useState(task.title)
+  const [description, setDescription] = useState(task.description ?? '')
+  const [problema,    setProblema]    = useState(task.problema ?? '')
+  const [area,        setArea]        = useState<Area>(task.area)
+  const [assignee,    setAssignee]    = useState(task.assignee)
+  const [priority,    setPriority]    = useState<Priority>(task.priority)
+  const [status,      setStatus]      = useState<TaskStatus>(task.status)
+  const [week,        setWeek]        = useState(task.week)
+  const [tipo,        setTipo]        = useState<TaskTipo>(task.tipo)
+  const [clientId,    setClientId]    = useState(task.client_id ?? '')
+  const [campaignId,  setCampaignId]  = useState(task.campaign_id ?? '')
+  const [etapa,       setEtapa]       = useState<Etapa | ''>(task.etapa ?? '')
+  const [miniStatus,  setMiniStatus]  = useState<MiniStatus | ''>(task.mini_status ?? '')
+  const [dueDate,     setDueDate]     = useState(task.due_date ?? '')
   const [deliverables, setDeliverables] = useState<Deliverables>(task.deliverables ?? {})
-  const [attachments,  setAttachments]  = useState<TaskAttachment[]>(task.attachments ?? [])
-  const [uploading,     setUploading]    = useState(false)
-  const [saving,        setSaving]       = useState(false)
-  const [saved,         setSaved]        = useState(false)
-  const [showDel,       setShowDel]      = useState(false)
-  const [confirmDelete, setConfirmDelete] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [saving,      setSaving]      = useState(false)
+  const [saved,       setSaved]       = useState(false)
 
   const { data: campaigns = [] } = useCampaignsByClient(clientId || undefined)
-  const sprint      = getSprintDateRange(week)
-  const sprintColor = SPRINT_COLORS[week] ?? '#6366F1'
-  const assigneeInfo = ASSIGNEES.find(a => a.name === assignee)
-  const clientColor  = clients.find(c => c.id === clientId)?.color
 
+  // Sprint date range
+  const sprint = getSprintDateRange(week)
+  const sprintColor = SPRINT_COLORS[week] ?? '#6b7280'
+  const assigneeInfo = ASSIGNEES.find(a => a.name === assignee)
+
+  // Escape key
   useEffect(() => {
-    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    window.addEventListener('keydown', h)
-    return () => window.removeEventListener('keydown', h)
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
   }, [onClose])
 
   const isDirty =
-    title !== task.title || description !== (task.description ?? '') ||
-    problema !== (task.problema ?? '') || area !== task.area ||
-    assignee !== task.assignee || priority !== task.priority ||
-    status !== task.status || week !== task.week || tipo !== task.tipo ||
-    clientId !== (task.client_id ?? '') || campaignId !== (task.campaign_id ?? '') ||
-    etapa !== (task.etapa ?? '') || miniStatus !== (task.mini_status ?? '') ||
+    title !== task.title ||
+    description !== (task.description ?? '') ||
+    problema !== (task.problema ?? '') ||
+    area !== task.area ||
+    assignee !== task.assignee ||
+    priority !== task.priority ||
+    status !== task.status ||
+    week !== task.week ||
+    tipo !== task.tipo ||
+    clientId !== (task.client_id ?? '') ||
+    campaignId !== (task.campaign_id ?? '') ||
+    etapa !== (task.etapa ?? '') ||
+    miniStatus !== (task.mini_status ?? '') ||
     dueDate !== (task.due_date ?? '') ||
-    JSON.stringify(deliverables) !== JSON.stringify(task.deliverables ?? {}) ||
-    JSON.stringify(attachments)  !== JSON.stringify(task.attachments ?? [])
+    JSON.stringify(deliverables) !== JSON.stringify(task.deliverables ?? {})
 
   const handleSave = async () => {
     setSaving(true)
     try {
       await updateTask.mutateAsync({
-        id: task.id, title, description: description || undefined,
-        problema: problema || undefined, area, assignee, priority, status,
-        week, tipo, client_id: clientId || undefined,
-        campaign_id: campaignId || undefined, etapa: etapa || undefined,
-        mini_status: miniStatus || undefined, due_date: dueDate || undefined,
+        id: task.id,
+        title,
+        description: description || undefined,
+        problema: problema || undefined,
+        area,
+        assignee,
+        priority,
+        status,
+        week,
+        tipo,
+        client_id: clientId || undefined,
+        campaign_id: campaignId || undefined,
+        etapa: etapa || undefined,
+        mini_status: miniStatus || undefined,
+        due_date: dueDate || undefined,
         deliverables: Object.keys(deliverables).length > 0 ? deliverables : undefined,
-        attachments:  attachments.length > 0 ? attachments : undefined,
       })
-      setSaved(true); setTimeout(() => setSaved(false), 2000)
-    } finally { setSaving(false) }
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } finally {
+      setSaving(false)
+    }
   }
 
   const setDeliverable = (key: keyof Deliverables, value: number) => {
-    setDeliverables(prev => { const n = { ...prev }; if (value > 0) n[key] = value; else delete n[key]; return n })
+    setDeliverables(prev => {
+      const next = { ...prev }
+      if (value > 0) next[key] = value
+      else delete next[key]
+      return next
+    })
   }
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? [])
-    if (!files.length) return
-    setUploading(true)
-    const added: TaskAttachment[] = []
-    for (const file of files) {
-      const path = `tasks/${task.id}/${Date.now()}-${file.name}`
-      const { error } = await supabase.storage.from('task-attachments').upload(path, file, { upsert: false })
-      if (!error) {
-        const { data: urlData } = supabase.storage.from('task-attachments').getPublicUrl(path)
-        added.push({ name: file.name, url: urlData.publicUrl, path, size: file.size, type: file.type, uploaded_at: new Date().toISOString() })
-      }
-    }
-    setAttachments(prev => [...prev, ...added])
-    setUploading(false)
-    if (fileInputRef.current) fileInputRef.current.value = ''
-  }
-
-  const removeAttachment = async (att: TaskAttachment) => {
-    await supabase.storage.from('task-attachments').remove([att.path])
-    setAttachments(prev => prev.filter(a => a.path !== att.path))
-  }
-
-  const getFileIcon = (type: string) => {
-    if (type.startsWith('image/')) return Image
-    if (type.startsWith('video/')) return FileVideo
-    if (type.startsWith('audio/')) return FileAudio
-    return File
-  }
-  const fmtBytes  = (b: number) => b < 1024 ? `${b} B` : b < 1048576 ? `${(b/1024).toFixed(0)} KB` : `${(b/1048576).toFixed(1)} MB`
-  const totalDel  = Object.values(deliverables).reduce((s, v) => s + (v ?? 0), 0)
-
-  const statusOpts     = (Object.entries(STATUS_LABELS)   as [TaskStatus, string][]).map(([v, l]) => ({ value: v, label: l, color: STATUS_COLORS[v] }))
-  const priorityOpts   = (Object.entries(PRIORITY_LABELS) as [Priority,   string][]).map(([v, l]) => ({ value: v, label: l, color: PRIORITY_COLORS[v] }))
-  // tipo kept in state for save compatibility but not shown in UI
-  const etapaOpts      = [{ value: '', label: 'Sin etapa', color: '#D1D5DB' }, ...ETAPA_ORDER.map(e => ({ value: e, label: ETAPA_LABELS[e as Etapa], color: ETAPA_COLORS[e as Etapa] }))]
-  const miniStatusOpts = [{ value: '', label: 'Sin estado', color: '#D1D5DB' }, ...MINI_STATUS_ORDER.map(s => ({ value: s, label: MINI_STATUS_LABELS[s as MiniStatus], color: MINI_STATUS_COLORS[s as MiniStatus] }))]
-  const clienteOpts    = [{ value: '', label: 'Sin cliente', color: '#D1D5DB' }, ...clients.map(c => ({ value: c.id, label: c.name, color: c.color }))]
-  const campanaOpts    = [{ value: '', label: 'Sin campaña', color: '#D1D5DB' }, ...campaigns.map(c => ({ value: c.id, label: c.name, color: '#6366F1' }))]
-
-  const sLbl = (t: string) => (
-    <p style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>{t}</p>
-  )
+  const totalDeliverables = Object.values(deliverables).reduce((s, v) => s + (v ?? 0), 0)
 
   return (
     <div className="fixed inset-0 z-50 flex items-stretch justify-end">
       {/* Backdrop */}
-      <div className="absolute inset-0" onClick={onClose}
-        style={{ backgroundColor: 'rgba(15,17,22,0.25)', backdropFilter: 'blur(3px)' }} />
+      <div
+        className="absolute inset-0 backdrop-blur-sm"
+        onClick={onClose}
+        style={{ backgroundColor: 'rgba(0,0,0,0.25)', backdropFilter: 'blur(4px)' }}
+      />
 
-      {/* Drawer panel */}
-      <div className="relative flex flex-col h-full w-full overflow-hidden"
-        style={{ maxWidth: 520, backgroundColor: '#FFFFFF', borderLeft: '1px solid #E5E7EB', boxShadow: '-12px 0 40px rgba(0,0,0,0.15)' }}>
+      {/* Drawer */}
+      <div
+        className="relative flex flex-col h-full w-full overflow-hidden"
+        style={{
+          maxWidth: 540,
+          backgroundColor: '#FFFFFF',
+          borderLeft: '1px solid #E6E9EF',
+          boxShadow: '-8px 0 24px rgba(0,0,0,0.08)',
+        }}
+      >
+        {/* Client color top stripe */}
+        <div
+          className="absolute top-0 left-0 right-0 h-[2px]"
+          style={{ backgroundColor: task.client?.color ?? '#f5a623' }}
+        />
 
-        {/* Client color stripe */}
-        <div style={{ height: 3, background: task.client?.color ? `linear-gradient(90deg,${task.client.color},${task.client.color}60)` : '#6366F1', flexShrink: 0 }} />
-
-        {/* ── Header ── */}
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid #E5E7EB', flexShrink: 0, backgroundColor: '#FFFFFF' }}>
-          {/* Row 1: badges + actions */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              {task.client && (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 20, backgroundColor: `${task.client.color}15`, color: task.client.color, border: `1px solid ${task.client.color}30` }}>
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: task.client.color }} />
-                  {task.client.name}
-                </span>
-              )}
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 20, backgroundColor: '#F3F4F6', color: '#9CA3AF', border: '1px solid #E5E7EB' }}>
-                {task.source === 'meeting_auto' ? <><Bot size={9} /> Auto</> : <><Hand size={9} /> Manual</>}
+        {/* ── Header ───────────────────────────────────── */}
+        <div
+          className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0"
+          style={{ borderBottom: '1px solid #E6E9EF' }}
+        >
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Client badge */}
+            {task.client && (
+              <span
+                className="flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-md"
+                style={{
+                  backgroundColor: `${task.client.color}18`,
+                  color: task.client.color,
+                  border: `1px solid ${task.client.color}30`,
+                }}
+              >
+                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: task.client.color }} />
+                {task.client.name}
               </span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              {isDirty && (
-                <button onClick={handleSave} disabled={saving}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg,#6366F1,#8B5CF6)', color: '#fff', boxShadow: '0 2px 12px rgba(99,102,241,0.35)', opacity: saving ? 0.7 : 1 }}>
-                  <Save size={12} />
-                  {saving ? 'Guardando…' : saved ? '✓ Guardado' : 'Guardar'}
-                </button>
-              )}
-              {/* Delete */}
-              {confirmDelete ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <span style={{ fontSize: 11, color: '#EF4444', fontWeight: 600 }}>¿Eliminar?</span>
-                  <button
-                    onClick={async () => { await deleteTask.mutateAsync(task.id); onClose() }}
-                    style={{ padding: '5px 10px', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 700, backgroundColor: '#EF4444', color: '#fff' }}>
-                    Sí, eliminar
-                  </button>
-                  <button onClick={() => setConfirmDelete(false)}
-                    style={{ padding: '5px 8px', borderRadius: 7, border: '1px solid #E5E7EB', cursor: 'pointer', fontSize: 11, fontWeight: 600, backgroundColor: '#fff', color: '#6B7280' }}>
-                    No
-                  </button>
-                </div>
-              ) : (
-                <button onClick={() => setConfirmDelete(true)} title="Eliminar tarea"
-                  style={{ padding: 7, borderRadius: 8, border: '1px solid #FEE2E2', cursor: 'pointer', backgroundColor: '#FFF5F5', color: '#EF4444', display: 'flex' }}>
-                  <Trash2 size={14} />
-                </button>
-              )}
-              <button onClick={onClose}
-                style={{ padding: 7, borderRadius: 8, border: '1px solid #E5E7EB', cursor: 'pointer', backgroundColor: '#fff', color: '#9CA3AF', display: 'flex' }}>
-                <X size={14} />
-              </button>
-            </div>
+            )}
+            {/* Source badge */}
+            <span
+              className="text-[9px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider"
+              style={{
+                backgroundColor: task.source === 'meeting_auto' ? 'rgba(99,102,241,0.1)' : 'rgba(99,102,241,0.05)',
+                color: task.source === 'meeting_auto' ? '#6366F1' : '#9699A6',
+                border: task.source === 'meeting_auto' ? '1px solid rgba(99,102,241,0.2)' : '1px solid #E6E9EF',
+              }}
+            >
+              <span className="flex items-center gap-1">
+                {task.source === 'meeting_auto' ? <><Bot size={9} /> Auto-reunión</> : <><Hand size={9} /> Manual</>}
+              </span>
+            </span>
           </div>
 
-          {/* Row 2: Title */}
-          <textarea
-            value={title}
-            onChange={e => setTitle(e.target.value)}
-            rows={2}
-            style={{
-              width: '100%', border: 'none', outline: 'none', resize: 'none',
-              fontSize: 16, fontWeight: 600, color: '#111827', lineHeight: 1.4,
-              backgroundColor: 'transparent', fontFamily: 'inherit',
-            }}
-            placeholder="Título de la tarea..."
-          />
-
-          {/* Row 3: meta — fecha creación + ID + overdue badge */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 11, color: '#6B7280', fontWeight: 600 }}>
-              Creado{' '}
-              <span style={{ color: '#1F2937', fontWeight: 700 }}>
-                {new Date(task.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })}
-              </span>
-            </span>
-            <span style={{ width: 3, height: 3, borderRadius: '50%', backgroundColor: '#D1D5DB', flexShrink: 0 }} />
-            <span style={{ fontSize: 11, color: '#6B7280', fontWeight: 600 }}>
-              ID <span style={{ color: '#1F2937', fontWeight: 700, fontFamily: 'monospace' }}>{task.id.slice(0, 8)}</span>
-            </span>
-            {(() => {
-              const days = getDaysOverdue(task)
-              if (days === 0) return null
-              return (
-                <>
-                  <span style={{ width: 3, height: 3, borderRadius: '50%', backgroundColor: '#D1D5DB', flexShrink: 0 }} />
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 20, backgroundColor: '#FEE2E2', color: '#DC2626', border: '1px solid #FCA5A5' }}>
-                    ⚠️ Atrasada {days} {days === 1 ? 'día' : 'días'}
-                  </span>
-                </>
-              )
-            })()}
+          <div className="flex items-center gap-2">
+            {isDirty && (
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold disabled:opacity-60"
+                style={{
+                  background: '#6366F1',
+                  color: '#FFFFFF',
+                  boxShadow: '0 0 14px rgba(99,102,241,0.2)',
+                }}
+              >
+                <Save size={11} />
+                {saving ? 'Guardando…' : saved ? '✓ Guardado' : 'Guardar'}
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+              style={{ color: '#9699A6' }}
+            >
+              <X size={15} />
+            </button>
           </div>
         </div>
 
-        {/* ── Scrollable body ── */}
-        <div className="flex-1 overflow-auto" style={{ padding: '18px 20px 32px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+        {/* ── Scrollable body ──────────────────────────── */}
+        <div className="flex-1 overflow-auto px-5 py-4 space-y-5">
 
-            {/* Status · Prioridad */}
-            <div style={{ display: 'flex', gap: 8 }}>
-              <FieldSel label="Status"    value={status}   onChange={v => setStatus(v as TaskStatus)}   options={statusOpts} />
-              <FieldSel label="Prioridad" value={priority} onChange={v => setPriority(v as Priority)}   options={priorityOpts} />
+          {/* ── Título ── */}
+          <div>
+            <label style={sectionLabel}>Título de la tarea</label>
+            <textarea
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              rows={2}
+              className="mt-1.5 w-full px-3 py-2.5 rounded-lg text-sm font-medium resize-none leading-relaxed"
+              style={{ ...inputBase }}
+              placeholder="Describe la tarea..."
+            />
+          </div>
+
+          {/* ── Meta row ── */}
+          <div className="grid grid-cols-2 gap-3">
+
+            {/* Status */}
+            <div>
+              <label className="flex items-center gap-1 mb-1.5" style={sectionLabel}>
+                <Tag size={9} /> Status
+              </label>
+              <select
+                value={status}
+                onChange={e => setStatus(e.target.value as TaskStatus)}
+                className="px-3 py-2 rounded-lg text-xs font-semibold w-full"
+                style={{
+                  ...inputBase,
+                  color: STATUS_COLORS[status],
+                  backgroundColor: `${STATUS_COLORS[status]}15`,
+                  border: `1px solid ${STATUS_COLORS[status]}30`,
+                }}
+              >
+                {(Object.entries(STATUS_LABELS) as [TaskStatus, string][]).map(([v, l]) => (
+                  <option key={v} value={v} style={{ backgroundColor: '#FFFFFF', color: STATUS_COLORS[v] }}>{l}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Priority */}
+            <div>
+              <label className="flex items-center gap-1 mb-1.5" style={sectionLabel}>
+                <AlertTriangle size={9} /> Prioridad
+              </label>
+              <select
+                value={priority}
+                onChange={e => setPriority(e.target.value as Priority)}
+                className="px-3 py-2 rounded-lg text-xs font-semibold w-full"
+                style={{
+                  ...inputBase,
+                  color: PRIORITY_COLORS[priority],
+                  backgroundColor: `${PRIORITY_COLORS[priority]}15`,
+                  border: `1px solid ${PRIORITY_COLORS[priority]}30`,
+                }}
+              >
+                {(Object.entries(PRIORITY_LABELS) as [Priority, string][]).map(([v, l]) => (
+                  <option key={v} value={v} style={{ backgroundColor: '#FFFFFF', color: PRIORITY_COLORS[v] }}>{l}</option>
+                ))}
+              </select>
             </div>
 
             {/* Área */}
             <div>
-              {sLbl('Área')}
-              <div style={{ display: 'flex', gap: 6 }}>
-                {(Object.entries(AREA_LABELS) as [Area, string][]).map(([v, l]) => {
-                  const active = area === v
-                  const col    = AREA_COLORS[v]
-                  return (
-                    <button key={v} onClick={() => setArea(v)} style={{
-                      padding: '6px 18px', borderRadius: 20, fontSize: 12, fontWeight: 700,
-                      cursor: 'pointer', border: 'none', transition: 'all 0.15s',
-                      backgroundColor: active ? col : `${col}12`,
-                      color: active ? '#fff' : col,
-                      boxShadow: active ? `0 2px 10px ${col}45` : 'none',
-                    }}>{l}</button>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* Responsable */}
-            <div>
-              {sLbl('Responsable')}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 5 }}>
-                {ASSIGNEES.map(a => {
-                  const active = assignee === a.name
-                  return (
-                    <button key={a.name} onClick={() => setAssignee(a.name)} style={{
-                      display: 'flex', alignItems: 'center', gap: 9, padding: '8px 11px',
-                      borderRadius: 9, cursor: 'pointer', textAlign: 'left', border: 'none',
-                      backgroundColor: active ? `${a.color}10` : '#FAFBFC',
-                      outline: active ? `1.5px solid ${a.color}40` : '1.5px solid #F0F0F0',
-                      transition: 'all 0.12s',
-                    }}>
-                      <div style={{
-                        width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 10, fontWeight: 800,
-                        background: active ? `linear-gradient(135deg,${a.color},${a.color}80)` : `${a.color}18`,
-                        color: active ? '#fff' : a.color,
-                      }}>
-                        {a.name.slice(0, 2).toUpperCase()}
-                      </div>
-                      <div style={{ minWidth: 0 }}>
-                        <p style={{ fontSize: 12, fontWeight: 600, color: active ? a.color : '#374151', margin: 0 }}>{a.name}</p>
-                        <p style={{ fontSize: 9, color: '#9CA3AF', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.role}</p>
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-              {assigneeInfo && !assigneeInfo.areas.includes(area) && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 7, padding: '5px 10px', borderRadius: 7, backgroundColor: '#FFFBEB', border: '1px solid #FDE68A' }}>
-                  <AlertTriangle size={11} color="#D97706" />
-                  <span style={{ fontSize: 11, color: '#92400E' }}>{assignee} normalmente no trabaja en <strong>{AREA_LABELS[area]}</strong>.</span>
-                </div>
-              )}
-            </div>
-
-            {/* Cliente · Campaña */}
-            <div style={{ display: 'flex', gap: 8 }}>
-              <FieldSel label="Cliente"  value={clientId}  onChange={v => { setClientId(v); setCampaignId('') }} options={clienteOpts}  accentColor={clientColor ?? '#D1D5DB'} />
-              <FieldSel label="Campaña"  value={campaignId} onChange={setCampaignId}                            options={campanaOpts} />
-            </div>
-
-            {/* Etapa · Mini Status */}
-            <div style={{ display: 'flex', gap: 8 }}>
-              <FieldSel label="Etapa"      value={etapa}      onChange={v => setEtapa(v as Etapa | '')}           options={etapaOpts}      accentColor={etapa ? ETAPA_COLORS[etapa as Etapa] : '#D1D5DB'} />
-              <FieldSel label="Mini Status" value={miniStatus} onChange={v => setMiniStatus(v as MiniStatus | '')} options={miniStatusOpts} accentColor={miniStatus ? MINI_STATUS_COLORS[miniStatus as MiniStatus] : '#D1D5DB'} />
-            </div>
-
-            {/* Fecha · Sprint */}
-            <div style={{ display: 'flex', gap: 8 }}>
-              <div style={{ flex: 1 }}>
-                <p style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>Fecha límite</p>
-                <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} style={{
-                  width: '100%', padding: '8px 10px', borderRadius: 8, outline: 'none',
-                  border: '1px solid #E5E7EB', backgroundColor: '#FAFBFC',
-                  fontSize: 12, color: dueDate && new Date(dueDate) < new Date() ? '#DC2626' : '#374151',
-                }} />
-              </div>
-              <div style={{ flex: 1.5 }}>
-                <p style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>Sprint</p>
-                <div style={{ display: 'flex', gap: 4 }}>
-                  {[1,2,3,4].map(w => {
-                    const sc = SPRINT_COLORS[w]
-                    const s  = getSprintDateRange(w)
-                    const on = week === w
-                    return (
-                      <button key={w} onClick={() => setWeek(w)} style={{
-                        flex: 1, borderRadius: 8, padding: '7px 2px', textAlign: 'center',
-                        backgroundColor: on ? `${sc}10` : '#FAFBFC',
-                        border: `1px solid ${on ? sc + '50' : '#E5E7EB'}`,
-                        cursor: 'pointer', transition: 'all 0.12s',
-                      }}>
-                        <p style={{ fontSize: 11, fontWeight: 700, color: on ? sc : '#9CA3AF', margin: 0 }}>S{w}</p>
-                        <p style={{ fontSize: 8, color: '#D1D5DB', margin: 0 }}>{s.startFmt}</p>
-                      </button>
-                    )
-                  })}
-                </div>
-                <p style={{ fontSize: 10, color: sprintColor, fontWeight: 600, marginTop: 5 }}>
-                  Sprint {week} · <span style={{ color: '#9CA3AF', fontWeight: 400 }}>{sprint.label}</span>
-                </p>
-              </div>
-            </div>
-
-            {/* Divider */}
-            <div style={{ height: 1, backgroundColor: '#F3F4F6' }} />
-
-            {/* Descripción */}
-            <div>
-              {sLbl('Descripción / Instrucciones')}
-              <textarea value={description} onChange={e => setDescription(e.target.value)} rows={4}
+              <label className="flex items-center gap-1 mb-1.5" style={sectionLabel}>
+                <Layers size={9} /> Área
+              </label>
+              <select
+                value={area}
+                onChange={e => setArea(e.target.value as Area)}
+                className="px-3 py-2 rounded-lg text-xs font-semibold w-full"
                 style={{
-                  width: '100%', padding: '10px 12px', borderRadius: 9, resize: 'none', outline: 'none',
-                  border: '1px solid #E5E7EB', backgroundColor: '#FAFBFC',
-                  fontSize: 13, color: '#374151', lineHeight: 1.6,
+                  ...inputBase,
+                  color: AREA_COLORS[area],
+                  backgroundColor: `${AREA_COLORS[area]}15`,
+                  border: `1px solid ${AREA_COLORS[area]}30`,
                 }}
-                placeholder="Qué hay que hacer, cómo hacerlo, referencias, links..." />
+              >
+                {(Object.entries(AREA_LABELS) as [Area, string][]).map(([v, l]) => (
+                  <option key={v} value={v} style={{ backgroundColor: '#FFFFFF', color: AREA_COLORS[v] }}>{l}</option>
+                ))}
+              </select>
             </div>
 
-            {/* Problema */}
+            {/* Tipo */}
             <div>
-              {sLbl('Problema que resuelve')}
-              <input value={problema} onChange={e => setProblema(e.target.value)} style={{
-                width: '100%', padding: '9px 12px', borderRadius: 9, outline: 'none',
-                border: '1px solid #E5E7EB', backgroundColor: '#FAFBFC', fontSize: 13, color: '#374151',
-              }} placeholder="Ej: Show rate de Book Demos bajo" />
+              <label className="flex items-center gap-1 mb-1.5" style={sectionLabel}>
+                <Hash size={9} /> Tipo
+              </label>
+              <select
+                value={tipo}
+                onChange={e => setTipo(e.target.value as TaskTipo)}
+                className="px-3 py-2 rounded-lg text-xs font-semibold w-full"
+                style={{ ...inputBase, color: tipo === 'urgente' ? '#ef4444' : tipo === 'pendiente_anterior' ? '#f97316' : '#9699A6' }}
+              >
+                <option value="nuevo" style={{ backgroundColor: '#FFFFFF' }}>Nuevo</option>
+                <option value="pendiente_anterior" style={{ backgroundColor: '#FFFFFF' }}>Pendiente anterior</option>
+                <option value="urgente" style={{ backgroundColor: '#FFFFFF' }}>Urgente</option>
+              </select>
             </div>
+          </div>
 
-            {/* Entregables */}
-            <div>
-              <button type="button" onClick={() => setShowDel(v => !v)} style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
-                padding: '10px 14px', borderRadius: 9, cursor: 'pointer', border: 'none',
-                backgroundColor: showDel ? '#EEF2FF' : '#F9FAFB',
-                outline: `1px solid ${showDel ? '#C7D2FE' : '#E5E7EB'}`,
-              }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: showDel ? '#4F46E5' : '#6B7280' }}>
-                  📦 Entregables y cantidades
-                  {totalDel > 0 && <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 99, backgroundColor: '#E0E7FF', color: '#4F46E5' }}>{totalDel}</span>}
-                </span>
-                <ChevronDown size={13} style={{ color: '#9CA3AF', transform: showDel ? 'rotate(180deg)' : 'none', transition: '150ms' }} />
-              </button>
-              {showDel && (
-                <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  {DELIVERABLE_DEFS.map(({ key, label, color }) => {
-                    const val = deliverables[key] ?? 0
-                    return (
-                      <div key={key} style={{
-                        display: 'flex', alignItems: 'center', gap: 12, padding: '8px 12px', borderRadius: 8,
-                        backgroundColor: val > 0 ? `${color}08` : '#FAFBFC',
-                        border: `1px solid ${val > 0 ? color + '25' : '#F0F0F0'}`,
-                      }}>
-                        <span style={{ flex: 1, fontSize: 12, color: val > 0 ? color : '#9CA3AF' }}>{label}</span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <button type="button" onClick={() => setDeliverable(key, Math.max(0, val - 1))}
-                            style={{ width: 24, height: 24, borderRadius: 6, border: '1px solid #E5E7EB', cursor: 'pointer', fontSize: 16, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: val > 0 ? `${color}12` : '#F9FAFB', color: val > 0 ? color : '#D1D5DB' }}>−</button>
-                          <span style={{ width: 26, textAlign: 'center', fontSize: 12, fontWeight: 700, color: val > 0 ? color : '#D1D5DB' }}>{val}</span>
-                          <button type="button" onClick={() => setDeliverable(key, val + 1)}
-                            style={{ width: 24, height: 24, borderRadius: 6, border: '1px solid #E5E7EB', cursor: 'pointer', fontSize: 16, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: `${color}12`, color }}>+</button>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Adjuntos */}
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                <p style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em', margin: 0 }}>
-                  Archivos adjuntos {attachments.length > 0 && <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 99, backgroundColor: '#EEF2FF', color: '#6366F1' }}>{attachments.length}</span>}
-                </p>
-                <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 7, border: '1px solid #E0E7FF', cursor: 'pointer', fontSize: 11, fontWeight: 600, backgroundColor: '#EEF2FF', color: '#6366F1' }}>
-                  <Upload size={10} />{uploading ? 'Subiendo…' : 'Subir'}
+          {/* ── Responsable ── */}
+          <div>
+            <label className="flex items-center gap-1 mb-2" style={sectionLabel}>
+              <User size={9} /> Responsable
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {ASSIGNEES.map(a => (
+                <button
+                  key={a.name}
+                  onClick={() => setAssignee(a.name)}
+                  className="flex items-center gap-2 px-2.5 py-2 rounded-lg text-left transition-all"
+                  style={{
+                    backgroundColor: assignee === a.name ? '#EEF2FF' : '#FAFBFC',
+                    border: assignee === a.name ? `1px solid ${a.color}40` : '1px solid #E6E9EF',
+                    boxShadow: assignee === a.name ? `0 0 12px ${a.color}18` : 'none',
+                  }}
+                >
+                  <div
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0"
+                    style={{
+                      background: `linear-gradient(135deg, ${a.color}40, ${a.color}20)`,
+                      color: a.color,
+                      border: `1px solid ${a.color}30`,
+                    }}
+                  >
+                    {a.name.slice(0, 2).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold leading-none" style={{ color: assignee === a.name ? '#1F2128' : '#676879' }}>{a.name}</p>
+                    <p className="text-[9px] mt-0.5 leading-tight truncate" style={{ color: '#9699A6' }}>{a.role}</p>
+                  </div>
                 </button>
+              ))}
+            </div>
+            {/* Smart suggestion */}
+            {assigneeInfo && !assigneeInfo.areas.includes(area) && (
+              <p className="flex items-center gap-1 text-[10px] mt-1.5 px-1" style={{ color: '#F59E0B' }}>
+                <AlertTriangle size={10} /> {assignee} normalmente no trabaja en el área de <strong>{AREA_LABELS[area]}</strong>.
+                {area === 'copy' && ' Para copy, considera: Alejandro, Paula o Editores.'}
+                {area === 'trafico' && ' Para tráfico, considera: Alec o Jose Luis.'}
+                {area === 'tech' && ' Para tech, considera: Alec.'}
+                {area === 'admin' && ' Para admin, considera: Paula.'}
+              </p>
+            )}
+          </div>
+
+          {/* ── Cliente + Campaña ── */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="flex items-center gap-1 mb-1.5" style={sectionLabel}>
+                <Tag size={9} /> Cliente
+              </label>
+              <select
+                value={clientId}
+                onChange={e => { setClientId(e.target.value); setCampaignId('') }}
+                className="px-3 py-2 rounded-lg text-sm w-full"
+                style={{ ...inputBase }}
+              >
+                <option value="">Sin cliente</option>
+                {clients.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="flex items-center gap-1 mb-1.5" style={sectionLabel}>
+                <Zap size={9} /> Campaña
+              </label>
+              <select
+                value={campaignId}
+                onChange={e => setCampaignId(e.target.value)}
+                disabled={!clientId}
+                className="px-3 py-2 rounded-lg text-xs w-full"
+                style={{ ...inputBase, opacity: clientId ? 1 : 0.5 }}
+              >
+                <option value="">Sin campaña</option>
+                {campaigns.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* ── Etapa + Mini Status ── */}
+          {(campaignId || etapa || miniStatus) && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="flex items-center gap-1 mb-1.5" style={sectionLabel}>
+                  <Layers size={9} /> Etapa
+                </label>
+                <select
+                  value={etapa}
+                  onChange={e => setEtapa(e.target.value as Etapa | '')}
+                  className="px-3 py-2 rounded-lg text-xs font-semibold w-full"
+                  style={{
+                    ...inputBase,
+                    color: etapa ? ETAPA_COLORS[etapa as Etapa] : '#9699A6',
+                    backgroundColor: etapa ? `${ETAPA_COLORS[etapa as Etapa]}15` : '#FFFFFF',
+                    border: etapa ? `1px solid ${ETAPA_COLORS[etapa as Etapa]}30` : '1px solid #E6E9EF',
+                  }}
+                >
+                  <option value="">Sin etapa</option>
+                  {ETAPA_ORDER.map(e => <option key={e} value={e}>{ETAPA_LABELS[e]}</option>)}
+                </select>
               </div>
-              <input ref={fileInputRef} type="file" multiple style={{ display: 'none' }} onChange={handleFileUpload}
-                accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip" />
-              {attachments.length === 0 && !uploading && (
-                <div onClick={() => fileInputRef.current?.click()} style={{ border: '1.5px dashed #E5E7EB', borderRadius: 9, padding: '20px', textAlign: 'center', cursor: 'pointer' }}>
-                  <Paperclip size={16} style={{ color: '#D1D5DB', margin: '0 auto 6px' }} />
-                  <p style={{ fontSize: 12, color: '#9CA3AF', margin: 0 }}>Arrastra o haz click para adjuntar</p>
-                </div>
-              )}
-              {attachments.length > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  {attachments.map(att => {
-                    const FileIcon = getFileIcon(att.type)
-                    return (
-                      <div key={att.path} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 8, backgroundColor: '#FAFBFC', border: '1px solid #F0F0F0' }}>
-                        <FileIcon size={14} style={{ color: '#9CA3AF', flexShrink: 0 }} />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: 12, fontWeight: 500, color: '#374151', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{att.name}</p>
-                          <p style={{ fontSize: 10, color: '#9CA3AF', margin: 0 }}>{fmtBytes(att.size)}</p>
-                        </div>
-                        <a href={att.url} download target="_blank" rel="noreferrer" style={{ padding: 4, color: '#9CA3AF', display: 'flex' }}><Download size={13} /></a>
-                        <button type="button" onClick={() => removeAttachment(att)} style={{ padding: 4, border: 'none', cursor: 'pointer', backgroundColor: 'transparent', color: '#EF4444', display: 'flex' }}><Trash2 size={13} /></button>
-                      </div>
-                    )
-                  })}
-                </div>
+              <div>
+                <label className="flex items-center gap-1 mb-1.5" style={sectionLabel}>
+                  <Tag size={9} /> Mini status
+                </label>
+                <select
+                  value={miniStatus}
+                  onChange={e => setMiniStatus(e.target.value as MiniStatus | '')}
+                  className="px-3 py-2 rounded-lg text-xs font-semibold w-full"
+                  style={{
+                    ...inputBase,
+                    color: miniStatus ? MINI_STATUS_COLORS[miniStatus as MiniStatus] : '#9699A6',
+                    backgroundColor: miniStatus ? `${MINI_STATUS_COLORS[miniStatus as MiniStatus]}15` : '#FFFFFF',
+                  }}
+                >
+                  <option value="">Sin estado</option>
+                  {MINI_STATUS_ORDER.map(s => <option key={s} value={s}>{MINI_STATUS_LABELS[s]}</option>)}
+                </select>
+              </div>
+            </div>
+          )}
+
+          {/* ── Fecha límite ── */}
+          <div>
+            <label className="flex items-center gap-1 mb-1.5" style={sectionLabel}>
+              <Calendar size={9} /> Fecha límite
+            </label>
+            <input
+              type="date"
+              value={dueDate}
+              onChange={e => setDueDate(e.target.value)}
+              className="px-3 py-2 rounded-lg text-sm w-full"
+              style={{
+                ...inputBase,
+                color: dueDate && new Date(dueDate) < new Date() ? '#E2445C' : '#1F2128',
+              }}
+            />
+          </div>
+
+          {/* ── Sprint / Fechas ── */}
+          <div>
+            <label className="flex items-center gap-1 mb-2" style={sectionLabel}>
+              <Calendar size={9} /> Sprint & Fechas
+            </label>
+            <div className="grid grid-cols-4 gap-1.5 mb-2">
+              {[1, 2, 3, 4].map(w => {
+                const s = getSprintDateRange(w)
+                const sc = SPRINT_COLORS[w]
+                return (
+                  <button
+                    key={w}
+                    onClick={() => setWeek(w)}
+                    className="rounded-lg p-2 text-center transition-all"
+                    style={{
+                      backgroundColor: week === w ? `${sc}12` : '#FAFBFC',
+                      border: week === w ? `1px solid ${sc}30` : '1px solid #E6E9EF',
+                    }}
+                  >
+                    <p className="text-[11px] font-bold" style={{ color: week === w ? sc : '#9699A6' }}>
+                      S{w}
+                    </p>
+                    <p className="text-[9px] mt-0.5 leading-tight" style={{ color: '#9699A6' }}>
+                      {s.startFmt}
+                    </p>
+                    <p className="text-[9px] leading-tight" style={{ color: '#9699A6' }}>
+                      — {s.endFmt}
+                    </p>
+                  </button>
+                )
+              })}
+            </div>
+            <div
+              className="flex items-center justify-between px-3 py-2 rounded-lg"
+              style={{ backgroundColor: `${sprintColor}12`, border: `1px solid ${sprintColor}30` }}
+            >
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: sprintColor }} />
+                <span className="text-xs font-semibold" style={{ color: sprintColor }}>Sprint {week}</span>
+              </div>
+              <span className="text-[11px]" style={{ color: '#9699A6' }}>{sprint.label}</span>
+            </div>
+          </div>
+
+          {/* ── Divider ── */}
+          <div className="h-px" style={{ backgroundColor: '#E6E9EF' }} />
+
+          {/* ── Descripción ── */}
+          <div>
+            <label className="flex items-center gap-1 mb-1.5" style={sectionLabel}>
+              <FileText size={9} /> Descripción / Instrucciones específicas
+            </label>
+            <textarea
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              rows={4}
+              className="w-full px-3 py-2.5 rounded-lg text-xs leading-relaxed resize-none"
+              style={{ ...inputBase, color: '#676879' }}
+              placeholder="Describe qué exactamente hay que hacer, cómo hacerlo, referencias, links, observaciones..."
+            />
+          </div>
+
+          {/* ── Problema ── */}
+          <div>
+            <label className="flex items-center gap-1 mb-1.5" style={sectionLabel}>
+              <AlertTriangle size={9} /> Problema que resuelve
+            </label>
+            <input
+              value={problema}
+              onChange={e => setProblema(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg text-xs"
+              style={{ ...inputBase }}
+              placeholder="Ej: Show rate de Book Demos bajó un 40%..."
+            />
+          </div>
+
+          {/* ── Divider ── */}
+          <div className="h-px" style={{ backgroundColor: '#E6E9EF' }} />
+
+          {/* ── Entregables ── */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="flex items-center gap-1" style={sectionLabel}>
+                <Package size={9} /> Entregables
+              </label>
+              {totalDeliverables > 0 && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(99,102,241,0.1)', color: '#6366F1' }}>
+                  {totalDeliverables} total
+                </span>
               )}
             </div>
+            <div className="space-y-1.5">
+              {DELIVERABLE_DEFS.map(({ key, label, color, Icon }) => {
+                const val = deliverables[key] ?? 0
+                return (
+                  <div
+                    key={key}
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg"
+                    style={{
+                      backgroundColor: val > 0 ? `${color}12` : '#FAFBFC',
+                      border: val > 0 ? `1px solid ${color}30` : '1px solid #E6E9EF',
+                    }}
+                  >
+                    <div
+                      className="w-5 h-5 rounded flex items-center justify-center shrink-0"
+                      style={{ backgroundColor: val > 0 ? `${color}18` : 'transparent' }}
+                    >
+                      <Icon size={12} style={{ color: val > 0 ? color : '#9699A6' }} />
+                    </div>
+                    <span
+                      className="flex-1 text-[11px] font-medium"
+                      style={{ color: val > 0 ? color : '#9699A6' }}
+                    >
+                      {label}
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => setDeliverable(key, Math.max(0, val - 1))}
+                        className="w-5 h-5 rounded-md flex items-center justify-center text-xs font-bold transition-colors"
+                        style={{
+                          backgroundColor: val > 0 ? `${color}20` : '#E6E9EF',
+                          color: val > 0 ? color : '#9699A6',
+                        }}
+                      >
+                        −
+                      </button>
+                      <span
+                        className="w-7 text-center text-[12px] font-bold tabular-nums"
+                        style={{ color: val > 0 ? color : '#9699A6' }}
+                      >
+                        {val}
+                      </span>
+                      <button
+                        onClick={() => setDeliverable(key, val + 1)}
+                        className="w-5 h-5 rounded-md flex items-center justify-center text-xs font-bold transition-colors"
+                        style={{ backgroundColor: `${color}20`, color }}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
 
+          {/* ── Metadata ── */}
+          <div
+            className="rounded-lg px-3 py-3 space-y-1.5"
+            style={{ backgroundColor: '#F6F7FB', border: '1px solid #E6E9EF' }}
+          >
+            <p style={sectionLabel}>Historial</p>
+            <div className="flex items-center gap-2 mt-1.5">
+              <Clock size={10} style={{ color: '#9699A6' }} />
+              <span className="text-[10px]" style={{ color: '#676879' }}>
+                Creado: <span style={{ color: '#9699A6' }}>{formatFullDate(task.created_at)}</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Clock size={10} style={{ color: '#9699A6' }} />
+              <span className="text-[10px]" style={{ color: '#676879' }}>
+                Actualizado: <span style={{ color: '#9699A6' }}>{formatFullDate(task.updated_at)}</span>
+              </span>
+            </div>
+            {task.meeting_date && (
+              <div className="flex items-center gap-2">
+                <Calendar size={10} style={{ color: '#9699A6' }} />
+                <span className="text-[10px]" style={{ color: '#676879' }}>
+                  Reunión: <span style={{ color: '#6366F1' }}>{task.meeting_date}</span>
+                </span>
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              <Tag size={10} style={{ color: '#9699A6' }} />
+              <span className="text-[10px]" style={{ color: '#676879' }}>
+                ID: <span className="font-mono" style={{ color: '#9699A6' }}>{task.id.slice(0, 8)}…</span>
+              </span>
+            </div>
           </div>
         </div>
+
+        {/* ── Sticky save bar ──────────────────────────── */}
+        {isDirty && (
+          <div
+            className="px-5 py-3 shrink-0 flex items-center justify-between"
+            style={{
+              borderTop: '1px solid rgba(99,102,241,0.2)',
+              background: 'linear-gradient(0deg, rgba(99,102,241,0.06) 0%, transparent 100%)',
+            }}
+          >
+            <span className="text-[11px]" style={{ color: '#6366F1' }}>
+              Cambios sin guardar
+            </span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setTitle(task.title); setDescription(task.description ?? '')
+                  setProblema(task.problema ?? ''); setArea(task.area)
+                  setAssignee(task.assignee); setPriority(task.priority)
+                  setStatus(task.status); setWeek(task.week); setTipo(task.tipo)
+                  setClientId(task.client_id ?? ''); setDeliverables(task.deliverables ?? {})
+                }}
+                className="px-3 py-1.5 rounded-lg text-[11px]"
+                style={{ color: '#676879', border: '1px solid #E6E9EF' }}
+              >
+                Descartar
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[11px] font-semibold disabled:opacity-60"
+                style={{
+                  background: '#6366F1',
+                  color: '#FFFFFF',
+                }}
+              >
+                <Save size={10} />
+                {saving ? 'Guardando…' : 'Guardar cambios'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

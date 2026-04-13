@@ -3,17 +3,10 @@ import { supabase } from '../lib/supabase'
 
 export interface AppNotification {
   id: string
-  type: 'meeting_tasks' | 'overdue_tasks'
+  type: 'meeting_tasks'
   title: string
   body: string
-  tasks: {
-    id: string
-    title: string
-    client_name?: string
-    area: string
-    assignee: string
-    days_overdue?: number
-  }[]
+  tasks: { id: string; title: string; client_name?: string; area: string; assignee: string }[]
   timestamp: string
   read: boolean
 }
@@ -28,17 +21,6 @@ function notifyListeners() {
 
 export function addNotification(n: AppNotification) {
   globalNotifications = [n, ...globalNotifications].slice(0, 50)
-  notifyListeners()
-}
-
-/** Replace existing notification by id, or prepend if new */
-export function upsertNotification(n: AppNotification) {
-  const idx = globalNotifications.findIndex(x => x.id === n.id)
-  if (idx >= 0) {
-    globalNotifications = [n, ...globalNotifications.filter((_, i) => i !== idx)]
-  } else {
-    globalNotifications = [n, ...globalNotifications].slice(0, 50)
-  }
   notifyListeners()
 }
 
@@ -131,78 +113,5 @@ export function useMeetingTaskWatcher() {
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
-  }, [])
-}
-
-// Check for overdue tasks assigned to the current user and surface them as notifications
-export function useOverdueNotifier() {
-  useEffect(() => {
-    const stored = localStorage.getItem('beezion_user')
-    if (!stored) return
-    let user: { name: string } | null = null
-    try { user = JSON.parse(stored) } catch { return }
-    if (!user?.name) return
-
-    const checkOverdue = async () => {
-      const { data } = await supabase
-        .from('tasks')
-        .select('id, title, area, assignee, status, due_date, created_at, client:clients(name)')
-        .eq('assignee', user!.name)
-        .neq('status', 'completado')
-        .order('created_at', { ascending: false })
-
-      if (!data || data.length === 0) return
-
-      const now = new Date()
-      now.setHours(0, 0, 0, 0)
-
-      const overdueTasks = data
-        .map((t: Record<string, unknown>) => {
-          const due_date = t.due_date as string | null | undefined
-          const created_at = t.created_at as string
-
-          let days = 0
-          if (due_date) {
-            const due = new Date(due_date)
-            due.setHours(0, 0, 0, 0)
-            const diff = Math.floor((now.getTime() - due.getTime()) / 86_400_000)
-            days = diff > 0 ? diff : 0
-          } else {
-            const created = new Date(created_at)
-            created.setHours(0, 0, 0, 0)
-            const diff = Math.floor((now.getTime() - created.getTime()) / 86_400_000)
-            days = diff > 1 ? diff - 1 : 0
-          }
-
-          return {
-            id: t.id as string,
-            title: t.title as string,
-            area: t.area as string,
-            assignee: t.assignee as string,
-            client_name: (t.client as { name?: string } | null)?.name,
-            days_overdue: days,
-          }
-        })
-        .filter(t => t.days_overdue > 0)
-        .sort((a, b) => b.days_overdue - a.days_overdue)
-
-      if (overdueTasks.length === 0) return
-
-      const maxDays = overdueTasks[0].days_overdue
-      upsertNotification({
-        id: `overdue-${user!.name}`,
-        type: 'overdue_tasks',
-        title: `⚠️ ${overdueTasks.length} tarea${overdueTasks.length > 1 ? 's' : ''} atrasada${overdueTasks.length > 1 ? 's' : ''}`,
-        body: `La más atrasada lleva ${maxDays} día${maxDays > 1 ? 's' : ''} de retraso`,
-        tasks: overdueTasks,
-        timestamp: new Date().toISOString(),
-        read: false,
-      })
-    }
-
-    checkOverdue()
-    // Refresh every 10 minutes
-    const interval = setInterval(checkOverdue, 10 * 60 * 1000)
-    return () => clearInterval(interval)
   }, [])
 }

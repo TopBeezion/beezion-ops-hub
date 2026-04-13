@@ -54,32 +54,3 @@ export function formatDate(iso: string): string {
   const d = new Date(iso)
   return `${d.getDate()} ${MONTH_SHORT[d.getMonth()]} ${d.getFullYear()}`
 }
-
-/**
- * Returns how many days a task is overdue.
- * - Uses due_date if set and past today.
- * - Falls back to created_at + 1 day grace period.
- * - Returns 0 if not overdue.
- */
-export function getDaysOverdue(task: {
-  status: string
-  due_date?: string | null
-  created_at: string
-}): number {
-  if (task.status === 'completado') return 0
-  const now = new Date()
-  now.setHours(0, 0, 0, 0)
-
-  if (task.due_date) {
-    const due = new Date(task.due_date)
-    due.setHours(0, 0, 0, 0)
-    const diff = Math.floor((now.getTime() - due.getTime()) / 86_400_000)
-    return diff > 0 ? diff : 0
-  }
-
-  // No due_date: overdue after 1 day grace from creation
-  const created = new Date(task.created_at)
-  created.setHours(0, 0, 0, 0)
-  const diff = Math.floor((now.getTime() - created.getTime()) / 86_400_000)
-  return diff > 1 ? diff - 1 : 0
-}

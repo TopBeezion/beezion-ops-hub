@@ -1,49 +1,35 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 
-export interface BeezionUser {
-  name: string
-  email: string
-  role: string
-}
-
-const STORAGE_KEY = 'beezion_user'
-
 export function useAuth() {
-  const [user, setUser] = useState<BeezionUser | null>(null)
+  const [session, setSession] = useState<Session | null>(null)
+  const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored) {
-      try { setUser(JSON.parse(stored)) } catch {}
-    }
-    setLoading(false)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      setUser(session?.user ?? null)
+      setLoading(false)
+    })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+      setUser(session?.user ?? null)
+    })
+
+    return () => subscription.unsubscribe()
   }, [])
 
-  // Verificar email contra team_members y entrar directo
-  const signIn = async (email: string): Promise<{ error: string | null }> => {
-    const clean = email.toLowerCase().trim()
-
-    const { data, error } = await supabase
-      .from('team_members')
-      .select('name, email, role')
-      .eq('email', clean)
-      .maybeSingle()
-
-    if (error) return { error: 'Error de conexión. Intenta de nuevo.' }
-    if (!data)  return { error: 'Correo no autorizado. Usa tu correo @beezion.com.' }
-
-    const beezionUser: BeezionUser = { name: data.name, email: data.email, role: data.role }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(beezionUser))
-    setUser(beezionUser)
-    return { error: null }
+  const signIn = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    return { error }
   }
 
-  const signOut = () => {
-    localStorage.removeItem(STORAGE_KEY)
-    setUser(null)
+  const signOut = async () => {
+    await supabase.auth.signOut()
   }
 
-  return { user, loading, signIn, signOut }
+  return { session, user, loading, signIn, signOut }
 }
