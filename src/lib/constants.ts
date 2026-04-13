@@ -30,17 +30,17 @@ export const PRIORITY_COLORS: Record<Priority, string> = {
 
 // ── Task Status ───────────────────────────────────────────────
 export const STATUS_LABELS: Record<TaskStatus, string> = {
-  pendiente: 'Pendiente',
-  en_progreso: 'En Progreso',
-  revision: 'En Revisión',
-  completado: 'Completado',
+  pendiente:  'Pendiente',
+  en_progreso: 'En Proceso',
+  revision:   'Blocker',
+  completado: 'Done',
 }
 
 export const STATUS_COLORS: Record<TaskStatus, string> = {
-  pendiente: '#C4C4C4',
-  en_progreso: '#579BFC',
-  revision: '#FDAB3D',
-  completado: '#00C875',
+  pendiente:  '#9699B0',
+  en_progreso: '#3B82F6',
+  revision:   '#EF4444',
+  completado: '#10B981',
 }
 
 // ── Task Tipo ─────────────────────────────────────────────────

@@ -35,10 +35,10 @@ const C = {
 }
 
 const COLUMNS: { id: TaskStatus; label: string; color: string; bg: string }[] = [
-  { id: 'pendiente',   label: 'Pendiente',   color: '#9699B0', bg: '#F4F5F7' },
-  { id: 'en_progreso', label: 'En Progreso', color: '#3B82F6', bg: '#EFF6FF' },
-  { id: 'revision',    label: 'En Revisión', color: '#F59E0B', bg: '#FFFBEB' },
-  { id: 'completado',  label: 'Completado',  color: '#10B981', bg: '#F0FDF4' },
+  { id: 'pendiente',   label: 'Pendiente',  color: '#9699B0', bg: '#F4F5F7' },
+  { id: 'en_progreso', label: 'En Proceso', color: '#3B82F6', bg: '#EFF6FF' },
+  { id: 'revision',    label: 'Blocker',    color: '#EF4444', bg: '#FEF2F2' },
+  { id: 'completado',  label: 'Done',       color: '#10B981', bg: '#F0FDF4' },
 ]
 
 const KANBAN_ASSIGNEES = [
@@ -319,7 +319,7 @@ function KanbanColumn({
             color: C.muted, fontSize: 11, fontWeight: 500, gap: 4,
           }}>
             <span style={{ fontSize: 18 }}>
-              {column.id === 'completado' ? '🎉' : column.id === 'revision' ? '👀' : '📋'}
+              {column.id === 'completado' ? '🎉' : column.id === 'revision' ? '🚫' : '📋'}
             </span>
             Sin tareas aquí
           </div>
