@@ -1,5 +1,5 @@
-export type Area = 'copy' | 'trafico' | 'tech' | 'admin'
-export type Priority = 'alta' | 'media' | 'baja' | 'maxima'
+export type Area = 'copy' | 'trafico' | 'tech' | 'admin' | 'edicion'
+export type Priority = 'alta' | 'media' | 'baja'
 export type TaskStatus = 'pendiente' | 'en_progreso' | 'revision' | 'completado'
 export type TaskTipo = 'nuevo' | 'pendiente_anterior' | 'urgente'
 export type TeamRole = 'admin' | 'maintainer' | 'contributor'
@@ -43,10 +43,20 @@ export interface Campaign {
   status: CampaignStatus
   objective?: string
   launch_date?: string
+  assignees?: string[]
   created_at: string
   updated_at: string
   client?: Client
   tasks?: Task[]
+}
+
+export interface TaskAttachment {
+  name: string
+  url: string
+  path: string
+  size: number
+  type: string
+  uploaded_at: string
 }
 
 export interface Deliverables {
@@ -90,6 +100,7 @@ export interface Task {
   client?: Client
   campaign?: Campaign
   deliverables?: Deliverables
+  attachments?: TaskAttachment[]
 }
 
 export interface TeamMember {

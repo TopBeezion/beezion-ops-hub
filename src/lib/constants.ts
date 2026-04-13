@@ -6,6 +6,7 @@ export const AREA_LABELS: Record<Area, string> = {
   trafico: 'Tráfico',
   tech: 'Tech',
   admin: 'Admin',
+  edicion: 'Edición',
 }
 
 export const AREA_COLORS: Record<Area, string> = {
@@ -13,36 +14,35 @@ export const AREA_COLORS: Record<Area, string> = {
   trafico: '#4ade80',
   tech: '#60a5fa',
   admin: '#fbbf24',
+  edicion: '#ec4899',
 }
 
 // ── Priority ─────────────────────────────────────────────────
 export const PRIORITY_LABELS: Record<Priority, string> = {
-  maxima: '🔴 Máxima',
-  alta: 'Alta',
+  alta:  'Alta',
   media: 'Media',
-  baja: 'Baja',
+  baja:  'Baja',
 }
 
 export const PRIORITY_COLORS: Record<Priority, string> = {
-  maxima: '#DC2626',
-  alta: '#F87171',
-  media: '#FBBF24',
+  alta: '#EF4444',
+  media: '#F59E0B',
   baja: '#9CA3AF',
 }
 
 // ── Task Status ───────────────────────────────────────────────
 export const STATUS_LABELS: Record<TaskStatus, string> = {
-  pendiente: 'Pendiente',
-  en_progreso: 'En Progreso',
-  revision: 'En Revisión',
-  completado: 'Completado',
+  pendiente:  'Pendiente',
+  en_progreso: 'En Proceso',
+  revision:   'Blocker',
+  completado: 'Done',
 }
 
 export const STATUS_COLORS: Record<TaskStatus, string> = {
-  pendiente: '#C4C4C4',
-  en_progreso: '#579BFC',
-  revision: '#FDAB3D',
-  completado: '#00C875',
+  pendiente:  '#9699B0',
+  en_progreso: '#3B82F6',
+  revision:   '#EF4444',
+  completado: '#10B981',
 }
 
 // ── Task Tipo ─────────────────────────────────────────────────
@@ -148,15 +148,28 @@ export const CLIENT_COLORS: Record<string, string> = {
 
 // ── Team members ──────────────────────────────────────────────
 export const TEAM_MEMBERS = [
-  'Alejandro', 'Alec', 'Paula', 'Jose Luis',
-  'David', 'Johan', 'Felipe', 'Luisa', 'TBD',
+  'Alejandro', 'Alec', 'Jose', 'Luisa',
+  'Paula', 'David', 'Johan', 'Felipe', 'TBD',
 ]
+
+// Cargos del equipo
+export const TEAM_ROLES: Record<string, string> = {
+  Alejandro: 'CEO · Copy · Estrategia',
+  Alec: 'Head of Paid · Estrategia',
+  Jose: 'Trafficker',
+  Luisa: 'Copywriter',
+  Felipe: 'Editor',
+  Johan: 'Editor',
+  David: 'Editor',
+  Paula: 'Aux. Marketing · Grabaciones',
+  TBD: 'Por definir',
+}
 
 export const ASSIGNEE_COLORS: Record<string, string> = {
   Alejandro: '#8B5CF6',
   Alec: '#F59E0B',
+  Jose: '#3B82F6',
   Paula: '#EC4899',
-  'Jose Luis': '#3B82F6',
   David: '#06B6D4',
   Johan: '#10B981',
   Felipe: '#F97316',

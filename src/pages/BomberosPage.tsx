@@ -4,7 +4,7 @@ import { useClients } from '../hooks/useClients'
 import { useOutletContext } from 'react-router-dom'
 import { useUpdateTask } from '../hooks/useTasks'
 import type { Task, Client, TaskStatus } from '../types'
-import { STATUS_LABELS, STATUS_COLORS, ASSIGNEE_COLORS, PRIORITY_COLORS } from '../lib/constants'
+import { STATUS_LABELS, STATUS_COLORS, ASSIGNEE_COLORS, PRIORITY_COLORS, TEAM_MEMBERS } from '../lib/constants'
 import {
   Flame, CheckCircle2, Clock, AlertTriangle, ChevronDown,
   Circle, RefreshCw,
@@ -66,10 +66,10 @@ function BomberoRow({ task, onClick, onStatusChange }: {
 
   return (
     <div
-      className="flex items-center gap-4 px-5 py-4 hover:bg-red-50 transition-colors cursor-pointer"
+      className="flex items-center gap-5 px-6 py-4 hover:bg-red-50 transition-colors cursor-pointer"
       style={{
         borderBottom: `1px solid ${C.border}`,
-        borderLeft: `4px solid ${task.tipo === 'urgente' ? C.red : C.orange}`,
+        borderLeft: `4px solid ${task.status === 'en_progreso' ? C.red : C.orange}`,
         opacity: isCompleted ? 0.5 : 1,
       }}
       onClick={onClick}
@@ -108,18 +108,6 @@ function BomberoRow({ task, onClick, onStatusChange }: {
         </div>
       </div>
 
-      {/* Type badge */}
-      <span style={{
-        fontSize: 10, fontWeight: 700,
-        color: task.tipo === 'urgente' ? C.red : C.orange,
-        backgroundColor: task.tipo === 'urgente' ? `${C.red}12` : `${C.orange}12`,
-        padding: '2px 8px', borderRadius: 6,
-        border: `1px solid ${task.tipo === 'urgente' ? C.red : C.orange}30`,
-        flexShrink: 0,
-      }}>
-        {task.tipo === 'urgente' ? '🚨 URG' : '⏳ PREV'}
-      </span>
-
       {/* Assignee */}
       <div
         style={{
@@ -152,29 +140,26 @@ export function BomberosPage() {
   const [showResolved, setShowResolved] = useState(false)
 
   const bomberos = useMemo(() => tasks
-    .filter(t => t.tipo === 'urgente' || (t.tipo === 'pendiente_anterior' && t.priority === 'alta'))
+    .filter(t => t.priority === 'alta')
     .filter(t => !filterClient || t.client_id === filterClient)
     .filter(t => !filterAssignee || t.assignee === filterAssignee)
     .filter(t => showResolved || t.status !== 'completado')
     .sort((a, b) => {
-      if (a.tipo === 'urgente' && b.tipo !== 'urgente') return -1
-      if (a.tipo !== 'urgente' && b.tipo === 'urgente') return 1
+      if (a.status === 'en_progreso' && b.status !== 'en_progreso') return -1
+      if (a.status !== 'en_progreso' && b.status === 'en_progreso') return 1
       return 0
     }),
   [tasks, filterClient, filterAssignee, showResolved])
 
   const stats = useMemo(() => ({
-    total: bomberos.length + (showResolved ? 0 : tasks.filter(t =>
-      (t.tipo === 'urgente' || (t.tipo === 'pendiente_anterior' && t.priority === 'alta')) && t.status === 'completado'
-    ).length),
-    urgentes: tasks.filter(t => t.tipo === 'urgente').length,
-    prevPendientes: tasks.filter(t => t.tipo === 'pendiente_anterior' && t.priority === 'alta').length,
-    resueltos: tasks.filter(t =>
-      (t.tipo === 'urgente' || (t.tipo === 'pendiente_anterior' && t.priority === 'alta')) && t.status === 'completado'
-    ).length,
+    total: tasks.filter(t => t.priority === 'alta').length,
+    enProceso: tasks.filter(t => t.priority === 'alta' && t.status === 'en_progreso').length,
+    pendientes: tasks.filter(t => t.priority === 'alta' && t.status === 'pendiente').length,
+    resueltos: tasks.filter(t => t.priority === 'alta' && t.status === 'completado').length,
   }), [tasks, bomberos.length, showResolved])
 
-  const assignees = useMemo(() => [...new Set(tasks.map(t => t.assignee))].sort(), [tasks])
+  // Always show all team members in the filter (not just those with tasks)
+  const assignees = TEAM_MEMBERS.filter(m => m !== 'TBD')
 
   const handleStatusChange = (id: string, status: TaskStatus) => {
     updateTask.mutate({ id, status })
@@ -207,10 +192,10 @@ export function BomberosPage() {
         {/* Stats row */}
         <div className="flex gap-3">
           {[
-            { label: 'Total incendios', value: stats.total, icon: AlertTriangle, color: '#FFF' },
-            { label: 'Urgentes',        value: stats.urgentes, icon: Flame, color: '#FFD700' },
-            { label: 'Prev. pendientes', value: stats.prevPendientes, icon: Clock, color: '#FFB347' },
-            { label: 'Resueltos hoy',   value: stats.resueltos, icon: CheckCircle2, color: '#90EE90' },
+            { label: 'Total alta prioridad', value: stats.total,     icon: AlertTriangle, color: '#FFF' },
+            { label: 'En Proceso',           value: stats.enProceso, icon: Flame,         color: '#FFD700' },
+            { label: 'Pendientes',           value: stats.pendientes, icon: Clock,        color: '#FFB347' },
+            { label: 'Resueltos',            value: stats.resueltos,  icon: CheckCircle2, color: '#90EE90' },
           ].map(({ label, value, icon: Icon, color }) => (
             <div key={label} style={{
               backgroundColor: 'rgba(255,255,255,0.15)',
@@ -230,74 +215,99 @@ export function BomberosPage() {
       {/* Filters */}
       <div style={{
         backgroundColor: C.card, borderBottom: `1px solid ${C.border}`,
-        padding: '12px 28px', display: 'flex', gap: 12, alignItems: 'center',
+        padding: '14px 28px', display: 'flex', flexDirection: 'column', gap: 12,
       }}>
-        <select
-          value={filterClient}
-          onChange={e => setFilterClient(e.target.value)}
-          style={{
-            fontSize: 12, fontWeight: 600,
-            border: `1px solid ${C.border}`, borderRadius: 8,
-            padding: '6px 12px', backgroundColor: '#FFFFFF', color: C.sub,
-            outline: 'none',
-          }}
-        >
-          <option value="">Todos los clientes</option>
-          {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
+        {/* Row 1: Clients */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 9, fontWeight: 800, color: C.muted, letterSpacing: '0.1em', marginRight: 2 }}>CLIENTE</span>
+          {[{ id: '', name: 'Todos' }, ...clients].map(c => {
+            const col = (c as any).color || C.red
+            const active = filterClient === c.id
+            return (
+              <button key={c.id} onClick={() => setFilterClient(c.id === filterClient ? '' : c.id)}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600,
+                  cursor: 'pointer', border: 'none', transition: 'all 0.12s',
+                  backgroundColor: active ? (c.id ? col : C.red) : '#F5F6FA',
+                  color: active ? '#fff' : C.sub,
+                  boxShadow: active ? `0 2px 6px ${c.id ? col : C.red}40` : `inset 0 0 0 1px ${C.border}`,
+                }}
+              >
+                {c.id && <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: active ? 'rgba(255,255,255,0.7)' : col, flexShrink: 0 }} />}
+                {c.name}
+              </button>
+            )
+          })}
 
-        <select
-          value={filterAssignee}
-          onChange={e => setFilterAssignee(e.target.value)}
-          style={{
-            fontSize: 12, fontWeight: 600,
-            border: `1px solid ${C.border}`, borderRadius: 8,
-            padding: '6px 12px', backgroundColor: '#FFFFFF', color: C.sub,
-            outline: 'none',
-          }}
-        >
-          <option value="">Todo el equipo</option>
-          {assignees.map(a => <option key={a} value={a}>{a}</option>)}
-        </select>
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button
+              onClick={() => setShowResolved(v => !v)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'all 0.12s',
+                padding: '4px 10px', borderRadius: 20,
+                backgroundColor: showResolved ? `${C.green}18` : '#F5F6FA',
+                color: showResolved ? C.green : C.sub,
+                boxShadow: showResolved ? `inset 0 0 0 1.5px ${C.green}` : `inset 0 0 0 1px ${C.border}`,
+                border: 'none',
+              }}
+            >
+              <CheckCircle2 size={11} />
+              {showResolved ? 'Ocultar resueltos' : 'Ver resueltos'}
+            </button>
+            <button onClick={() => window.location.reload()}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                padding: '4px 10px', borderRadius: 20,
+                backgroundColor: '#F5F6FA', color: C.sub, border: 'none',
+                boxShadow: `inset 0 0 0 1px ${C.border}`,
+              }}
+            >
+              <RefreshCw size={11} /> Actualizar
+            </button>
+            <span style={{ fontSize: 11, color: C.muted, fontWeight: 500 }}>
+              {bomberos.length} visible{bomberos.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+        </div>
 
-        <button
-          onClick={() => setShowResolved(v => !v)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            fontSize: 12, fontWeight: 600,
-            border: `1px solid ${showResolved ? C.green : C.border}`,
-            borderRadius: 8, padding: '6px 12px',
-            backgroundColor: showResolved ? `${C.green}15` : '#FFFFFF',
-            color: showResolved ? C.green : C.sub,
-            cursor: 'pointer',
-          }}
-        >
-          <CheckCircle2 size={12} />
-          {showResolved ? 'Ocultar resueltos' : 'Mostrar resueltos'}
-        </button>
-
-        <div className="flex-1" />
-
-        <span style={{ fontSize: 12, color: C.muted }}>
-          {bomberos.length} incendio{bomberos.length !== 1 ? 's' : ''} visible{bomberos.length !== 1 ? 's' : ''}
-        </span>
-
-        <button
-          onClick={() => window.location.reload()}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            fontSize: 12, fontWeight: 600,
-            border: `1px solid ${C.border}`, borderRadius: 8, padding: '6px 12px',
-            backgroundColor: '#FFFFFF', color: C.sub, cursor: 'pointer',
-          }}
-        >
-          <RefreshCw size={12} />
-          Actualizar
-        </button>
+        {/* Row 2: Assignees */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 9, fontWeight: 800, color: C.muted, letterSpacing: '0.1em', marginRight: 2 }}>RESPONSABLE</span>
+          {[{ name: '', label: 'Todos' }, ...assignees.map(a => ({ name: a, label: a }))].map(({ name, label }) => {
+            const ac = ASSIGNEE_COLORS[name] || C.muted
+            const active = filterAssignee === name
+            const ini = name ? name.slice(0, 2).toUpperCase() : null
+            return (
+              <button key={name} onClick={() => setFilterAssignee(name === filterAssignee ? '' : name)}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  padding: ini ? '3px 8px 3px 4px' : '4px 10px', borderRadius: 20,
+                  fontSize: 11, fontWeight: 600, cursor: 'pointer', border: 'none', transition: 'all 0.12s',
+                  backgroundColor: active ? ac : '#F5F6FA',
+                  color: active ? '#fff' : C.sub,
+                  boxShadow: active ? `0 2px 6px ${ac}40` : `inset 0 0 0 1px ${C.border}`,
+                }}
+              >
+                {ini && (
+                  <div style={{
+                    width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
+                    backgroundColor: active ? 'rgba(255,255,255,0.3)' : `${ac}25`,
+                    color: active ? '#fff' : ac, fontSize: 8, fontWeight: 800,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>{ini}</div>
+                )}
+                {label}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       {/* List */}
-      <div style={{ maxWidth: 1100, margin: '24px auto', padding: '0 28px' }}>
+      <div style={{ maxWidth: 1100, margin: '28px auto', padding: '0 28px' }}>
         {isLoading ? (
           <div className="flex justify-center py-20">
             <div className="w-8 h-8 rounded-full border-2 border-transparent border-t-current animate-spin" style={{ color: C.red }} />
@@ -316,22 +326,22 @@ export function BomberosPage() {
           </div>
         ) : (
           <>
-            {/* Urgentes */}
-            {bomberos.filter(t => t.tipo === 'urgente').length > 0 && (
+            {/* En Proceso */}
+            {bomberos.filter(t => t.status === 'en_progreso').length > 0 && (
               <div style={{
                 backgroundColor: C.card, borderRadius: 12,
-                border: `1px solid #E2445C30`, overflow: 'hidden', marginBottom: 16,
+                border: `1px solid #E2445C30`, overflow: 'hidden', marginBottom: 18,
               }}>
                 <div style={{ padding: '12px 20px', backgroundColor: '#E2445C08', borderBottom: `1px solid #E2445C20` }}>
                   <div className="flex items-center gap-2">
                     <Flame size={14} color={C.red} />
                     <span style={{ fontSize: 13, fontWeight: 700, color: C.red }}>
-                      URGENTES ({bomberos.filter(t => t.tipo === 'urgente').length})
+                      EN PROCESO ({bomberos.filter(t => t.status === 'en_progreso').length})
                     </span>
                   </div>
                 </div>
                 {bomberos
-                  .filter(t => t.tipo === 'urgente')
+                  .filter(t => t.status === 'en_progreso')
                   .map(task => (
                     <BomberoRow
                       key={task.id}
@@ -343,8 +353,8 @@ export function BomberosPage() {
               </div>
             )}
 
-            {/* Prev-pendientes de alta prioridad */}
-            {bomberos.filter(t => t.tipo === 'pendiente_anterior').length > 0 && (
+            {/* Pendientes de alta prioridad */}
+            {bomberos.filter(t => t.status !== 'en_progreso').length > 0 && (
               <div style={{
                 backgroundColor: C.card, borderRadius: 12,
                 border: `1px solid #FDAB3D30`, overflow: 'hidden',
@@ -353,12 +363,12 @@ export function BomberosPage() {
                   <div className="flex items-center gap-2">
                     <Clock size={14} color={C.orange} />
                     <span style={{ fontSize: 13, fontWeight: 700, color: C.orange }}>
-                      PENDIENTES ANTERIORES — PRIORIDAD ALTA ({bomberos.filter(t => t.tipo === 'pendiente_anterior').length})
+                      PENDIENTES — PRIORIDAD ALTA ({bomberos.filter(t => t.status !== 'en_progreso').length})
                     </span>
                   </div>
                 </div>
                 {bomberos
-                  .filter(t => t.tipo === 'pendiente_anterior')
+                  .filter(t => t.status !== 'en_progreso')
                   .map(task => (
                     <BomberoRow
                       key={task.id}
