@@ -242,7 +242,7 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
     <div className="fixed inset-0 z-50 flex items-stretch justify-end">
       {/* Backdrop */}
       <div className="absolute inset-0" onClick={onClose}
-        style={{ backgroundColor: 'rgba(15,17,22,0.45)', backdropFilter: 'blur(5px)' }} />
+        style={{ backgroundColor: 'rgba(15,17,22,0.25)', backdropFilter: 'blur(3px)' }} />
 
       {/* Drawer panel */}
       <div className="relative flex flex-col h-full w-full overflow-hidden"
@@ -293,6 +293,20 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
             }}
             placeholder="Título de la tarea..."
           />
+
+          {/* Row 3: meta — fecha creación + ID */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 6 }}>
+            <span style={{ fontSize: 10, color: '#C4C9D4', fontWeight: 500 }}>
+              Creado{' '}
+              <span style={{ color: '#9CA3AF', fontWeight: 600 }}>
+                {new Date(task.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })}
+              </span>
+            </span>
+            <span style={{ width: 3, height: 3, borderRadius: '50%', backgroundColor: '#E5E7EB', flexShrink: 0 }} />
+            <span style={{ fontSize: 10, color: '#C4C9D4', fontWeight: 500 }}>
+              ID <span style={{ color: '#9CA3AF', fontWeight: 600, fontFamily: 'monospace' }}>{task.id.slice(0, 8)}</span>
+            </span>
+          </div>
         </div>
 
         {/* ── Scrollable body ── */}
