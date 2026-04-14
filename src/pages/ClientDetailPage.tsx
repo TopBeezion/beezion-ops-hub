@@ -262,11 +262,12 @@ export function ClientDetailPage() {
                 const camPct = camTasks.length > 0 ? Math.round((camDone / camTasks.length) * 100) : 0
                 const camColor = CAMPAIGN_TYPE_COLORS[cam.type as keyof typeof CAMPAIGN_TYPE_COLORS] ?? clientColor
                 const isExpanded = expandedCampaign === cam.id
-                const statusCount = {
-                  pendiente: camTasks.filter(t => t.status === 'todo').length,
+                const statusCount: Record<TaskStatus, number> = {
+                  todo: camTasks.filter(t => t.status === 'todo').length,
                   en_progreso: camTasks.filter(t => t.status === 'en_progreso').length,
                   revision: camTasks.filter(t => t.status === 'revision').length,
-                  completado: camDone,
+                  bloqueado: camTasks.filter(t => t.status === 'bloqueado').length,
+                  hecho: camDone,
                 }
 
                 return (
@@ -313,15 +314,17 @@ export function ClientDetailPage() {
                       </div>
 
                       {/* Status mini-counts */}
-                      <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                        {Object.entries(statusCount).filter(([, v]) => v > 0).map(([s, v]) => (
-                          <span key={s} style={{
-                            fontSize: 9, fontWeight: 700,
-                            color: STATUS_COLORS[s as TaskStatus],
-                          }}>
-                            {v} {STATUS_LABELS[s as TaskStatus].toLowerCase()}
-                          </span>
-                        ))}
+                      <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                        {(Object.entries(statusCount) as [TaskStatus, number][])
+                          .filter(([, v]) => v > 0)
+                          .map(([s, v]) => (
+                            <span key={s} style={{
+                              fontSize: 9, fontWeight: 700,
+                              color: STATUS_COLORS[s] ?? C.muted,
+                            }}>
+                              {v} {(STATUS_LABELS[s] ?? s).toLowerCase()}
+                            </span>
+                          ))}
                       </div>
                     </div>
 
