@@ -3,10 +3,10 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, List, Kanban, CalendarDays, Settings,
   ChevronLeft, ChevronRight, ChevronDown, Rocket, Flame, LogOut,
-  Zap,
+  Zap, Plus, Pencil, Trash2,
 } from 'lucide-react'
-import { useClients } from '../../hooks/useClients'
-import { useCampaigns } from '../../hooks/useCampaigns'
+import { useClients, useCreateClient, useUpdateClient, useDeleteClient } from '../../hooks/useClients'
+import { useCampaigns, useCreateCampaign, useUpdateCampaign, useDeleteCampaign } from '../../hooks/useCampaigns'
 import { useAuth } from '../../hooks/useAuth'
 import { ASSIGNEE_COLORS, TEAM_ROLES, CAMPAIGN_TYPE_COLORS } from '../../lib/constants'
 
@@ -44,6 +44,80 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const { data: campaigns = [] } = useCampaigns()
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
+  const createClient = useCreateClient()
+  const updateClient = useUpdateClient()
+  const deleteClient = useDeleteClient()
+  const createCampaign = useCreateCampaign()
+  const updateCampaign = useUpdateCampaign()
+  const deleteCampaign = useDeleteCampaign()
+
+  const randomColor = () => {
+    const palette = ['#ec4899', '#f97316', '#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#06b6d4', '#ef4444']
+    return palette[Math.floor(Math.random() * palette.length)]
+  }
+
+  const handleAddClient = async () => {
+    const name = window.prompt('Nombre del nuevo cliente:')
+    if (!name || !name.trim()) return
+    try {
+      await createClient.mutateAsync({ name: name.trim(), color: randomColor() })
+    } catch (e) {
+      alert(`No se pudo crear el cliente: ${(e as { message?: string })?.message ?? e}`)
+    }
+  }
+
+  const handleRenameClient = async (id: string, currentName: string) => {
+    const name = window.prompt('Nuevo nombre del cliente:', currentName)
+    if (!name || !name.trim() || name === currentName) return
+    try {
+      await updateClient.mutateAsync({ id, name: name.trim() })
+    } catch (e) {
+      alert(`No se pudo renombrar: ${(e as { message?: string })?.message ?? e}`)
+    }
+  }
+
+  const handleDeleteClient = async (id: string, name: string) => {
+    if (!window.confirm(`¿Eliminar cliente "${name}"? (sus campañas y tareas se preservan)`)) return
+    try {
+      await deleteClient.mutateAsync(id)
+    } catch (e) {
+      alert(`No se pudo eliminar: ${(e as { message?: string })?.message ?? e}`)
+    }
+  }
+
+  const handleAddCampaign = async (clientId: string) => {
+    const name = window.prompt('Nombre de la nueva campaña:')
+    if (!name || !name.trim()) return
+    try {
+      await createCampaign.mutateAsync({
+        name: name.trim(),
+        client_id: clientId,
+        type: 'nueva_campana',
+        status: 'activa',
+      } as Parameters<typeof createCampaign.mutateAsync>[0])
+    } catch (e) {
+      alert(`No se pudo crear la campaña: ${(e as { message?: string })?.message ?? e}`)
+    }
+  }
+
+  const handleRenameCampaign = async (id: string, currentName: string) => {
+    const name = window.prompt('Nuevo nombre de la campaña:', currentName)
+    if (!name || !name.trim() || name === currentName) return
+    try {
+      await updateCampaign.mutateAsync({ id, name: name.trim() })
+    } catch (e) {
+      alert(`No se pudo renombrar: ${(e as { message?: string })?.message ?? e}`)
+    }
+  }
+
+  const handleDeleteCampaign = async (id: string, name: string) => {
+    if (!window.confirm(`¿Eliminar campaña "${name}"? Esta acción no se puede deshacer.`)) return
+    try {
+      await deleteCampaign.mutateAsync(id)
+    } catch (e) {
+      alert(`No se pudo eliminar: ${(e as { message?: string })?.message ?? e}`)
+    }
+  }
   const [clientsOpen, setClientsOpen] = useState(true)
   const [expandedClients, setExpandedClients] = useState<Set<string>>(() => {
     try {
@@ -159,33 +233,47 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         </div>
 
         {/* ── Clients ──────────────────────────────── */}
-        {!collapsed && clients && clients.length > 0 && (
+        {!collapsed && (
           <div style={{ marginTop: 22, paddingTop: 16, borderTop: `1px solid ${S.border}` }}>
-            <button
-              onClick={() => setClientsOpen(o => !o)}
-              style={{
-                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '3px 11px 6px', background: 'none', border: 'none', cursor: 'pointer',
-              }}
-            >
-              <span style={{ fontSize: 10, fontWeight: 700, color: S.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                Clientes
-              </span>
-              <ChevronDown
-                size={11} color={S.muted}
-                style={{ transform: clientsOpen ? 'rotate(0)' : 'rotate(-90deg)', transition: 'transform 0.2s' }}
-              />
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '3px 8px 6px 11px' }}>
+              <button
+                onClick={() => setClientsOpen(o => !o)}
+                style={{
+                  flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                }}
+              >
+                <span style={{ fontSize: 10, fontWeight: 700, color: S.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  Clientes
+                </span>
+                <ChevronDown
+                  size={11} color={S.muted}
+                  style={{ transform: clientsOpen ? 'rotate(0)' : 'rotate(-90deg)', transition: 'transform 0.2s' }}
+                />
+              </button>
+              <button
+                onClick={handleAddClient}
+                title="Agregar cliente"
+                style={{
+                  marginLeft: 6, background: 'none', border: 'none', cursor: 'pointer',
+                  color: S.muted, padding: 2, borderRadius: 5, display: 'flex',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.color = S.accent; e.currentTarget.style.backgroundColor = S.hover }}
+                onMouseLeave={e => { e.currentTarget.style.color = S.muted; e.currentTarget.style.backgroundColor = 'transparent' }}
+              >
+                <Plus size={12} />
+              </button>
+            </div>
 
             {clientsOpen && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {clients.map(client => {
+                {(clients ?? []).map(client => {
                   const clientCampaigns = campaigns.filter(c => c.client_id === client.id && c.status !== 'desactivada')
                   const isExpanded = expandedClients.has(client.id)
                   return (
-                    <div key={client.id} style={{ display: 'flex', flexDirection: 'column' }}>
+                    <div key={client.id} className="group" style={{ display: 'flex', flexDirection: 'column' }}>
                       {/* Client row (folder-style) */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+                      <div className="sidebar-row" style={{ display: 'flex', alignItems: 'center', gap: 0, position: 'relative' }}>
                         <button
                           onClick={() => toggleClientExpanded(client.id)}
                           title={isExpanded ? 'Colapsar' : 'Expandir'}
@@ -226,49 +314,125 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                           </div>
                           <span className="truncate" style={{ flex: 1 }}>{client.name}</span>
                           {clientCampaigns.length > 0 && (
-                            <span style={{ fontSize: 9, fontWeight: 700, color: S.muted, flexShrink: 0 }}>
+                            <span className="sidebar-count" style={{ fontSize: 9, fontWeight: 700, color: S.muted, flexShrink: 0 }}>
                               {clientCampaigns.length}
                             </span>
                           )}
                         </NavLink>
+                        <div className="sidebar-actions" style={{
+                          display: 'none', alignItems: 'center', gap: 2,
+                          position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)',
+                          background: S.bg, padding: '2px 3px', borderRadius: 6,
+                          boxShadow: `0 1px 3px rgba(0,0,0,0.08)`,
+                        }}>
+                          <button
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleAddCampaign(client.id) }}
+                            title="Agregar campaña"
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: S.muted, padding: 2, display: 'flex', borderRadius: 4 }}
+                            onMouseEnter={e => { e.currentTarget.style.color = S.accent }}
+                            onMouseLeave={e => { e.currentTarget.style.color = S.muted }}
+                          >
+                            <Plus size={12} />
+                          </button>
+                          <button
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleRenameClient(client.id, client.name) }}
+                            title="Renombrar cliente"
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: S.muted, padding: 2, display: 'flex', borderRadius: 4 }}
+                            onMouseEnter={e => { e.currentTarget.style.color = S.accent }}
+                            onMouseLeave={e => { e.currentTarget.style.color = S.muted }}
+                          >
+                            <Pencil size={11} />
+                          </button>
+                          <button
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteClient(client.id, client.name) }}
+                            title="Eliminar cliente"
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: S.muted, padding: 2, display: 'flex', borderRadius: 4 }}
+                            onMouseEnter={e => { e.currentTarget.style.color = S.red }}
+                            onMouseLeave={e => { e.currentTarget.style.color = S.muted }}
+                          >
+                            <Trash2 size={11} />
+                          </button>
+                        </div>
                       </div>
 
                       {/* Campaigns under client */}
                       {isExpanded && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 1, marginLeft: 18, paddingLeft: 8, borderLeft: `1px dashed ${S.border}` }}>
-                          {clientCampaigns.length === 0 ? (
+                          {clientCampaigns.length === 0 && (
                             <span style={{ fontSize: 10, color: S.muted, fontStyle: 'italic', padding: '4px 10px' }}>
                               Sin campañas activas
                             </span>
-                          ) : clientCampaigns.map(camp => {
+                          )}
+                          {clientCampaigns.map(camp => {
                             const color = CAMPAIGN_TYPE_COLORS[camp.type] ?? S.accent
                             return (
-                              <NavLink
-                                key={camp.id}
-                                to={`/kanban?campaign=${camp.id}`}
-                                style={({ isActive }) => ({
-                                  display: 'flex', alignItems: 'center', gap: 7,
-                                  padding: '4px 8px', borderRadius: 6,
-                                  fontSize: 11, fontWeight: isActive ? 600 : 400,
-                                  color: isActive ? S.text : S.sub,
-                                  backgroundColor: isActive ? S.active : 'transparent',
-                                  textDecoration: 'none', transition: 'all 0.12s',
-                                })}
-                                onMouseEnter={e => { e.currentTarget.style.backgroundColor = S.hover; e.currentTarget.style.color = S.text }}
-                                onMouseLeave={e => {
-                                  const active = e.currentTarget.getAttribute('aria-current') === 'page'
-                                  e.currentTarget.style.backgroundColor = active ? S.active : 'transparent'
-                                  e.currentTarget.style.color = active ? S.text : S.sub
-                                }}
-                              >
-                                <div style={{
-                                  width: 3, height: 14, borderRadius: 2,
-                                  backgroundColor: color, flexShrink: 0,
-                                }} />
-                                <span className="truncate">{camp.name}</span>
-                              </NavLink>
+                              <div key={camp.id} className="sidebar-row" style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
+                                <NavLink
+                                  to={`/kanban?campaign=${camp.id}`}
+                                  style={({ isActive }) => ({
+                                    display: 'flex', alignItems: 'center', gap: 7, flex: 1, minWidth: 0,
+                                    padding: '4px 8px', borderRadius: 6,
+                                    fontSize: 11, fontWeight: isActive ? 600 : 400,
+                                    color: isActive ? S.text : S.sub,
+                                    backgroundColor: isActive ? S.active : 'transparent',
+                                    textDecoration: 'none', transition: 'all 0.12s',
+                                  })}
+                                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = S.hover; e.currentTarget.style.color = S.text }}
+                                  onMouseLeave={e => {
+                                    const active = e.currentTarget.getAttribute('aria-current') === 'page'
+                                    e.currentTarget.style.backgroundColor = active ? S.active : 'transparent'
+                                    e.currentTarget.style.color = active ? S.text : S.sub
+                                  }}
+                                >
+                                  <div style={{
+                                    width: 3, height: 14, borderRadius: 2,
+                                    backgroundColor: color, flexShrink: 0,
+                                  }} />
+                                  <span className="truncate">{camp.name}</span>
+                                </NavLink>
+                                <div className="sidebar-actions" style={{
+                                  display: 'none', alignItems: 'center', gap: 2,
+                                  position: 'absolute', right: 2, top: '50%', transform: 'translateY(-50%)',
+                                  background: S.bg, padding: '2px 3px', borderRadius: 6,
+                                  boxShadow: `0 1px 3px rgba(0,0,0,0.08)`,
+                                }}>
+                                  <button
+                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleRenameCampaign(camp.id, camp.name) }}
+                                    title="Renombrar campaña"
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: S.muted, padding: 2, display: 'flex', borderRadius: 4 }}
+                                    onMouseEnter={e => { e.currentTarget.style.color = S.accent }}
+                                    onMouseLeave={e => { e.currentTarget.style.color = S.muted }}
+                                  >
+                                    <Pencil size={10} />
+                                  </button>
+                                  <button
+                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteCampaign(camp.id, camp.name) }}
+                                    title="Eliminar campaña"
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: S.muted, padding: 2, display: 'flex', borderRadius: 4 }}
+                                    onMouseEnter={e => { e.currentTarget.style.color = S.red }}
+                                    onMouseLeave={e => { e.currentTarget.style.color = S.muted }}
+                                  >
+                                    <Trash2 size={10} />
+                                  </button>
+                                </div>
+                              </div>
                             )
                           })}
+                          <button
+                            onClick={() => handleAddCampaign(client.id)}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: 6,
+                              padding: '4px 8px', borderRadius: 6, marginTop: 2,
+                              fontSize: 10, fontWeight: 500, color: S.muted,
+                              background: 'none', border: `1px dashed ${S.border}`, cursor: 'pointer',
+                              transition: 'all 0.12s',
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.color = S.accent; e.currentTarget.style.borderColor = S.accent }}
+                            onMouseLeave={e => { e.currentTarget.style.color = S.muted; e.currentTarget.style.borderColor = S.border }}
+                          >
+                            <Plus size={10} />
+                            <span>Agregar campaña</span>
+                          </button>
                         </div>
                       )}
                     </div>
