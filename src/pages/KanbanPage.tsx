@@ -389,7 +389,7 @@ function KanbanColumn({
   return (
     <div style={{
       display: 'flex', flexDirection: 'column',
-      minWidth: 280, flex: 1,
+      minWidth: 220, width: 220, flex: '0 0 220px',
       maxHeight: 'calc(100vh - 160px)',
     }}>
       {/* Column header */}
@@ -705,13 +705,13 @@ export function KanbanPage() {
       </div>
 
       {/* ── Kanban board ───────────────────────────────────────────────────── */}
-      <div style={{ flex: 1, overflowX: 'auto', overflowY: 'hidden', padding: '16px 20px' }}>
+      <div style={{ flex: 1, overflowX: 'auto', overflowY: 'hidden', padding: '12px 14px' }}>
         <DndContext
           collisionDetection={closestCenter}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <div style={{ display: 'flex', gap: 14, height: '100%', minWidth: 'max-content' }}>
+          <div style={{ display: 'flex', gap: 10, height: '100%', minWidth: 'max-content' }}>
             {columns.map(column => (
               <KanbanColumn
                 key={column.id}
