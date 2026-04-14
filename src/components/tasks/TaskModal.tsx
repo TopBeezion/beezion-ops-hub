@@ -160,7 +160,6 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
   const [status,       setStatus]       = useState<TaskStatus>('todo')
   const [week,         setWeek]         = useState(1)
   const [tipo,         setTipo]         = useState<TaskTipo>('nuevo')
-  const [problema,     setProblema]     = useState('')
   const [etapa,        setEtapa]        = useState<Etapa | ''>('')
   const [miniStatus,   setMiniStatus]   = useState<MiniStatus | ''>('')
   const [dueDate,      setDueDate]      = useState('')
@@ -301,7 +300,7 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
         title, description: description || undefined,
         client_id: clientId || undefined, campaign_id: campaignId || undefined,
         area, assignee, priority, status, week, tipo,
-        problema: problema || undefined, etapa: etapa || undefined,
+        etapa: etapa || undefined,
         mini_status: miniStatus || undefined, due_date: dueDate || undefined,
         priority_manual_override: priorityManual,
         source: 'manual',
@@ -493,19 +492,13 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
             </div>
           </div>
 
-          {/* ── Card 5: Descripción + Problema ───────────────────────────── */}
+          {/* ── Card 5: Descripción ──────────────────────────────────────── */}
           <div style={formCard}>
             <div>
               <label style={lbl}>Descripción / Instrucciones</label>
               <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3}
                 style={{ ...fieldBase, padding: '9px 11px', fontSize: 12, color: '#6B7280', resize: 'none', lineHeight: 1.5 }}
                 placeholder="Detalla qué hay que hacer, cómo, referencias, observaciones..." />
-            </div>
-            <div>
-              <label style={lbl}>Problema que resuelve</label>
-              <input value={problema} onChange={e => setProblema(e.target.value)}
-                style={{ ...fieldBase, padding: '8px 11px', fontSize: 12 }}
-                placeholder="Ej: Show rate de Book Demos bajo" />
             </div>
           </div>
 

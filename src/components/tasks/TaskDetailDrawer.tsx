@@ -135,7 +135,6 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
 
   const [title,        setTitle]        = useState(task.title)
   const [description,  setDescription]  = useState(task.description ?? '')
-  const [problema,     setProblema]     = useState(task.problema ?? '')
   const [area,         setArea]         = useState<Area>(task.area)
   const [assignee,     setAssignee]     = useState(task.assignee)
   const [priority,     setPriority]     = useState<Priority>(task.priority)
@@ -176,7 +175,7 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
 
   const isDirty =
     title !== task.title || description !== (task.description ?? '') ||
-    problema !== (task.problema ?? '') || area !== task.area ||
+    area !== task.area ||
     assignee !== task.assignee || priority !== task.priority ||
     status !== task.status || week !== task.week || tipo !== task.tipo ||
     clientId !== (task.client_id ?? '') || campaignId !== (task.campaign_id ?? '') ||
@@ -190,7 +189,7 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
     try {
       await updateTask.mutateAsync({
         id: task.id, title, description: description || undefined,
-        problema: problema || undefined, area, assignee, priority, status,
+        area, assignee, priority, status,
         week, tipo, client_id: clientId || undefined,
         campaign_id: campaignId || undefined, etapa: etapa || undefined,
         mini_status: miniStatus || undefined, due_date: dueDate || undefined,
@@ -480,15 +479,6 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
                   fontSize: 13, color: '#374151', lineHeight: 1.6,
                 }}
                 placeholder="Qué hay que hacer, cómo hacerlo, referencias, links..." />
-            </div>
-
-            {/* Problema */}
-            <div>
-              {sLbl('Problema que resuelve')}
-              <input value={problema} onChange={e => setProblema(e.target.value)} style={{
-                width: '100%', padding: '9px 12px', borderRadius: 9, outline: 'none',
-                border: '1px solid #E5E7EB', backgroundColor: '#FAFBFC', fontSize: 13, color: '#374151',
-              }} placeholder="Ej: Show rate de Book Demos bajo" />
             </div>
 
             {/* Entregables */}
