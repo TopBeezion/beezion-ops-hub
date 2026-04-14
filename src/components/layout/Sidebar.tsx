@@ -6,8 +6,9 @@ import {
   Zap,
 } from 'lucide-react'
 import { useClients } from '../../hooks/useClients'
+import { useCampaigns } from '../../hooks/useCampaigns'
 import { useAuth } from '../../hooks/useAuth'
-import { ASSIGNEE_COLORS, TEAM_ROLES } from '../../lib/constants'
+import { ASSIGNEE_COLORS, TEAM_ROLES, CAMPAIGN_TYPE_COLORS } from '../../lib/constants'
 
 interface SidebarProps {
   collapsed: boolean
@@ -40,9 +41,25 @@ const S = {
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const { data: clients } = useClients()
+  const { data: campaigns = [] } = useCampaigns()
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
   const [clientsOpen, setClientsOpen] = useState(true)
+  const [expandedClients, setExpandedClients] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('sidebar_expanded_clients')
+      return saved ? new Set(JSON.parse(saved)) : new Set()
+    } catch { return new Set() }
+  })
+
+  const toggleClientExpanded = (id: string) => {
+    setExpandedClients(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      try { localStorage.setItem('sidebar_expanded_clients', JSON.stringify([...next])) } catch {}
+      return next
+    })
+  }
 
   const handleSignOut = () => { signOut(); navigate('/login') }
 
@@ -162,32 +179,101 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
             {clientsOpen && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {clients.map(client => (
-                  <NavLink
-                    key={client.id}
-                    to={`/clients/${client.id}`}
-                    style={({ isActive }) => ({
-                      display: 'flex', alignItems: 'center', gap: 9,
-                      padding: '6px 11px', borderRadius: 8,
-                      fontSize: 12, fontWeight: isActive ? 600 : 400,
-                      color: isActive ? S.text : S.sub,
-                      backgroundColor: isActive ? S.active : 'transparent',
-                      textDecoration: 'none', transition: 'all 0.12s',
-                    })}
-                    onMouseEnter={e => { e.currentTarget.style.backgroundColor = S.hover; e.currentTarget.style.color = S.text }}
-                    onMouseLeave={e => {
-                      const isActive = e.currentTarget.getAttribute('aria-current') === 'page'
-                      e.currentTarget.style.backgroundColor = isActive ? S.active : 'transparent'
-                      e.currentTarget.style.color = isActive ? S.text : S.sub
-                    }}
-                  >
-                    <div style={{
-                      width: 7, height: 7, borderRadius: '50%',
-                      backgroundColor: client.color, flexShrink: 0,
-                    }} />
-                    <span className="truncate">{client.name}</span>
-                  </NavLink>
-                ))}
+                {clients.map(client => {
+                  const clientCampaigns = campaigns.filter(c => c.client_id === client.id && c.status !== 'desactivada')
+                  const isExpanded = expandedClients.has(client.id)
+                  return (
+                    <div key={client.id} style={{ display: 'flex', flexDirection: 'column' }}>
+                      {/* Client row (folder-style) */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+                        <button
+                          onClick={() => toggleClientExpanded(client.id)}
+                          title={isExpanded ? 'Colapsar' : 'Expandir'}
+                          style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            width: 18, height: 26, border: 'none', cursor: 'pointer',
+                            background: 'transparent', color: S.muted, flexShrink: 0, borderRadius: 4,
+                          }}
+                        >
+                          <ChevronRight
+                            size={11}
+                            style={{ transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }}
+                          />
+                        </button>
+                        <NavLink
+                          to={`/clients/${client.id}`}
+                          style={({ isActive }) => ({
+                            display: 'flex', alignItems: 'center', gap: 8,
+                            padding: '5px 8px', borderRadius: 7, flex: 1,
+                            fontSize: 12, fontWeight: isActive ? 700 : 600,
+                            color: isActive ? S.text : S.text,
+                            backgroundColor: isActive ? S.active : 'transparent',
+                            textDecoration: 'none', transition: 'all 0.12s',
+                          })}
+                          onMouseEnter={e => { e.currentTarget.style.backgroundColor = S.hover }}
+                          onMouseLeave={e => {
+                            const active = e.currentTarget.getAttribute('aria-current') === 'page'
+                            e.currentTarget.style.backgroundColor = active ? S.active : 'transparent'
+                          }}
+                        >
+                          <div style={{
+                            width: 14, height: 14, borderRadius: 3,
+                            backgroundColor: `${client.color}25`,
+                            border: `1.5px solid ${client.color}`,
+                            flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          }}>
+                            <div style={{ width: 5, height: 5, borderRadius: '50%', backgroundColor: client.color }} />
+                          </div>
+                          <span className="truncate" style={{ flex: 1 }}>{client.name}</span>
+                          {clientCampaigns.length > 0 && (
+                            <span style={{ fontSize: 9, fontWeight: 700, color: S.muted, flexShrink: 0 }}>
+                              {clientCampaigns.length}
+                            </span>
+                          )}
+                        </NavLink>
+                      </div>
+
+                      {/* Campaigns under client */}
+                      {isExpanded && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 1, marginLeft: 18, paddingLeft: 8, borderLeft: `1px dashed ${S.border}` }}>
+                          {clientCampaigns.length === 0 ? (
+                            <span style={{ fontSize: 10, color: S.muted, fontStyle: 'italic', padding: '4px 10px' }}>
+                              Sin campañas activas
+                            </span>
+                          ) : clientCampaigns.map(camp => {
+                            const color = CAMPAIGN_TYPE_COLORS[camp.type] ?? S.accent
+                            return (
+                              <NavLink
+                                key={camp.id}
+                                to={`/kanban?campaign=${camp.id}`}
+                                style={({ isActive }) => ({
+                                  display: 'flex', alignItems: 'center', gap: 7,
+                                  padding: '4px 8px', borderRadius: 6,
+                                  fontSize: 11, fontWeight: isActive ? 600 : 400,
+                                  color: isActive ? S.text : S.sub,
+                                  backgroundColor: isActive ? S.active : 'transparent',
+                                  textDecoration: 'none', transition: 'all 0.12s',
+                                })}
+                                onMouseEnter={e => { e.currentTarget.style.backgroundColor = S.hover; e.currentTarget.style.color = S.text }}
+                                onMouseLeave={e => {
+                                  const active = e.currentTarget.getAttribute('aria-current') === 'page'
+                                  e.currentTarget.style.backgroundColor = active ? S.active : 'transparent'
+                                  e.currentTarget.style.color = active ? S.text : S.sub
+                                }}
+                              >
+                                <div style={{
+                                  width: 3, height: 14, borderRadius: 2,
+                                  backgroundColor: color, flexShrink: 0,
+                                }} />
+                                <span className="truncate">{camp.name}</span>
+                              </NavLink>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             )}
           </div>

@@ -2,7 +2,8 @@ import { useState, useMemo, useRef, useEffect } from 'react'
 import { useTasks, useUpdateTaskStatus } from '../hooks/useTasks'
 import { getDaysOverdue } from '../lib/dates'
 import { useClients } from '../hooks/useClients'
-import { useOutletContext } from 'react-router-dom'
+import { useCampaigns } from '../hooks/useCampaigns'
+import { useOutletContext, useSearchParams } from 'react-router-dom'
 import {
   DndContext,
   DragOverlay,
@@ -16,7 +17,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical, Plus, ChevronDown } from 'lucide-react'
+import { GripVertical, Plus, ChevronDown, SlidersHorizontal, X } from 'lucide-react'
 import type { Task, TaskStatus, Area, Client, Priority, Etapa } from '../types'
 import {
   AREA_LABELS, AREA_COLORS,
@@ -178,7 +179,21 @@ function KFDrop({ label, options, multiValues, onMultiChange, showAvatar }: {
 }
 
 // ─── Task card ────────────────────────────────────────────────────────────────
-function TaskCard({ task, onOpenDetail }: { task: Task; onOpenDetail: (t: Task) => void }) {
+const CARD_FIELDS = [
+  { key: 'client',      label: 'Cliente' },
+  { key: 'area',        label: 'Área' },
+  { key: 'priority',    label: 'Prioridad' },
+  { key: 'overdue',     label: 'Días de atraso' },
+  { key: 'campaign',    label: 'Campaña' },
+  { key: 'etapa',       label: 'Etapa' },
+  { key: 'mini_status', label: 'Mini-Status' },
+  { key: 'due_date',    label: 'Fecha entrega' },
+  { key: 'assignee',    label: 'Responsable' },
+] as const
+
+const DEFAULT_CARD_FIELDS: string[] = ['client', 'area', 'priority', 'overdue', 'campaign', 'assignee']
+
+function TaskCard({ task, onOpenDetail, visibleFields }: { task: Task; onOpenDetail: (t: Task) => void; visibleFields: Set<string> }) {
   const {
     attributes, listeners, setNodeRef,
     transform, transition, isDragging,
@@ -236,7 +251,7 @@ function TaskCard({ task, onOpenDetail }: { task: Task; onOpenDetail: (t: Task) 
         )}
 
         {/* Client */}
-        {task.client && (
+        {visibleFields.has('client') && task.client && (
           <div style={{ marginBottom: 6 }}>
             <span style={{
               fontSize: 10, fontWeight: 700,
@@ -261,21 +276,25 @@ function TaskCard({ task, onOpenDetail }: { task: Task; onOpenDetail: (t: Task) 
 
         {/* Chips row */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 8, flexWrap: 'wrap' }}>
-          <span style={{
-            fontSize: 9, fontWeight: 700,
-            color: areaColor, backgroundColor: `${areaColor}18`,
-            padding: '2px 6px', borderRadius: 4,
-          }}>
-            {AREA_LABELS[task.area]}
-          </span>
-          <span style={{
-            fontSize: 9, fontWeight: 700,
-            color: priorityColor, backgroundColor: `${priorityColor}18`,
-            padding: '2px 6px', borderRadius: 4,
-          }}>
-            {task.priority === 'alerta_roja' ? '🚨 Alerta' : task.priority === 'alta' ? '↑ Alta' : task.priority === 'media' ? '→ Media' : '↓ Baja'}
-          </span>
-          {(() => {
+          {visibleFields.has('area') && (
+            <span style={{
+              fontSize: 9, fontWeight: 700,
+              color: areaColor, backgroundColor: `${areaColor}18`,
+              padding: '2px 6px', borderRadius: 4,
+            }}>
+              {AREA_LABELS[task.area]}
+            </span>
+          )}
+          {visibleFields.has('priority') && (
+            <span style={{
+              fontSize: 9, fontWeight: 700,
+              color: priorityColor, backgroundColor: `${priorityColor}18`,
+              padding: '2px 6px', borderRadius: 4,
+            }}>
+              {task.priority === 'alerta_roja' ? '🚨 Alerta' : task.priority === 'alta' ? '↑ Alta' : task.priority === 'media' ? '→ Media' : '↓ Baja'}
+            </span>
+          )}
+          {visibleFields.has('overdue') && (() => {
             const days = getDaysOverdue(task)
             if (days === 0) return null
             return (
@@ -284,7 +303,35 @@ function TaskCard({ task, onOpenDetail }: { task: Task; onOpenDetail: (t: Task) 
               </span>
             )
           })()}
-          {task.campaign && (
+          {visibleFields.has('etapa') && (task as any).etapa && (
+            <span style={{
+              fontSize: 9, fontWeight: 700,
+              color: ETAPA_COLORS[(task as any).etapa as Etapa] || C.muted,
+              backgroundColor: `${ETAPA_COLORS[(task as any).etapa as Etapa] || C.muted}18`,
+              padding: '2px 6px', borderRadius: 4,
+            }}>
+              {ETAPA_LABELS[(task as any).etapa as Etapa] || (task as any).etapa}
+            </span>
+          )}
+          {visibleFields.has('mini_status') && (task as any).mini_status && (
+            <span style={{
+              fontSize: 9, fontWeight: 700,
+              color: '#6366F1', backgroundColor: '#EEF2FF',
+              padding: '2px 6px', borderRadius: 4, border: '1px solid #E0E7FF',
+            }}>
+              {(task as any).mini_status}
+            </span>
+          )}
+          {visibleFields.has('due_date') && task.due_date && (
+            <span style={{
+              fontSize: 9, fontWeight: 700, color: C.sub,
+              padding: '2px 6px', borderRadius: 4,
+              backgroundColor: '#F5F6FA', border: '1px solid #E5E7EB',
+            }}>
+              📅 {new Date(task.due_date).toLocaleDateString('es', { day: '2-digit', month: 'short' })}
+            </span>
+          )}
+          {visibleFields.has('campaign') && task.campaign && (
             <span style={{
               fontSize: 9, color: C.muted,
               padding: '2px 5px', borderRadius: 4,
@@ -298,17 +345,19 @@ function TaskCard({ task, onOpenDetail }: { task: Task; onOpenDetail: (t: Task) 
 
         {/* Footer */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <div style={{
-              width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
-              backgroundColor: assigneeColor,
-              color: '#fff', fontSize: 8, fontWeight: 800,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              {task.assignee.slice(0, 2).toUpperCase()}
+          {visibleFields.has('assignee') ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <div style={{
+                width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+                backgroundColor: assigneeColor,
+                color: '#fff', fontSize: 8, fontWeight: 800,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                {task.assignee.slice(0, 2).toUpperCase()}
+              </div>
+              <span style={{ fontSize: 10, fontWeight: 500, color: C.sub }}>{task.assignee}</span>
             </div>
-            <span style={{ fontSize: 10, fontWeight: 500, color: C.sub }}>{task.assignee}</span>
-          </div>
+          ) : <div />}
 
           <button
             {...listeners}
@@ -326,13 +375,14 @@ function TaskCard({ task, onOpenDetail }: { task: Task; onOpenDetail: (t: Task) 
 
 // ─── Kanban column ────────────────────────────────────────────────────────────
 function KanbanColumn({
-  column, tasks, onOpenDetail, onNewTask, showNewButton,
+  column, tasks, onOpenDetail, onNewTask, showNewButton, visibleFields,
 }: {
   column: Column
   tasks: Task[]
   onOpenDetail: (t: Task) => void
   onNewTask?: () => void
   showNewButton: boolean
+  visibleFields: Set<string>
 }) {
   const { setNodeRef } = useSortable({ id: column.id, data: { type: 'column' } })
 
@@ -407,7 +457,7 @@ function KanbanColumn({
         ) : (
           <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
             {tasks.map(task => (
-              <TaskCard key={task.id} task={task} onOpenDetail={onOpenDetail} />
+              <TaskCard key={task.id} task={task} onOpenDetail={onOpenDetail} visibleFields={visibleFields} />
             ))}
           </SortableContext>
         )}
@@ -420,10 +470,14 @@ function KanbanColumn({
 export function KanbanPage() {
   const { data: tasks = [] } = useTasks()
   const { data: clients = [] } = useClients()
+  const { data: campaigns = [] } = useCampaigns()
   const { openTaskDetail, openNewTask } = useOutletContext<{
     openNewTask: () => void
     openTaskDetail: (task: Task) => void
   }>()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const urlCampaignId = searchParams.get('campaign') ?? ''
+  const urlClientId = searchParams.get('client') ?? ''
 
   const updateTaskStatus = useUpdateTaskStatus()
 
@@ -432,19 +486,51 @@ export function KanbanPage() {
   const [filterAreas, setFilterAreas] = useState<string[]>([])
   const [filterAssignees, setFilterAssignees] = useState<string[]>([])
   const [draggedTask, setDraggedTask] = useState<Task | null>(null)
+  const [visibleFields, setVisibleFields] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('kanban_visible_fields')
+      return saved ? new Set(JSON.parse(saved)) : new Set(DEFAULT_CARD_FIELDS)
+    } catch { return new Set(DEFAULT_CARD_FIELDS) }
+  })
+  const [fieldPickerOpen, setFieldPickerOpen] = useState(false)
+  const fieldPickerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!fieldPickerOpen) return
+    const h = (e: MouseEvent) => { if (fieldPickerRef.current && !fieldPickerRef.current.contains(e.target as Node)) setFieldPickerOpen(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [fieldPickerOpen])
+
+  const toggleField = (key: string) => {
+    setVisibleFields(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key); else next.add(key)
+      try { localStorage.setItem('kanban_visible_fields', JSON.stringify([...next])) } catch {}
+      return next
+    })
+  }
 
   const toggle = <T,>(arr: T[], val: T) =>
     arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val]
 
-  const hasFilters = filterClients.length > 0 || filterAreas.length > 0 || filterAssignees.length > 0
-  const clearFilters = () => { setFilterClients([]); setFilterAreas([]); setFilterAssignees([]) }
+  const hasFilters = filterClients.length > 0 || filterAreas.length > 0 || filterAssignees.length > 0 || !!urlCampaignId || !!urlClientId
+  const clearFilters = () => {
+    setFilterClients([]); setFilterAreas([]); setFilterAssignees([])
+    setSearchParams({})
+  }
+
+  const urlCampaign = useMemo(() => campaigns.find(c => c.id === urlCampaignId), [campaigns, urlCampaignId])
+  const urlClient = useMemo(() => clients.find(c => c.id === (urlClientId || urlCampaign?.client_id)), [clients, urlClientId, urlCampaign])
 
   const filteredTasks = useMemo(() => tasks.filter(task => {
+    if (urlCampaignId && task.campaign_id !== urlCampaignId) return false
+    if (urlClientId && task.client_id !== urlClientId) return false
     if (filterClients.length && !filterClients.includes(task.client_id ?? '')) return false
     if (filterAreas.length && !filterAreas.includes(task.area ?? '')) return false
     if (filterAssignees.length && !filterAssignees.includes(task.assignee ?? '')) return false
     return true
-  }), [tasks, filterClients, filterAreas, filterAssignees])
+  }), [tasks, filterClients, filterAreas, filterAssignees, urlCampaignId, urlClientId])
 
   const columns = useMemo(() => buildColumns(groupBy, clients, filteredTasks), [groupBy, clients, filteredTasks])
 
@@ -478,6 +564,50 @@ export function KanbanPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', backgroundColor: C.bg }}>
 
+      {/* ── Breadcrumb cuando hay filtro de URL ──────────────────────────── */}
+      {(urlClient || urlCampaign) && (
+        <div style={{
+          backgroundColor: '#FAFBFF', borderBottom: `1px solid ${C.border}`,
+          padding: '8px 20px', display: 'flex', alignItems: 'center', gap: 8,
+          flexShrink: 0, fontSize: 12,
+        }}>
+          <span style={{ color: C.muted, fontWeight: 600 }}>Viendo:</span>
+          {urlClient && (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '3px 10px', borderRadius: 99, fontWeight: 700,
+              backgroundColor: `${urlClient.color}15`, color: urlClient.color,
+              border: `1px solid ${urlClient.color}30`,
+            }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: urlClient.color }} />
+              {urlClient.name}
+            </span>
+          )}
+          {urlCampaign && (
+            <>
+              <span style={{ color: C.muted }}>›</span>
+              <span style={{
+                padding: '3px 10px', borderRadius: 99, fontWeight: 700,
+                backgroundColor: '#EEF2FF', color: C.accent,
+                border: `1px solid ${C.accent}30`,
+              }}>
+                {urlCampaign.name}
+              </span>
+            </>
+          )}
+          <button
+            onClick={() => setSearchParams({})}
+            style={{
+              marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer',
+              color: C.muted, fontSize: 11, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4,
+            }}
+            title="Quitar filtro"
+          >
+            <X size={12} /> Ver todas
+          </button>
+        </div>
+      )}
+
       {/* ── Filter bar ─────────────────────────────────────────────────────── */}
       <div style={{
         backgroundColor: C.card, borderBottom: `1px solid ${C.border}`,
@@ -510,6 +640,58 @@ export function KanbanPage() {
             {KANBAN_GROUP_BY_OPTIONS.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
           </select>
         </div>
+
+        {/* Field picker */}
+        <div ref={fieldPickerRef} style={{ position: 'relative' }}>
+          <button
+            onClick={() => setFieldPickerOpen(o => !o)}
+            style={{
+              height: 32, padding: '0 10px', fontSize: 11, fontWeight: 700,
+              color: C.sub, backgroundColor: '#fff', border: `1px solid ${C.border}`,
+              borderRadius: 8, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5,
+            }}
+            title="Campos visibles en tarjetas"
+          >
+            <SlidersHorizontal size={12} /> Campos
+            <span style={{ fontSize: 9, color: C.muted, fontWeight: 700 }}>{visibleFields.size}</span>
+          </button>
+          {fieldPickerOpen && (
+            <div style={{
+              position: 'absolute', top: '100%', right: 0, marginTop: 4,
+              backgroundColor: '#fff', border: `1px solid ${C.border}`,
+              borderRadius: 10, boxShadow: '0 10px 30px rgba(0,0,0,0.12)',
+              padding: 10, minWidth: 210, zIndex: 20,
+            }}>
+              <p style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: '0.05em', margin: '0 0 8px' }}>
+                MOSTRAR EN TARJETA
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {CARD_FIELDS.map(f => {
+                  const on = visibleFields.has(f.key)
+                  return (
+                    <label key={f.key}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '5px 8px', borderRadius: 6, cursor: 'pointer',
+                        backgroundColor: on ? '#EEF2FF' : 'transparent',
+                      }}
+                      onMouseEnter={e => { if (!on) e.currentTarget.style.backgroundColor = '#F5F6FA' }}
+                      onMouseLeave={e => { if (!on) e.currentTarget.style.backgroundColor = 'transparent' }}
+                    >
+                      <span style={{ fontSize: 12, color: C.text, fontWeight: on ? 600 : 500 }}>{f.label}</span>
+                      <input
+                        type="checkbox"
+                        checked={on}
+                        onChange={() => toggleField(f.key)}
+                        style={{ accentColor: C.accent, cursor: 'pointer' }}
+                      />
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </div>
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 10, color: C.muted }}>{filteredTasks.length} tareas · {columns.length} col.</span>
           {hasFilters && (
@@ -538,6 +720,7 @@ export function KanbanPage() {
                 onOpenDetail={openTaskDetail}
                 onNewTask={openNewTask}
                 showNewButton={groupBy === 'status' ? column.id === 'todo' : false}
+                visibleFields={visibleFields}
               />
             ))}
           </div>
