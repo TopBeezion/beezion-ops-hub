@@ -10,6 +10,7 @@ import { TimelinePage } from './pages/TimelinePage'
 import { CampaignsPage } from './pages/CampaignsPage'
 import { BomberosPage } from './pages/BomberosPage'
 import { ClientDetailPage } from './pages/ClientDetailPage'
+import { CampaignDetailPage } from './pages/CampaignDetailPage'
 import { SettingsPage } from './pages/SettingsPage'
 
 const queryClient = new QueryClient({
@@ -41,6 +42,7 @@ function App() {
             <Route path="/kanban" element={<KanbanPage />} />
             <Route path="/timeline" element={<TimelinePage />} />
             <Route path="/clients/:clientId" element={<ClientDetailPage />} />
+            <Route path="/campaigns/:campaignId" element={<CampaignDetailPage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Route>
         </Routes>

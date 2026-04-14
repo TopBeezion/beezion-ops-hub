@@ -261,6 +261,7 @@ export function ClientDetailPage() {
   const ctx = useOutletContext<{ openNewTask?: () => void; openTaskDetail?: (t: Task) => void }>()
 
   const [areaFilter, setAreaFilter] = useState<Area | ''>('')
+  const [showArchived, setShowArchived] = useState(false)
 
   const client = clients.find(c => c.id === clientId)
   if (!isLoading && !client) return <Navigate to="/" replace />
@@ -389,13 +390,10 @@ export function ClientDetailPage() {
         </div>
 
         {/* ── Campaigns ───────────────────────────────────────────────────────── */}
-        {clientCampaigns.length > 0 && (
-          <div>
-            <h2 style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.07em', margin: '0 0 10px' }}>
-              Campañas
-            </h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
-              {clientCampaigns.map(cam => {
+        {(() => {
+          const activeCamps = clientCampaigns.filter(c => c.status !== 'desactivada')
+          const archivedCamps = clientCampaigns.filter(c => c.status === 'desactivada')
+          const renderCampaignCard = (cam: typeof clientCampaigns[number]) => {
                 const camTasks = tasks.filter(t => t.campaign_id === cam.id)
                 const camDone = camTasks.filter(t => t.status === 'done').length
                 const camPct = camTasks.length > 0 ? Math.round((camDone / camTasks.length) * 100) : 0
@@ -412,12 +410,20 @@ export function ClientDetailPage() {
                 }
 
                 return (
-                  <div key={cam.id} style={{
-                    backgroundColor: C.card,
-                    border: `1px solid ${camColor}30`,
-                    borderRadius: 12, overflow: 'hidden',
-                    borderTop: `3px solid ${camColor}`,
-                  }}>
+                  <div
+                    key={cam.id}
+                    onClick={() => navigate(`/campaigns/${cam.id}`)}
+                    style={{
+                      backgroundColor: C.card,
+                      border: `1px solid ${camColor}30`,
+                      borderRadius: 12, overflow: 'hidden',
+                      borderTop: `3px solid ${camColor}`,
+                      cursor: 'pointer',
+                      transition: 'transform 0.1s, box-shadow 0.1s',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 4px 12px ${camColor}20` }}
+                    onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none' }}
+                  >
                     <div style={{ padding: '12px 14px' }}>
                       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
@@ -472,7 +478,7 @@ export function ClientDetailPage() {
                     {/* Open in Kanban */}
                     {camTasks.length > 0 && (
                       <button
-                        onClick={() => navigate(`/kanban?campaign=${cam.id}`)}
+                        onClick={e => { e.stopPropagation(); navigate(`/kanban?campaign=${cam.id}`) }}
                         style={{
                           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                           width: '100%', padding: '8px 14px',
@@ -487,10 +493,47 @@ export function ClientDetailPage() {
                     )}
                   </div>
                 )
-              })}
-            </div>
-          </div>
-        )}
+          }
+          return (
+            <>
+              {activeCamps.length > 0 && (
+                <div>
+                  <h2 style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.07em', margin: '0 0 10px' }}>
+                    Campañas
+                  </h2>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
+                    {activeCamps.map(renderCampaignCard)}
+                  </div>
+                </div>
+              )}
+              {archivedCamps.length > 0 && (
+                <div style={{ marginTop: 16 }}>
+                  <button
+                    onClick={() => setShowArchived(v => !v)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      background: 'transparent', border: 'none', cursor: 'pointer',
+                      fontSize: 11, fontWeight: 700, color: C.muted,
+                      textTransform: 'uppercase', letterSpacing: '0.07em',
+                      padding: 0, marginBottom: 10,
+                    }}
+                  >
+                    <ChevronRight
+                      size={12}
+                      style={{ transition: 'transform 0.15s', transform: showArchived ? 'rotate(90deg)' : 'rotate(0deg)' }}
+                    />
+                    Archivadas ({archivedCamps.length})
+                  </button>
+                  {showArchived && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10, opacity: 0.75 }}>
+                      {archivedCamps.map(renderCampaignCard)}
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )
+        })()}
 
         {/* ── Strategy ─────────────────────────────────────────────────────────── */}
         {strategy && (

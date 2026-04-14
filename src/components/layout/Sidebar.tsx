@@ -368,7 +368,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                             return (
                               <div key={camp.id} className="sidebar-row" style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
                                 <NavLink
-                                  to={`/kanban?campaign=${camp.id}`}
+                                  to={`/campaigns/${camp.id}`}
                                   style={({ isActive }) => ({
                                     display: 'flex', alignItems: 'center', gap: 7, flex: 1, minWidth: 0,
                                     padding: '4px 8px', borderRadius: 6,

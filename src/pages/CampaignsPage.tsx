@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
-import { Plus, ChevronDown, ChevronRight, Flame, Zap, RefreshCw, TrendingUp, Circle, Check, UserPlus, Pencil } from 'lucide-react'
+import { Plus, ChevronDown, ChevronRight, Flame, Zap, RefreshCw, TrendingUp, Circle, Check, UserPlus, Pencil, ExternalLink } from 'lucide-react'
 import { useClients } from '../hooks/useClients'
 import { useCampaigns, useUpdateCampaign, useUpdateCampaignStatus, useCreateCampaign } from '../hooks/useCampaigns'
 import { useTasks } from '../hooks/useTasks'
-import { useOutletContext } from 'react-router-dom'
+import { useOutletContext, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useApplyCampaignTemplate, useCampaignTemplates } from '../hooks/useCampaignTemplates'
 import { CampaignProgressBar } from '../components/widgets/CampaignProgressBar'
@@ -362,6 +362,7 @@ function CampaignCard({
   const [editingName, setEditingName] = useState(false)
   const [nameVal, setNameVal] = useState(campaign.name)
   const nameInputRef = useRef<HTMLInputElement>(null)
+  const navigate = useNavigate()
 
   useEffect(() => { if (editingName) nameInputRef.current?.focus() }, [editingName])
 
@@ -443,6 +444,24 @@ function CampaignCard({
                 {completedCount}/{campaignTasks.length} tasks
               </span>
             )}
+
+            {/* Open campaign detail */}
+            <button
+              onClick={() => navigate(`/campaigns/${campaign.id}`)}
+              title="Abrir detalle de campaña"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                padding: '4px 8px', borderRadius: 6,
+                background: 'transparent', border: '1px solid #E5E7EB',
+                fontSize: 11, fontWeight: 600, color: '#4B5563',
+                cursor: 'pointer', transition: 'all 0.15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = '#6366F1'; e.currentTarget.style.color = '#6366F1' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = '#E5E7EB'; e.currentTarget.style.color = '#4B5563' }}
+            >
+              <ExternalLink size={11} />
+              Abrir
+            </button>
 
             {/* Assignee picker */}
             <AssigneePicker campaign={campaign} onUpdate={onAssigneesUpdate} />
