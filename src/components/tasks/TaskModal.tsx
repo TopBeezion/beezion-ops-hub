@@ -164,8 +164,6 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
   const [etapa,        setEtapa]        = useState<Etapa | ''>('')
   const [miniStatus,   setMiniStatus]   = useState<MiniStatus | ''>('')
   const [dueDate,      setDueDate]      = useState('')
-  const [durationDays, setDurationDays] = useState<number | ''>('')
-  const [cantidadHooks, setCantidadHooks] = useState<number | ''>('')
   const [attachments,  setAttachments]  = useState<TaskAttachment[]>([])
   const [newAttUrl,    setNewAttUrl]    = useState('')
   const [newAttName,   setNewAttName]   = useState('')
@@ -305,8 +303,6 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
         area, assignee, priority, status, week, tipo,
         problema: problema || undefined, etapa: etapa || undefined,
         mini_status: miniStatus || undefined, due_date: dueDate || undefined,
-        duration_days: typeof durationDays === 'number' ? durationDays : undefined,
-        cantidad_hooks: typeof cantidadHooks === 'number' ? cantidadHooks : undefined,
         priority_manual_override: priorityManual,
         source: 'manual',
         attachments: attachments.length > 0 ? attachments : undefined,
@@ -505,22 +501,8 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
             </div>
           </div>
 
-          {/* ── Card 5b: Extras (Duración + Cantidad Hooks + Attachments) ── */}
+          {/* ── Card 5b: Attachments ─────────────────────────────────────── */}
           <div style={formCard}>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <div style={{ flex: 1 }}>
-                <label style={lbl}>Duración (días)</label>
-                <input type="number" min={0} value={durationDays}
-                  onChange={e => setDurationDays(e.target.value === '' ? '' : Number(e.target.value))}
-                  style={{ ...fieldBase, padding: '8px 11px', fontSize: 12 }} placeholder="Ej: 3" />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label style={lbl}>Cantidad Hooks</label>
-                <input type="number" min={0} value={cantidadHooks}
-                  onChange={e => setCantidadHooks(e.target.value === '' ? '' : Number(e.target.value))}
-                  style={{ ...fieldBase, padding: '8px 11px', fontSize: 12 }} placeholder="Ej: 50" />
-              </div>
-            </div>
             <div>
               <label style={lbl}>Attachments (Drive URLs)</label>
               <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
