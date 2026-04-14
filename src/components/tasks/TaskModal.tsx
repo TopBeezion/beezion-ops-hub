@@ -344,10 +344,18 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
   const totalDel = Object.values(deliverables).reduce((s, v) => s + (v ?? 0), 0)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-end">
-      <div className="absolute inset-0" onClick={onClose} style={{ backgroundColor: 'rgba(15,17,22,0.25)', backdropFilter: 'blur(3px)' }} />
-      <div className="relative h-full w-full max-w-lg flex flex-col overflow-hidden"
-        style={{ backgroundColor: '#FFFFFF', borderLeft: '1px solid #DDE0EA', boxShadow: '-20px 0 60px rgba(0,0,0,0.14)' }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ padding: '24px' }}>
+      <div className="absolute inset-0" onClick={onClose} style={{ backgroundColor: 'rgba(15,17,22,0.45)', backdropFilter: 'blur(4px)' }} />
+      <div className="relative flex flex-col overflow-hidden"
+        style={{
+          width: '100%',
+          maxWidth: 980,
+          maxHeight: 'calc(100vh - 48px)',
+          backgroundColor: '#FFFFFF',
+          border: '1px solid #DDE0EA',
+          borderRadius: 16,
+          boxShadow: '0 24px 64px rgba(0,0,0,0.25)',
+        }}>
 
         {/* Header */}
         <div style={{

@@ -252,14 +252,22 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
   )
 
   return (
-    <div className="fixed inset-0 z-50 flex items-stretch justify-end">
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ padding: '24px' }}>
       {/* Backdrop */}
       <div className="absolute inset-0" onClick={onClose}
-        style={{ backgroundColor: 'rgba(15,17,22,0.25)', backdropFilter: 'blur(3px)' }} />
+        style={{ backgroundColor: 'rgba(15,17,22,0.45)', backdropFilter: 'blur(4px)' }} />
 
-      {/* Drawer panel */}
-      <div className="relative flex flex-col h-full w-full overflow-hidden"
-        style={{ maxWidth: 520, backgroundColor: '#FFFFFF', borderLeft: '1px solid #E5E7EB', boxShadow: '-12px 0 40px rgba(0,0,0,0.15)' }}>
+      {/* Modal panel */}
+      <div className="relative flex flex-col overflow-hidden"
+        style={{
+          width: '100%',
+          maxWidth: 980,
+          maxHeight: 'calc(100vh - 48px)',
+          backgroundColor: '#FFFFFF',
+          border: '1px solid #E5E7EB',
+          borderRadius: 16,
+          boxShadow: '0 24px 64px rgba(0,0,0,0.25)',
+        }}>
 
         {/* Client color stripe */}
         <div style={{ height: 3, background: task.client?.color ? `linear-gradient(90deg,${task.client.color},${task.client.color}60)` : '#6366F1', flexShrink: 0 }} />
