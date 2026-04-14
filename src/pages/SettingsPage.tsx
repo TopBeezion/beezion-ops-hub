@@ -205,7 +205,7 @@ export function SettingsPage() {
   const tasksByMember = (name: string) => ({
     total: tasks.filter(t => t.assignee === name).length,
     active: tasks.filter(t => t.assignee === name && t.status === 'en_progreso').length,
-    done: tasks.filter(t => t.assignee === name && t.status === 'completado').length,
+    done: tasks.filter(t => t.assignee === name && t.status === 'hecho').length,
   })
 
   const tasksByClient = (id: string) => tasks.filter(t => t.client_id === id).length

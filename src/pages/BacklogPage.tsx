@@ -46,9 +46,9 @@ const C = {
   muted: '#9699B0', accent: '#6366F1',
 }
 
-const STATUS_ORDER: TaskStatus[] = ['pendiente', 'en_progreso', 'revision', 'completado']
+const STATUS_ORDER: TaskStatus[] = ['todo', 'en_progreso', 'revision', 'bloqueado', 'hecho']
 const PRIORITY_ORDER: Priority[] = ['alerta_roja', 'alta', 'media', 'baja']
-const AREA_ORDER: Area[] = ['copy', 'trafico', 'tech', 'admin', 'edicion']
+const AREA_ORDER: Area[] = ['copy', 'produccion', 'edicion', 'trafico', 'tech', 'admin']
 const ASSIGNEES = [
   { name: 'Alejandro', color: '#8B5CF6', role: 'CEO · Estrategia' },
   { name: 'Alec',      color: '#F59E0B', role: 'Head of Paid' },

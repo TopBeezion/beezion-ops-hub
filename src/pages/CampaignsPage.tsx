@@ -364,7 +364,7 @@ function CampaignCard({
     setEditingName(false)
   }
   const campaignTasks = tasks.filter(t => t.campaign_id === campaign.id)
-  const completedCount = campaignTasks.filter(t => t.status === 'completado').length
+  const completedCount = campaignTasks.filter(t => t.status === 'hecho').length
 
   return (
     <div style={{
@@ -486,7 +486,7 @@ function CampaignCard({
                       <div className="flex items-center gap-2">
                         <div style={{
                           width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
-                          backgroundColor: task.status === 'completado' ? '#00C875' : task.status === 'en_progreso' ? '#579BFC' : task.status === 'revision' ? '#FDAB3D' : '#C4C4C4',
+                          backgroundColor: task.status === 'hecho' ? '#00C875' : task.status === 'en_progreso' ? '#579BFC' : task.status === 'revision' ? '#FDAB3D' : '#C4C4C4',
                         }} />
                         <span style={{ fontSize: 12, color: '#374151', fontWeight: 500 }}>{task.title}</span>
                         {task.mini_status && (

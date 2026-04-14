@@ -1,20 +1,34 @@
-import type { Area, Priority, TaskStatus, TaskTipo, CampaignType, CampaignStatus, Etapa, MiniStatus } from '../types'
+import type { Area, Priority, TaskStatus, TaskTipo, CampaignType, CampaignStatus, Etapa, MiniStatus, TeamRole } from '../types'
 
 // ── Area ─────────────────────────────────────────────────────
 export const AREA_LABELS: Record<Area, string> = {
   copy: 'Copy',
+  produccion: 'Producción',
+  edicion: 'Edición',
   trafico: 'Tráfico',
   tech: 'Tech',
   admin: 'Admin',
-  edicion: 'Edición',
 }
 
 export const AREA_COLORS: Record<Area, string> = {
   copy: '#818cf8',
+  produccion: '#f59e0b',
+  edicion: '#ec4899',
   trafico: '#4ade80',
   tech: '#60a5fa',
   admin: '#fbbf24',
-  edicion: '#ec4899',
+}
+
+// Mapping etapa → area (auto-derivación; puede sobreescribirse manualmente)
+export const ETAPA_TO_AREA: Record<Etapa, Area> = {
+  copy: 'copy',
+  scripts: 'copy',
+  landing_page: 'copy',
+  lead_magnet: 'copy',
+  produccion: 'produccion',
+  edicion: 'edicion',
+  tracking: 'trafico',
+  estructuracion: 'trafico',
 }
 
 // ── Priority ─────────────────────────────────────────────────
@@ -32,19 +46,46 @@ export const PRIORITY_COLORS: Record<Priority, string> = {
   baja: '#9CA3AF',
 }
 
-// ── Task Status ───────────────────────────────────────────────
+export const PRIORITY_ORDER: Priority[] = ['alerta_roja', 'alta', 'media', 'baja']
+
+// Derivar priority desde due_date (match exacto con trigger SQL)
+export function priorityFromDueDate(dueDate?: string | null): Priority {
+  if (!dueDate) return 'baja'
+  const days = Math.ceil((new Date(dueDate).getTime() - Date.now()) / 86_400_000)
+  if (days <= 0) return 'alerta_roja'
+  if (days <= 3) return 'alta'
+  if (days <= 7) return 'media'
+  return 'baja'
+}
+
+// ── Task Status (V2) ──────────────────────────────────────────
 export const STATUS_LABELS: Record<TaskStatus, string> = {
-  pendiente:  'Pendiente',
+  todo:        'Todo',
   en_progreso: 'En Proceso',
-  revision:   'Blocker',
-  completado: 'Done',
+  revision:    'Revisión',
+  bloqueado:   'Bloqueado',
+  hecho:       'Hecho',
 }
 
 export const STATUS_COLORS: Record<TaskStatus, string> = {
-  pendiente:  '#9699B0',
+  todo:        '#9699B0',
   en_progreso: '#3B82F6',
-  revision:   '#EF4444',
-  completado: '#10B981',
+  revision:    '#8B5CF6',
+  bloqueado:   '#EF4444',
+  hecho:       '#10B981',
+}
+
+export const STATUS_ORDER: TaskStatus[] = ['todo', 'en_progreso', 'revision', 'bloqueado', 'hecho']
+
+// Back-compat: status viejos → V2 (para lectura de datos legacy)
+export const LEGACY_STATUS_MAP: Record<string, TaskStatus> = {
+  pendiente: 'todo',
+  completado: 'hecho',
+}
+export function normalizeStatus(s?: string | null): TaskStatus {
+  if (!s) return 'todo'
+  if ((STATUS_ORDER as string[]).includes(s)) return s as TaskStatus
+  return LEGACY_STATUS_MAP[s] ?? 'todo'
 }
 
 // ── Task Tipo ─────────────────────────────────────────────────
@@ -82,41 +123,38 @@ export const CAMPAIGN_STATUS_COLORS: Record<CampaignStatus, string> = {
   desactivada: '#C4C4C4',
 }
 
-// ── Etapas ───────────────────────────────────────────────────
+// ── Etapas (V2 — 8, sin revisión final) ──────────────────────
 export const ETAPA_LABELS: Record<Etapa, string> = {
-  copy: 'Copy / Scripts',
+  copy: 'Copy',
+  scripts: 'Scripts',
   produccion: 'Producción',
   edicion: 'Edición',
   landing_page: 'Landing Page',
   lead_magnet: 'Lead Magnet',
-  trafico: 'Tráfico',
   tracking: 'Tracking',
-  media_buying: 'Media Buying',
-  revision_final: 'Revisión Final',
+  estructuracion: 'Estructuración',
 }
 
 export const ETAPA_COLORS: Record<Etapa, string> = {
   copy: '#818CF8',
+  scripts: '#A78BFA',
   produccion: '#F59E0B',
   edicion: '#EC4899',
   landing_page: '#3B82F6',
   lead_magnet: '#10B981',
-  trafico: '#F97316',
   tracking: '#0EA5E9',
-  media_buying: '#A855F7',
-  revision_final: '#6366F1',
+  estructuracion: '#A855F7',
 }
 
 export const ETAPA_ORDER: Etapa[] = [
   'copy',
+  'scripts',
   'produccion',
   'edicion',
   'landing_page',
   'lead_magnet',
-  'trafico',
   'tracking',
-  'media_buying',
-  'revision_final',
+  'estructuracion',
 ]
 
 // ── Mini Status ───────────────────────────────────────────────
@@ -162,6 +200,23 @@ export const TEAM_MEMBERS = [
   'Paula', 'David', 'Johan', 'Felipe', 'TBD',
 ]
 
+// Admin-plus: únicos que pueden marcar Revisión Final + ver Team Capacity
+export const ADMIN_PLUS_EMAILS = [
+  'alejosarmi@beezion.com',
+  'aleciriarte@beezion.com',
+  'paula@beezion.com',
+]
+
+export const ADMIN_PLUS_NAMES = ['Alejandro', 'Alec', 'Paula']
+
+export function isAdminPlus(user?: { email?: string; role?: string; name?: string } | null): boolean {
+  if (!user) return false
+  if (user.role === 'admin_plus') return true
+  if (user.email && ADMIN_PLUS_EMAILS.includes(user.email.toLowerCase())) return true
+  if (user.name && ADMIN_PLUS_NAMES.includes(user.name)) return true
+  return false
+}
+
 // Cargos del equipo
 export const TEAM_ROLES: Record<string, string> = {
   Alejandro: 'CEO · Copy · Estrategia',
@@ -188,3 +243,39 @@ export const ASSIGNEE_COLORS: Record<string, string> = {
 }
 
 export const WEEKS = [1, 2, 3, 4] as const
+
+// ── Backlog: columnas disponibles (para show/hide) ────────────
+export const BACKLOG_COLUMNS = [
+  { key: 'title', label: 'Task Name', required: true },
+  { key: 'client', label: 'Cliente' },
+  { key: 'campaign', label: 'Campaña' },
+  { key: 'etapa', label: 'Etapa' },
+  { key: 'status', label: 'Status' },
+  { key: 'mini_status', label: 'Mini-Status' },
+  { key: 'priority', label: 'Prioridad' },
+  { key: 'area', label: 'Área' },
+  { key: 'assignee', label: 'Responsable' },
+  { key: 'due_date', label: 'Fecha Entrega' },
+  { key: 'created_at', label: 'Fecha Creación' },
+  { key: 'duration_days', label: 'Duración' },
+  { key: 'cantidad_hooks', label: 'Cant. Hooks' },
+  { key: 'attachments', label: 'Attachments' },
+] as const
+
+export const DEFAULT_BACKLOG_COLUMNS = [
+  'title', 'client', 'campaign', 'etapa', 'status', 'priority', 'assignee', 'due_date',
+]
+
+// ── Kanban: groupBy options ───────────────────────────────────
+export const KANBAN_GROUP_BY_OPTIONS = [
+  { key: 'etapa', label: 'Etapa' },
+  { key: 'status', label: 'Status' },
+  { key: 'assignee', label: 'Responsable' },
+  { key: 'priority', label: 'Prioridad' },
+  { key: 'area', label: 'Área' },
+  { key: 'client', label: 'Cliente' },
+] as const
+
+export const DEFAULT_KANBAN_CARD_FIELDS = [
+  'client', 'etapa', 'priority', 'assignee', 'due_date',
+]

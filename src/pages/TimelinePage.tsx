@@ -181,7 +181,7 @@ function DeliverableChips({ task, isDone }: { task: Task; isDone: boolean }) {
 function TaskCard({ task, onOpen }: { task: Task; onOpen?: (t: Task) => void }) {
   const areaColor   = AREA_COLORS[task.area]
   const statusColor = STATUS_COLORS[task.status]
-  const isDone      = task.status === 'completado'
+  const isDone      = task.status === 'hecho'
   const isUrgent    = task.tipo === 'urgente'
   const initials    = ASSIGNEE_INITIALS[task.assignee] ?? task.assignee.slice(0, 2).toUpperCase()
   const avatarColor = ASSIGNEE_COLORS[task.assignee] ?? '#6366F1'
@@ -266,7 +266,7 @@ function TaskCard({ task, onOpen }: { task: Task; onOpen?: (t: Task) => void }) 
 function SprintHeader({ week, tasks }: { week: number; tasks: Task[] }) {
   const meta     = SPRINT_META[week]
   const total    = tasks.length
-  const done     = tasks.filter(t => t.status === 'completado').length
+  const done     = tasks.filter(t => t.status === 'hecho').length
   const inProg   = tasks.filter(t => t.status === 'en_progreso').length
   const revision = tasks.filter(t => t.status === 'revision').length
   const pct      = total > 0 ? Math.round((done / total) * 100) : 0
@@ -322,7 +322,7 @@ function SprintHeader({ week, tasks }: { week: number; tasks: Task[] }) {
 // ── Client Row Label ──────────────────────────────────────────────
 function ClientLabel({ client, tasks }: { client: { id: string; name: string; color: string }; tasks: Task[] }) {
   const total = tasks.length
-  const done  = tasks.filter(t => t.status === 'completado').length
+  const done  = tasks.filter(t => t.status === 'hecho').length
   const pct   = total > 0 ? Math.round((done / total) * 100) : 0
 
   return (
@@ -360,7 +360,7 @@ function ClientLabel({ client, tasks }: { client: { id: string; name: string; co
           {WEEKS.map(w => {
             const wt = tasks.filter(t => t.week === w)
             if (wt.length === 0) return null
-            const wd = wt.filter(t => t.status === 'completado').length
+            const wd = wt.filter(t => t.status === 'hecho').length
             return (
               <span key={w} style={{ fontSize: 8, fontWeight: 700, color: SPRINT_META[w].color }}>
                 S{w}·{wd}/{wt.length}
@@ -384,7 +384,7 @@ function SprintCell({
   const MAX_VISIBLE = 4
   const visible     = expanded ? tasks : tasks.slice(0, MAX_VISIBLE)
   const hidden      = tasks.length - MAX_VISIBLE
-  const done        = tasks.filter(t => t.status === 'completado').length
+  const done        = tasks.filter(t => t.status === 'hecho').length
 
   if (tasks.length === 0) {
     return (

@@ -322,15 +322,15 @@ export function DashboardPage() {
   // ── KPIs ─────────────────────────────────────────────────────────────────
   const stats = useMemo(() => {
     const total = visibleTasks.length
-    const completed = visibleTasks.filter(t => t.status === 'completado').length
+    const completed = visibleTasks.filter(t => t.status === 'hecho').length
     const inProgress = visibleTasks.filter(t => t.status === 'en_progreso').length
-    const pending = visibleTasks.filter(t => t.status === 'pendiente').length
+    const pending = visibleTasks.filter(t => t.status === 'todo').length
     const pct = total > 0 ? Math.round((completed / total) * 100) : 0
     return { total, completed, inProgress, pending, pct }
   }, [visibleTasks])
 
   const bomberos = useMemo(() => visibleTasks
-    .filter(t => t.priority === 'alta' && t.status !== 'completado')
+    .filter(t => t.priority === 'alta' && t.status !== 'hecho')
     .sort((a, b) => (a.status === 'en_progreso' ? 0 : 1) - (b.status === 'en_progreso' ? 0 : 1))
     .slice(0, 7),
   [visibleTasks])
@@ -340,9 +340,9 @@ export function DashboardPage() {
   const clientStats = useMemo(() => clients
     .map(client => {
       const ct = visibleTasks.filter(t => t.client_id === client.id)
-      const done = ct.filter(t => t.status === 'completado').length
+      const done = ct.filter(t => t.status === 'hecho').length
       const inProg = ct.filter(t => t.status === 'en_progreso').length
-      const pending = ct.filter(t => t.status === 'pendiente').length
+      const pending = ct.filter(t => t.status === 'todo').length
       const pct = ct.length > 0 ? Math.round((done / ct.length) * 100) : 0
       const activeCampaigns = campaigns.filter(c => c.client_id === client.id && c.status === 'activa').length
       return { client, total: ct.length, done, inProg, pending, pct, activeCampaigns }
@@ -366,7 +366,7 @@ export function DashboardPage() {
 
   const areaStats = useMemo(() => (['copy', 'trafico', 'tech', 'admin', 'edicion'] as Area[]).map(area => {
     const at = visibleTasks.filter(t => t.area === area)
-    return { area, total: at.length, done: at.filter(t => t.status === 'completado').length }
+    return { area, total: at.length, done: at.filter(t => t.status === 'hecho').length }
   }).filter(a => a.total > 0), [visibleTasks])
 
   const teamStats = useMemo(() => {
@@ -374,7 +374,7 @@ export function DashboardPage() {
     for (const t of tasks) {  // always use all tasks for team view
       if (!map[t.assignee]) map[t.assignee] = { total: 0, done: 0, inProg: 0 }
       map[t.assignee].total++
-      if (t.status === 'completado') map[t.assignee].done++
+      if (t.status === 'hecho') map[t.assignee].done++
       if (t.status === 'en_progreso') map[t.assignee].inProg++
     }
     return Object.entries(map).map(([name, s]) => ({ name, ...s })).sort((a, b) => b.total - a.total)

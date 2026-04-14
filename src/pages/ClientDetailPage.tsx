@@ -124,7 +124,7 @@ const CLIENT_STRATEGY: Record<string, { problems: string[]; strategies: string[]
   },
 }
 
-const STATUSES: TaskStatus[] = ['pendiente', 'en_progreso', 'revision', 'completado']
+const STATUSES: TaskStatus[] = ['todo', 'en_progreso', 'revision', 'hecho']
 
 export function ClientDetailPage() {
   const { clientId } = useParams<{ clientId: string }>()
@@ -142,7 +142,7 @@ export function ClientDetailPage() {
 
   const clientCampaigns = allCampaigns.filter(c => c.client_id === clientId)
   const filteredTasks = areaFilter ? tasks.filter(t => t.area === areaFilter) : tasks
-  const completedCount = tasks.filter(t => t.status === 'completado').length
+  const completedCount = tasks.filter(t => t.status === 'hecho').length
   const progress = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0
   const strategy = client ? CLIENT_STRATEGY[client.name] : null
   const tasksByStatus = STATUSES.map(s => ({ status: s, tasks: tasks.filter(t => t.status === s) }))
@@ -258,12 +258,12 @@ export function ClientDetailPage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
               {clientCampaigns.map(cam => {
                 const camTasks = tasks.filter(t => t.campaign_id === cam.id)
-                const camDone = camTasks.filter(t => t.status === 'completado').length
+                const camDone = camTasks.filter(t => t.status === 'hecho').length
                 const camPct = camTasks.length > 0 ? Math.round((camDone / camTasks.length) * 100) : 0
                 const camColor = CAMPAIGN_TYPE_COLORS[cam.type as keyof typeof CAMPAIGN_TYPE_COLORS] ?? clientColor
                 const isExpanded = expandedCampaign === cam.id
                 const statusCount = {
-                  pendiente: camTasks.filter(t => t.status === 'pendiente').length,
+                  pendiente: camTasks.filter(t => t.status === 'todo').length,
                   en_progreso: camTasks.filter(t => t.status === 'en_progreso').length,
                   revision: camTasks.filter(t => t.status === 'revision').length,
                   completado: camDone,
@@ -510,8 +510,8 @@ export function ClientDetailPage() {
               <PriorityDot priority={task.priority} />
               <span style={{
                 flex: 1, fontSize: 12, fontWeight: 500,
-                color: task.status === 'completado' ? C.muted : C.text,
-                textDecoration: task.status === 'completado' ? 'line-through' : 'none',
+                color: task.status === 'hecho' ? C.muted : C.text,
+                textDecoration: task.status === 'hecho' ? 'line-through' : 'none',
               }}>
                 {task.title}
               </span>

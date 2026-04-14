@@ -1,24 +1,24 @@
-export type Area = 'copy' | 'trafico' | 'tech' | 'admin' | 'edicion'
+// ── V2 enums ─────────────────────────────────────────────────
+export type Area = 'copy' | 'produccion' | 'edicion' | 'trafico' | 'tech' | 'admin'
 export type Priority = 'alerta_roja' | 'alta' | 'media' | 'baja'
-export type TaskStatus = 'pendiente' | 'en_progreso' | 'revision' | 'completado'
+export type TaskStatus = 'todo' | 'en_progreso' | 'revision' | 'bloqueado' | 'hecho'
 export type TaskTipo = 'nuevo' | 'pendiente_anterior' | 'urgente'
-export type TeamRole = 'admin' | 'maintainer' | 'contributor'
+export type TeamRole = 'admin_plus' | 'admin' | 'member'
 
 // ── Campaign types ──────────────────────────────────────────
 export type CampaignType = 'nueva_campana' | 'iteracion' | 'refresh' | 'bombero'
 export type CampaignStatus = 'activa' | 'pausada' | 'desactivada'
 
-// Etapas del flujo de una campaña
+// Etapas del flujo (V2 — Scripts y Copy separados; Revisión Final OUT)
 export type Etapa =
   | 'copy'
+  | 'scripts'
   | 'produccion'
   | 'edicion'
   | 'landing_page'
   | 'lead_magnet'
-  | 'trafico'
   | 'tracking'
-  | 'media_buying'
-  | 'revision_final'
+  | 'estructuracion'
 
 // Mini-status dentro de cada etapa
 export type MiniStatus =
@@ -46,6 +46,9 @@ export interface Campaign {
   objective?: string
   launch_date?: string
   assignees?: string[]
+  revision_final_done?: boolean
+  revision_final_by?: string
+  revision_final_at?: string
   created_at: string
   updated_at: string
   client?: Client
@@ -55,10 +58,10 @@ export interface Campaign {
 export interface TaskAttachment {
   name: string
   url: string
-  path: string
-  size: number
-  type: string
-  uploaded_at: string
+  path?: string
+  size?: number
+  type?: string
+  uploaded_at?: string
 }
 
 export interface Deliverables {
@@ -78,6 +81,15 @@ export interface Deliverables {
   retargeting_scripts?: number
 }
 
+// Custom fields globales (definición en settings)
+export interface CustomFieldDef {
+  key: string
+  label: string
+  type: 'text' | 'number' | 'select' | 'multiselect' | 'url' | 'date'
+  required?: boolean
+  options?: string[]
+}
+
 export interface Task {
   id: string
   title: string
@@ -87,6 +99,7 @@ export interface Task {
   area: Area
   assignee: string
   priority: Priority
+  priority_manual_override?: boolean
   status: TaskStatus
   etapa?: Etapa
   mini_status?: MiniStatus
@@ -97,8 +110,11 @@ export interface Task {
   meeting_date?: string
   due_date?: string
   duration_days?: number
+  cantidad_hooks?: number
+  custom_fields?: Record<string, unknown>
   created_at: string
   updated_at: string
+  created_by?: string
   client?: Client
   campaign?: Campaign
   deliverables?: Deliverables
@@ -110,7 +126,7 @@ export interface TeamMember {
   name: string
   email?: string
   role: TeamRole
-  color: string
+  color?: string
 }
 
 export interface MeetingLog {
@@ -140,4 +156,70 @@ export interface CampaignFilters {
   client_id?: string
   type?: CampaignType
   status?: CampaignStatus
+}
+
+// ── Saved Views ──────────────────────────────────────────────
+export type ViewScope = 'global' | 'personal'
+export type ViewPage = 'backlog' | 'kanban'
+
+export interface ViewConfig {
+  id: string
+  name: string
+  page: ViewPage
+  scope: ViewScope
+  owner_id?: string
+  config: {
+    filters?: TaskFilters
+    sort?: { column: string; dir: 'asc' | 'desc' }[]
+    columns?: string[]          // backlog: columnas visibles
+    groupBy?: string            // kanban: etapa/status/assignee/priority/area
+    cardFields?: string[]       // kanban: fields visibles en card
+  }
+  created_at: string
+  updated_at: string
+}
+
+// ── Activity Log ─────────────────────────────────────────────
+export interface TaskActivityEntry {
+  id: string
+  task_id: string
+  actor: string
+  action: 'insert' | 'update' | 'delete'
+  diff: Record<string, { old: unknown; new: unknown }>
+  created_at: string
+}
+
+// ── Campaign Template ────────────────────────────────────────
+export interface CampaignTemplate {
+  id: string
+  key: string                  // 'new_campaign', 'iteracion', 'refresh', 'bomberos'
+  name: string
+  tasks: {
+    title: string
+    etapa?: Etapa
+    area?: Area
+    duration_days?: number
+  }[]
+}
+
+// ── Campaign Progress view row ───────────────────────────────
+export interface CampaignProgressRow {
+  campaign_id: string
+  campaign_name: string
+  client_id: string
+  client_name?: string
+  total_tasks: number
+  done_tasks: number
+  progress_pct: number
+  revision_final_done: boolean
+}
+
+// ── Team Capacity view row ───────────────────────────────────
+export interface TeamCapacityRow {
+  assignee: string
+  open_tasks: number
+  alerta_roja: number
+  alta: number
+  media: number
+  baja: number
 }

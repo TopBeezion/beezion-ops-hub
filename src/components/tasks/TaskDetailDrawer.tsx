@@ -216,7 +216,9 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
   }
 
   const removeAttachment = async (att: TaskAttachment) => {
-    await supabase.storage.from('task-attachments').remove([att.path])
+    if (att.path) {
+      await supabase.storage.from('task-attachments').remove([att.path])
+    }
     setAttachments(prev => prev.filter(a => a.path !== att.path))
   }
 
@@ -546,13 +548,13 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
               {attachments.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   {attachments.map(att => {
-                    const FileIcon = getFileIcon(att.type)
+                    const FileIcon = getFileIcon(att.type ?? '')
                     return (
-                      <div key={att.path} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 8, backgroundColor: '#FAFBFC', border: '1px solid #F0F0F0' }}>
+                      <div key={att.path ?? att.url} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 8, backgroundColor: '#FAFBFC', border: '1px solid #F0F0F0' }}>
                         <FileIcon size={14} style={{ color: '#9CA3AF', flexShrink: 0 }} />
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <p style={{ fontSize: 12, fontWeight: 500, color: '#374151', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{att.name}</p>
-                          <p style={{ fontSize: 10, color: '#9CA3AF', margin: 0 }}>{fmtBytes(att.size)}</p>
+                          <p style={{ fontSize: 10, color: '#9CA3AF', margin: 0 }}>{fmtBytes(att.size ?? 0)}</p>
                         </div>
                         <a href={att.url} download target="_blank" rel="noreferrer" style={{ padding: 4, color: '#9CA3AF', display: 'flex' }}><Download size={13} /></a>
                         <button type="button" onClick={() => removeAttachment(att)} style={{ padding: 4, border: 'none', cursor: 'pointer', backgroundColor: 'transparent', color: '#EF4444', display: 'flex' }}><Trash2 size={13} /></button>
