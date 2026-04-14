@@ -60,7 +60,7 @@ export function priorityFromDueDate(dueDate?: string | null): Priority {
 
 // ── Task Status (V2) ──────────────────────────────────────────
 export const STATUS_LABELS: Record<TaskStatus, string> = {
-  todo:        'Todo',
+  todo:        'To do',
   en_progreso: 'En Proceso',
   revision:    'Revisión',
   bloqueado:   'Bloqueado',
