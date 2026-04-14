@@ -66,7 +66,7 @@ export function getDaysOverdue(task: {
   due_date?: string | null
   created_at: string
 }): number {
-  if (task.status === 'hecho') return 0
+  if (task.status === 'done') return 0
   const now = new Date()
   now.setHours(0, 0, 0, 0)
 

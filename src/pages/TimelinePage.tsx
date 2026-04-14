@@ -166,7 +166,7 @@ function DeliverableChips({ task, isDone }: { task: Task; isDone: boolean }) {
 function TaskCard({ task, onOpen }: { task: Task; onOpen?: (t: Task) => void }) {
   const areaColor   = AREA_COLORS[task.area]
   const statusColor = STATUS_COLORS[task.status]
-  const isDone      = task.status === 'hecho'
+  const isDone      = task.status === 'done'
   const isUrgent    = task.tipo === 'urgente'
   const initials    = ASSIGNEE_INITIALS[task.assignee] ?? task.assignee.slice(0, 2).toUpperCase()
   const avatarColor = ASSIGNEE_COLORS[task.assignee] ?? '#6366F1'
@@ -257,7 +257,7 @@ function WeekCell({
   const MAX_VISIBLE = 4
   const visible = expanded ? tasks : tasks.slice(0, MAX_VISIBLE)
   const hidden  = tasks.length - MAX_VISIBLE
-  const done    = tasks.filter(t => t.status === 'hecho').length
+  const done    = tasks.filter(t => t.status === 'done').length
 
   return (
     <div style={{
@@ -315,7 +315,7 @@ function WeekCell({
 // ── Client label (left col) ──────────────────────────────────────
 function ClientLabel({ client, tasks }: { client: { id: string; name: string; color: string }; tasks: Task[] }) {
   const total = tasks.length
-  const done  = tasks.filter(t => t.status === 'hecho').length
+  const done  = tasks.filter(t => t.status === 'done').length
   const pct   = total > 0 ? Math.round((done / total) * 100) : 0
 
   return (

@@ -1,7 +1,18 @@
 // ── V2 enums ─────────────────────────────────────────────────
 export type Area = 'copy' | 'produccion' | 'edicion' | 'trafico' | 'tech' | 'admin'
 export type Priority = 'alerta_roja' | 'alta' | 'media' | 'baja'
-export type TaskStatus = 'todo' | 'en_progreso' | 'revision' | 'bloqueado' | 'hecho'
+export type TaskStatus =
+  | 'pendiente'
+  | 'en_proceso'
+  | 'aprobacion_interna'
+  | 'correcciones'
+  | 'enviado_cliente'
+  | 'ajustes_cliente'
+  | 'done'
+  | 'blocker'
+
+/** @deprecated Legacy alias; mini_status fue consolidado en TaskStatus. */
+export type MiniStatus = TaskStatus
 export type TaskTipo = 'nuevo' | 'pendiente_anterior' | 'urgente'
 export type TeamRole = 'admin_plus' | 'admin' | 'member'
 
@@ -19,14 +30,6 @@ export type Etapa =
   | 'lead_magnet'
   | 'tracking'
   | 'estructuracion'
-
-// Mini-status dentro de cada etapa
-export type MiniStatus =
-  | 'aprobacion_interna'
-  | 'correcciones'
-  | 'enviado_cliente'
-  | 'ajustes_cliente'
-  | 'aprobado'
 
 // ── Interfaces ───────────────────────────────────────────────
 export interface Client {
@@ -102,7 +105,6 @@ export interface Task {
   priority_manual_override?: boolean
   status: TaskStatus
   etapa?: Etapa
-  mini_status?: MiniStatus
   week: number
   tipo: TaskTipo
   problema?: string
@@ -126,7 +128,6 @@ export interface Subtask {
   task_id: string
   title: string
   status: TaskStatus
-  mini_status?: MiniStatus | null
   assignee?: string | null
   due_date?: string | null
   position: number

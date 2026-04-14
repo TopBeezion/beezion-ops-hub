@@ -1,4 +1,4 @@
-import type { Area, Priority, TaskStatus, TaskTipo, CampaignType, CampaignStatus, Etapa, MiniStatus, TeamRole } from '../types'
+import type { Area, Priority, TaskStatus, TaskTipo, CampaignType, CampaignStatus, Etapa } from '../types'
 
 // ── Area ─────────────────────────────────────────────────────
 export const AREA_LABELS: Record<Area, string> = {
@@ -58,34 +58,54 @@ export function priorityFromDueDate(dueDate?: string | null): Priority {
   return 'baja'
 }
 
-// ── Task Status (V2) ──────────────────────────────────────────
+// ── Task Status (V3 — unified, 8 values) ─────────────────────
 export const STATUS_LABELS: Record<TaskStatus, string> = {
-  todo:        'To do',
-  en_progreso: 'En Proceso',
-  revision:    'Revisión',
-  bloqueado:   'Bloqueado',
-  hecho:       'Hecho',
+  pendiente:          'Pendiente',
+  en_proceso:         'En Proceso',
+  aprobacion_interna: 'Aprobación Interna',
+  correcciones:       'Correcciones',
+  enviado_cliente:    'Enviado al Cliente',
+  ajustes_cliente:    'Ajustes de Cliente',
+  done:               'Done',
+  blocker:            'Blocker',
 }
 
 export const STATUS_COLORS: Record<TaskStatus, string> = {
-  todo:        '#9699B0',
-  en_progreso: '#3B82F6',
-  revision:    '#8B5CF6',
-  bloqueado:   '#EF4444',
-  hecho:       '#10B981',
+  pendiente:          '#9699B0',
+  en_proceso:         '#3B82F6',
+  aprobacion_interna: '#818CF8',
+  correcciones:       '#FBBF24',
+  enviado_cliente:    '#60A5FA',
+  ajustes_cliente:    '#F97316',
+  done:               '#10B981',
+  blocker:            '#EF4444',
 }
 
-export const STATUS_ORDER: TaskStatus[] = ['todo', 'en_progreso', 'revision', 'bloqueado', 'hecho']
+export const STATUS_ORDER: TaskStatus[] = [
+  'pendiente',
+  'en_proceso',
+  'aprobacion_interna',
+  'correcciones',
+  'enviado_cliente',
+  'ajustes_cliente',
+  'done',
+  'blocker',
+]
 
-// Back-compat: status viejos → V2 (para lectura de datos legacy)
+// Back-compat: status v2 viejos → v3 (solo por seguridad al leer datos legacy).
 export const LEGACY_STATUS_MAP: Record<string, TaskStatus> = {
-  pendiente: 'todo',
-  completado: 'hecho',
+  todo:        'pendiente',
+  en_progreso: 'en_proceso',
+  revision:    'aprobacion_interna',
+  hecho:       'done',
+  bloqueado:   'blocker',
+  completado:  'done',
+  aprobado:    'done',
 }
 export function normalizeStatus(s?: string | null): TaskStatus {
-  if (!s) return 'todo'
+  if (!s) return 'pendiente'
   if ((STATUS_ORDER as string[]).includes(s)) return s as TaskStatus
-  return LEGACY_STATUS_MAP[s] ?? 'todo'
+  return LEGACY_STATUS_MAP[s] ?? 'pendiente'
 }
 
 // ── Task Tipo ─────────────────────────────────────────────────
@@ -157,29 +177,17 @@ export const ETAPA_ORDER: Etapa[] = [
   'estructuracion',
 ]
 
-// ── Mini Status ───────────────────────────────────────────────
-export const MINI_STATUS_LABELS: Record<MiniStatus, string> = {
-  aprobacion_interna: 'Aprobación Interna',
-  correcciones: 'Correcciones',
-  enviado_cliente: 'Enviado al Cliente',
-  ajustes_cliente: 'Ajustes Cliente',
-  aprobado: '✓ Aprobado',
-}
-
-export const MINI_STATUS_COLORS: Record<MiniStatus, string> = {
-  aprobacion_interna: '#818CF8',
-  correcciones: '#FBBF24',
-  enviado_cliente: '#60A5FA',
-  ajustes_cliente: '#F97316',
-  aprobado: '#00C875',
-}
-
-export const MINI_STATUS_ORDER: MiniStatus[] = [
+// ── Mini Status (DEPRECATED) ──────────────────────────────────
+// Consolidado en TaskStatus. Estos re-exports existen solo para
+// evitar import-errors en código legado — apuntan a los mismos
+// valores/labels/colores de TaskStatus.
+export const MINI_STATUS_LABELS = STATUS_LABELS
+export const MINI_STATUS_COLORS = STATUS_COLORS
+export const MINI_STATUS_ORDER: TaskStatus[] = [
   'aprobacion_interna',
   'correcciones',
   'enviado_cliente',
   'ajustes_cliente',
-  'aprobado',
 ]
 
 // ── Client colors ─────────────────────────────────────────────
@@ -251,7 +259,6 @@ export const BACKLOG_COLUMNS = [
   { key: 'campaign', label: 'Campaña' },
   { key: 'etapa', label: 'Etapa' },
   { key: 'status', label: 'Status' },
-  { key: 'mini_status', label: 'Mini-Status' },
   { key: 'priority', label: 'Prioridad' },
   { key: 'area', label: 'Área' },
   { key: 'assignee', label: 'Responsable' },

@@ -4,13 +4,12 @@ import { X, ChevronDown, AlertTriangle, Check } from 'lucide-react'
 import { useClients } from '../../hooks/useClients'
 import { useCampaignsByClient } from '../../hooks/useCampaigns'
 import { useCreateTask } from '../../hooks/useTasks'
-import type { Area, Priority, TaskStatus, TaskTipo, Etapa, MiniStatus, Deliverables, TaskAttachment } from '../../types'
+import type { Area, Priority, TaskStatus, TaskTipo, Etapa, Deliverables, TaskAttachment } from '../../types'
 import {
   AREA_COLORS, AREA_LABELS,
   STATUS_LABELS, STATUS_COLORS,
   PRIORITY_LABELS, PRIORITY_COLORS,
   ETAPA_LABELS, ETAPA_COLORS, ETAPA_ORDER, ETAPA_TO_AREA,
-  MINI_STATUS_LABELS, MINI_STATUS_COLORS, MINI_STATUS_ORDER,
   priorityFromDueDate,
 } from '../../lib/constants'
 
@@ -27,16 +26,9 @@ const ASSIGNEES = [
 
 const DELIVERABLE_DEFS: { key: keyof Deliverables; label: string; color: string; areas: Area[] }[] = [
   { key: 'hooks',               label: 'Hooks de video',       color: '#8b5cf6', areas: ['copy'] },
-  { key: 'scripts_video',       label: 'Scripts video',        color: '#ec4899', areas: ['copy'] },
   { key: 'body_copy',           label: 'Body copy / Ad copy',  color: '#3b82f6', areas: ['copy'] },
   { key: 'cta',                 label: 'CTAs',                 color: '#f5a623', areas: ['copy','trafico'] },
   { key: 'lead_magnet_pdf',     label: 'Lead magnets (PDF)',   color: '#22c55e', areas: ['copy','admin'] },
-  { key: 'vsl_script',          label: 'Scripts VSL',          color: '#06b6d4', areas: ['copy'] },
-  { key: 'landing_copy',        label: 'Landing page copy',    color: '#f97316', areas: ['copy','tech'] },
-  { key: 'thank_you_page_copy', label: 'Thank you page',       color: '#fbbf24', areas: ['copy','tech'] },
-  { key: 'carousel_slides',     label: 'Slides / Carrusel',    color: '#a78bfa', areas: ['copy','admin'] },
-  { key: 'headline_options',    label: 'Opciones de headline', color: '#f472b6', areas: ['copy'] },
-  { key: 'retargeting_scripts', label: 'Scripts retargeting',  color: '#34d399', areas: ['copy','trafico'] },
 ]
 
 // ── Styles ────────────────────────────────────────────────────────────────────
@@ -157,11 +149,10 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
   const [area,         setArea]         = useState<Area>('copy')
   const [assignee,     setAssignee]     = useState('Alejandro')
   const [priority,     setPriority]     = useState<Priority>('media')
-  const [status,       setStatus]       = useState<TaskStatus>('todo')
+  const [status,       setStatus]       = useState<TaskStatus>('pendiente')
   const [week,         setWeek]         = useState(1)
   const [tipo,         setTipo]         = useState<TaskTipo>('nuevo')
   const [etapa,        setEtapa]        = useState<Etapa | ''>('')
-  const [miniStatus,   setMiniStatus]   = useState<MiniStatus | ''>('')
   const [dueDate,      setDueDate]      = useState('')
   const [attachments,  setAttachments]  = useState<TaskAttachment[]>([])
   const [newAttUrl,    setNewAttUrl]    = useState('')
@@ -301,7 +292,7 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
         client_id: clientId || undefined, campaign_id: campaignId || undefined,
         area, assignee, priority, status, week, tipo,
         etapa: etapa || undefined,
-        mini_status: miniStatus || undefined, due_date: dueDate || undefined,
+        due_date: dueDate || undefined,
         priority_manual_override: priorityManual,
         source: 'manual',
         attachments: attachments.length > 0 ? attachments : undefined,
@@ -327,10 +318,6 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
   const etapaOpts = [
     { value: '', label: 'Sin etapa', color: '#9699A6' },
     ...ETAPA_ORDER.map(e => ({ value: e, label: ETAPA_LABELS[e as Etapa], color: ETAPA_COLORS[e as Etapa] })),
-  ]
-  const miniStatusOpts = [
-    { value: '', label: 'Sin mini status', color: '#9699A6' },
-    ...MINI_STATUS_ORDER.map(s => ({ value: s, label: MINI_STATUS_LABELS[s as MiniStatus], color: MINI_STATUS_COLORS[s as MiniStatus] })),
   ]
   const clienteOpts = [
     { value: '', label: 'Sin cliente', color: '#9699A6' },
@@ -471,8 +458,6 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
             <div style={{ display: 'flex', gap: 10 }}>
               <FieldSel label="Etapa" required value={etapa} onChange={v => setEtapa(v as Etapa | '')} options={etapaOpts}
                 accentColor={etapa ? ETAPA_COLORS[etapa as Etapa] : '#9699A6'} />
-              <FieldSel label="Mini Status" value={miniStatus} onChange={v => setMiniStatus(v as MiniStatus | '')} options={miniStatusOpts}
-                accentColor={miniStatus ? MINI_STATUS_COLORS[miniStatus as MiniStatus] : '#9699A6'} />
             </div>
           </div>
 

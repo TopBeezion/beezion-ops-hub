@@ -186,7 +186,6 @@ const CARD_FIELDS = [
   { key: 'overdue',     label: 'Días de atraso' },
   { key: 'campaign',    label: 'Campaña' },
   { key: 'etapa',       label: 'Etapa' },
-  { key: 'mini_status', label: 'Mini-Status' },
   { key: 'due_date',    label: 'Fecha entrega' },
   { key: 'assignee',    label: 'Responsable' },
 ] as const
@@ -311,15 +310,6 @@ function TaskCard({ task, onOpenDetail, visibleFields }: { task: Task; onOpenDet
               padding: '2px 6px', borderRadius: 4,
             }}>
               {ETAPA_LABELS[(task as any).etapa as Etapa] || (task as any).etapa}
-            </span>
-          )}
-          {visibleFields.has('mini_status') && (task as any).mini_status && (
-            <span style={{
-              fontSize: 9, fontWeight: 700,
-              color: '#6366F1', backgroundColor: '#EEF2FF',
-              padding: '2px 6px', borderRadius: 4, border: '1px solid #E0E7FF',
-            }}>
-              {(task as any).mini_status}
             </span>
           )}
           {visibleFields.has('due_date') && task.due_date && (
@@ -450,7 +440,7 @@ function KanbanColumn({
             color: C.muted, fontSize: 11, fontWeight: 500, gap: 4,
           }}>
             <span style={{ fontSize: 18 }}>
-              {column.id === 'hecho' ? '🎉' : column.id === 'revision' ? '🚫' : '📋'}
+              {column.id === 'done' ? '🎉' : column.id === 'aprobacion_interna' ? '🚫' : '📋'}
             </span>
             Sin tareas aquí
           </div>
@@ -719,7 +709,7 @@ export function KanbanPage() {
                 tasks={tasksByBucket[column.id] ?? []}
                 onOpenDetail={openTaskDetail}
                 onNewTask={openNewTask}
-                showNewButton={groupBy === 'status' ? column.id === 'todo' : false}
+                showNewButton={groupBy === 'status' ? column.id === 'pendiente' : false}
                 visibleFields={visibleFields}
               />
             ))}

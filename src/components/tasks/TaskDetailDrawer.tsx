@@ -9,12 +9,11 @@ import { useUpdateTask, useDeleteTask } from '../../hooks/useTasks'
 import { getDaysOverdue } from '../../lib/dates'
 import { useClients } from '../../hooks/useClients'
 import { useCampaignsByClient } from '../../hooks/useCampaigns'
-import type { Task, Area, Priority, TaskStatus, TaskTipo, Etapa, MiniStatus, Deliverables, TaskAttachment } from '../../types'
+import type { Task, Area, Priority, TaskStatus, TaskTipo, Etapa, Deliverables, TaskAttachment } from '../../types'
 import {
   AREA_LABELS, AREA_COLORS, STATUS_LABELS, STATUS_COLORS,
   PRIORITY_LABELS, PRIORITY_COLORS,
   ETAPA_LABELS, ETAPA_COLORS, ETAPA_ORDER,
-  MINI_STATUS_LABELS, MINI_STATUS_COLORS, MINI_STATUS_ORDER,
 } from '../../lib/constants'
 import { TaskActivityLogPanel } from '../widgets/TaskActivityLogPanel'
 import { SubtasksPanel } from './SubtasksPanel'
@@ -33,16 +32,9 @@ const ASSIGNEES = [
 
 const DELIVERABLE_DEFS: { key: keyof Deliverables; label: string; color: string }[] = [
   { key: 'hooks',               label: 'Hooks de video',       color: '#8b5cf6' },
-  { key: 'scripts_video',       label: 'Scripts video',        color: '#ec4899' },
   { key: 'body_copy',           label: 'Body copy',            color: '#3b82f6' },
   { key: 'cta',                 label: 'CTAs',                 color: '#f5a623' },
   { key: 'lead_magnet_pdf',     label: 'Lead magnets',         color: '#22c55e' },
-  { key: 'vsl_script',          label: 'Scripts VSL',          color: '#06b6d4' },
-  { key: 'landing_copy',        label: 'Landing copy',         color: '#f97316' },
-  { key: 'thank_you_page_copy', label: 'Thank you page',       color: '#fbbf24' },
-  { key: 'carousel_slides',     label: 'Slides / Carrusel',    color: '#a78bfa' },
-  { key: 'headline_options',    label: 'Headlines',            color: '#f472b6' },
-  { key: 'retargeting_scripts', label: 'Retargeting',          color: '#34d399' },
 ]
 
 // ── usePopover ────────────────────────────────────────────────────────────────
@@ -144,7 +136,6 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
   const [clientId,     setClientId]     = useState(task.client_id ?? '')
   const [campaignId,   setCampaignId]   = useState(task.campaign_id ?? '')
   const [etapa,        setEtapa]        = useState<Etapa | ''>(task.etapa ?? '')
-  const [miniStatus,   setMiniStatus]   = useState<MiniStatus | ''>(task.mini_status ?? '')
   const [dueDate,      setDueDate]      = useState(task.due_date ?? '')
   const [deliverables, setDeliverables] = useState<Deliverables>(task.deliverables ?? {})
   const [attachments,  setAttachments]  = useState<TaskAttachment[]>(task.attachments ?? [])
@@ -179,7 +170,7 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
     assignee !== task.assignee || priority !== task.priority ||
     status !== task.status || week !== task.week || tipo !== task.tipo ||
     clientId !== (task.client_id ?? '') || campaignId !== (task.campaign_id ?? '') ||
-    etapa !== (task.etapa ?? '') || miniStatus !== (task.mini_status ?? '') ||
+    etapa !== (task.etapa ?? '') ||
     dueDate !== (task.due_date ?? '') ||
     JSON.stringify(deliverables) !== JSON.stringify(task.deliverables ?? {}) ||
     JSON.stringify(attachments)  !== JSON.stringify(task.attachments ?? [])
@@ -192,7 +183,7 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
         area, assignee, priority, status,
         week, tipo, client_id: clientId || undefined,
         campaign_id: campaignId || undefined, etapa: etapa || undefined,
-        mini_status: miniStatus || undefined, due_date: dueDate || undefined,
+        due_date: dueDate || undefined,
         deliverables: Object.keys(deliverables).length > 0 ? deliverables : undefined,
         attachments:  attachments.length > 0 ? attachments : undefined,
       })
@@ -242,7 +233,6 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
   const priorityOpts   = (Object.entries(PRIORITY_LABELS) as [Priority,   string][]).map(([v, l]) => ({ value: v, label: l, color: PRIORITY_COLORS[v] }))
   // tipo kept in state for save compatibility but not shown in UI
   const etapaOpts      = [{ value: '', label: 'Sin etapa', color: '#D1D5DB' }, ...ETAPA_ORDER.map(e => ({ value: e, label: ETAPA_LABELS[e as Etapa], color: ETAPA_COLORS[e as Etapa] }))]
-  const miniStatusOpts = [{ value: '', label: 'Sin estado', color: '#D1D5DB' }, ...MINI_STATUS_ORDER.map(s => ({ value: s, label: MINI_STATUS_LABELS[s as MiniStatus], color: MINI_STATUS_COLORS[s as MiniStatus] }))]
   const clienteOpts    = [{ value: '', label: 'Sin cliente', color: '#D1D5DB' }, ...clients.map(c => ({ value: c.id, label: c.name, color: c.color }))]
   const campanaOpts    = [{ value: '', label: 'Sin campaña', color: '#D1D5DB' }, ...campaigns.map(c => ({ value: c.id, label: c.name, color: '#6366F1' }))]
 
@@ -437,10 +427,9 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
               <FieldSel label="Campaña" value={campaignId} onChange={setCampaignId}                            options={campanaOpts} />
             </div>
 
-            {/* Etapa · Mini Status */}
+            {/* Etapa */}
             <div style={{ display: 'flex', gap: 8 }}>
-              <FieldSel label="Etapa" required value={etapa}      onChange={v => setEtapa(v as Etapa | '')}           options={etapaOpts}      accentColor={etapa ? ETAPA_COLORS[etapa as Etapa] : '#D1D5DB'} />
-              <FieldSel label="Mini Status" value={miniStatus} onChange={v => setMiniStatus(v as MiniStatus | '')} options={miniStatusOpts} accentColor={miniStatus ? MINI_STATUS_COLORS[miniStatus as MiniStatus] : '#D1D5DB'} />
+              <FieldSel label="Etapa" required value={etapa} onChange={v => setEtapa(v as Etapa | '')} options={etapaOpts} accentColor={etapa ? ETAPA_COLORS[etapa as Etapa] : '#D1D5DB'} />
             </div>
 
             {/* Fecha de Creación (auto) · Fecha de entrega */}

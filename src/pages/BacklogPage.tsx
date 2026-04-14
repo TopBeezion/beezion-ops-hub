@@ -48,7 +48,7 @@ const C = {
   muted: '#9699B0', accent: '#6366F1',
 }
 
-const STATUS_ORDER: TaskStatus[] = ['todo', 'en_progreso', 'revision', 'bloqueado', 'hecho']
+const STATUS_ORDER: TaskStatus[] = ['pendiente', 'en_proceso', 'aprobacion_interna', 'blocker', 'done']
 const PRIORITY_ORDER: Priority[] = ['alerta_roja', 'alta', 'media', 'baja']
 const AREA_ORDER: Area[] = ['copy', 'produccion', 'edicion', 'trafico', 'tech', 'admin']
 const ASSIGNEES = [

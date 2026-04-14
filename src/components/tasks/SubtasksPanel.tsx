@@ -3,10 +3,9 @@ import { Plus, Trash2, Check, ChevronDown, X } from 'lucide-react'
 import {
   useSubtasks, useCreateSubtask, useUpdateSubtask, useDeleteSubtask,
 } from '../../hooks/useSubtasks'
-import type { Subtask, TaskStatus, MiniStatus } from '../../types'
+import type { Subtask, TaskStatus } from '../../types'
 import {
   STATUS_LABELS, STATUS_COLORS, STATUS_ORDER,
-  MINI_STATUS_LABELS, MINI_STATUS_COLORS, MINI_STATUS_ORDER,
   ASSIGNEE_COLORS, TEAM_MEMBERS,
 } from '../../lib/constants'
 
@@ -58,59 +57,6 @@ function StatusPicker({ value, onChange }: { value: TaskStatus; onChange: (v: Ta
               }}>
                 <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: sc }} />
                 {STATUS_LABELS[s]}
-              </button>
-            )
-          })}
-        </div>
-      )}
-    </div>
-  )
-}
-
-function MiniStatusPicker({ value, onChange }: { value: MiniStatus | null | undefined; onChange: (v: MiniStatus | null) => void }) {
-  const { open, setOpen, ref } = usePop()
-  const color = value ? MINI_STATUS_COLORS[value] : '#9699B0'
-  return (
-    <div ref={ref} style={{ position: 'relative' }}>
-      <button
-        type="button"
-        onClick={(e) => { e.stopPropagation(); setOpen(o => !o) }}
-        style={{
-          display: 'inline-flex', alignItems: 'center', gap: 4,
-          padding: '3px 7px', borderRadius: 6, fontSize: 10, fontWeight: 700,
-          backgroundColor: value ? `${color}15` : '#F5F6FA',
-          color: value ? color : '#9699B0',
-          border: `1px dashed ${value ? `${color}55` : '#E4E7F0'}`, cursor: 'pointer',
-        }}
-      >
-        {value ? MINI_STATUS_LABELS[value] : 'Mini-status'}
-        <ChevronDown size={9} />
-      </button>
-      {open && (
-        <div style={{
-          position: 'absolute', top: 'calc(100% + 3px)', left: 0, zIndex: 50,
-          background: '#fff', border: '1px solid #E4E7F0', borderRadius: 8,
-          boxShadow: '0 6px 20px rgba(0,0,0,0.12)', padding: 3, minWidth: 170,
-        }}>
-          <button type="button" onClick={() => { onChange(null); setOpen(false) }} style={{
-            display: 'flex', alignItems: 'center', gap: 6, width: '100%',
-            padding: '6px 8px', borderRadius: 6, border: 'none', cursor: 'pointer',
-            background: !value ? '#F5F6FA' : 'transparent', textAlign: 'left',
-            fontSize: 11, color: '#9699B0', fontWeight: 600,
-          }}>
-            <X size={10} /> Sin mini-status
-          </button>
-          {MINI_STATUS_ORDER.map(s => {
-            const sc = MINI_STATUS_COLORS[s]
-            return (
-              <button key={s} type="button" onClick={() => { onChange(s); setOpen(false) }} style={{
-                display: 'flex', alignItems: 'center', gap: 7, width: '100%',
-                padding: '6px 8px', borderRadius: 6, border: 'none', cursor: 'pointer',
-                background: value === s ? `${sc}12` : 'transparent', textAlign: 'left', fontSize: 11, fontWeight: 600,
-                color: value === s ? sc : '#1A1D27',
-              }}>
-                <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: sc }} />
-                {MINI_STATUS_LABELS[s]}
               </button>
             )
           })}
@@ -190,16 +136,16 @@ function SubtaskRow({ subtask }: { subtask: Subtask }) {
   }
 
   const toggleDone = () => {
-    save({ status: subtask.status === 'hecho' ? 'todo' : 'hecho' })
+    save({ status: subtask.status === 'done' ? 'pendiente' : 'done' })
   }
 
-  const isDone = subtask.status === 'hecho'
+  const isDone = subtask.status === 'done'
   const statusColor = STATUS_COLORS[subtask.status]
 
   return (
     <div style={{
       display: 'grid',
-      gridTemplateColumns: '22px 1fr auto auto auto auto 24px',
+      gridTemplateColumns: '22px 1fr auto auto auto 24px',
       alignItems: 'center', gap: 8,
       padding: '7px 10px', borderBottom: '1px solid #F0F2F8',
       backgroundColor: isDone ? '#FAFBFC' : '#fff',
@@ -263,9 +209,6 @@ function SubtaskRow({ subtask }: { subtask: Subtask }) {
       {/* Status */}
       <StatusPicker value={subtask.status} onChange={v => save({ status: v })} />
 
-      {/* Mini status */}
-      <MiniStatusPicker value={subtask.mini_status} onChange={v => save({ mini_status: v })} />
-
       {/* Assignee */}
       <AssigneePicker value={subtask.assignee} onChange={v => save({ assignee: v })} />
 
@@ -309,7 +252,7 @@ export function SubtasksPanel({ taskId }: { taskId: string }) {
   const [newTitle, setNewTitle] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const doneCount = subtasks.filter(s => s.status === 'hecho').length
+  const doneCount = subtasks.filter(s => s.status === 'done').length
   const openCount = subtasks.length - doneCount
 
   const handleAdd = () => {
@@ -344,7 +287,7 @@ export function SubtasksPanel({ taskId }: { taskId: string }) {
         {subtasks.length > 0 && (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: '22px 1fr auto auto auto auto 24px',
+            gridTemplateColumns: '22px 1fr auto auto auto 24px',
             alignItems: 'center', gap: 8,
             padding: '6px 10px',
             backgroundColor: '#F5F6FA', borderBottom: '1px solid #E4E7F0',
@@ -354,7 +297,6 @@ export function SubtasksPanel({ taskId }: { taskId: string }) {
             <span />
             <span>Nombre</span>
             <span>Status</span>
-            <span>Mini-status</span>
             <span style={{ textAlign: 'center' }}>Resp.</span>
             <span>Entrega</span>
             <span />

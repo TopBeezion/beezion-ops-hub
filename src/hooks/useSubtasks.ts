@@ -27,7 +27,6 @@ export function useCreateSubtask() {
       task_id: string
       title: string
       status?: Subtask['status']
-      mini_status?: Subtask['mini_status']
       assignee?: string | null
       due_date?: string | null
       position?: number
@@ -35,8 +34,7 @@ export function useCreateSubtask() {
       const { error } = await supabase.from('subtasks').insert([{
         task_id: input.task_id,
         title: input.title,
-        status: input.status ?? 'todo',
-        mini_status: input.mini_status ?? null,
+        status: input.status ?? 'pendiente',
         assignee: input.assignee ?? null,
         due_date: input.due_date ?? null,
         position: input.position ?? 0,

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams, Navigate, useOutletContext } from 'react-router-dom'
+import { useParams, Navigate, useOutletContext, useNavigate } from 'react-router-dom'
 import { useTasks, useUpdateTaskStatus } from '../hooks/useTasks'
 import { useClients } from '../hooks/useClients'
 import { useCampaigns } from '../hooks/useCampaigns'
@@ -124,7 +124,7 @@ const CLIENT_STRATEGY: Record<string, { problems: string[]; strategies: string[]
   },
 }
 
-const STATUSES: TaskStatus[] = ['todo', 'en_progreso', 'revision', 'hecho']
+const STATUSES: TaskStatus[] = ['pendiente', 'en_proceso', 'aprobacion_interna', 'done']
 
 export function ClientDetailPage() {
   const { clientId } = useParams<{ clientId: string }>()
@@ -132,17 +132,17 @@ export function ClientDetailPage() {
   const { data: tasks = [], isLoading } = useTasks({ client_id: clientId })
   const { data: allCampaigns = [] } = useCampaigns()
   const updateStatus = useUpdateTaskStatus()
+  const navigate = useNavigate()
   const ctx = useOutletContext<{ openNewTask?: () => void; openTaskDetail?: (t: Task) => void }>()
 
   const [areaFilter, setAreaFilter] = useState<Area | ''>('')
-  const [expandedCampaign, setExpandedCampaign] = useState<string | null>(null)
 
   const client = clients.find(c => c.id === clientId)
   if (!isLoading && !client) return <Navigate to="/" replace />
 
   const clientCampaigns = allCampaigns.filter(c => c.client_id === clientId)
   const filteredTasks = areaFilter ? tasks.filter(t => t.area === areaFilter) : tasks
-  const completedCount = tasks.filter(t => t.status === 'hecho').length
+  const completedCount = tasks.filter(t => t.status === 'done').length
   const progress = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0
   const strategy = client ? CLIENT_STRATEGY[client.name] : null
   const tasksByStatus = STATUSES.map(s => ({ status: s, tasks: tasks.filter(t => t.status === s) }))
@@ -258,16 +258,18 @@ export function ClientDetailPage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
               {clientCampaigns.map(cam => {
                 const camTasks = tasks.filter(t => t.campaign_id === cam.id)
-                const camDone = camTasks.filter(t => t.status === 'hecho').length
+                const camDone = camTasks.filter(t => t.status === 'done').length
                 const camPct = camTasks.length > 0 ? Math.round((camDone / camTasks.length) * 100) : 0
                 const camColor = CAMPAIGN_TYPE_COLORS[cam.type as keyof typeof CAMPAIGN_TYPE_COLORS] ?? clientColor
-                const isExpanded = expandedCampaign === cam.id
-                const statusCount: Record<TaskStatus, number> = {
-                  todo: camTasks.filter(t => t.status === 'todo').length,
-                  en_progreso: camTasks.filter(t => t.status === 'en_progreso').length,
-                  revision: camTasks.filter(t => t.status === 'revision').length,
-                  bloqueado: camTasks.filter(t => t.status === 'bloqueado').length,
-                  hecho: camDone,
+                const statusCount: Partial<Record<TaskStatus, number>> = {
+                  pendiente:          camTasks.filter(t => t.status === 'pendiente').length,
+                  en_proceso:         camTasks.filter(t => t.status === 'en_proceso').length,
+                  aprobacion_interna: camTasks.filter(t => t.status === 'aprobacion_interna').length,
+                  correcciones:       camTasks.filter(t => t.status === 'correcciones').length,
+                  enviado_cliente:    camTasks.filter(t => t.status === 'enviado_cliente').length,
+                  ajustes_cliente:    camTasks.filter(t => t.status === 'ajustes_cliente').length,
+                  blocker:            camTasks.filter(t => t.status === 'blocker').length,
+                  done:               camDone,
                 }
 
                 return (
@@ -328,51 +330,21 @@ export function ClientDetailPage() {
                       </div>
                     </div>
 
-                    {/* Expand tasks */}
+                    {/* Open in Kanban */}
                     {camTasks.length > 0 && (
-                      <>
-                        <button
-                          onClick={() => setExpandedCampaign(isExpanded ? null : cam.id)}
-                          style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                            width: '100%', padding: '8px 14px',
-                            background: `${camColor}08`, border: 'none',
-                            borderTop: `1px solid ${camColor}20`, cursor: 'pointer',
-                            fontSize: 10, fontWeight: 600, color: camColor,
-                          }}
-                        >
-                          <span>{isExpanded ? 'Ocultar tareas' : `Ver ${camTasks.length} tareas`}</span>
-                          <ChevronRight size={12} style={{ transform: isExpanded ? 'rotate(90deg)' : 'none', transition: '0.15s' }} />
-                        </button>
-                        {isExpanded && (
-                          <div style={{ borderTop: `1px solid ${C.border}` }}>
-                            {camTasks.map((t, i) => (
-                              <div
-                                key={t.id}
-                                onClick={() => ctx?.openTaskDetail?.(t)}
-                                style={{
-                                  display: 'flex', alignItems: 'center', gap: 8,
-                                  padding: '8px 14px', cursor: 'pointer',
-                                  borderBottom: i < camTasks.length - 1 ? `1px solid ${C.border}` : 'none',
-                                  borderLeft: `3px solid ${STATUS_COLORS[t.status]}40`,
-                                }}
-                                onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#F8F9FC')}
-                                onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
-                              >
-                                <PriorityDot priority={t.priority} />
-                                <span style={{ flex: 1, fontSize: 11, color: C.text, fontWeight: 500 }}>{t.title}</span>
-                                <span style={{
-                                  fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 4,
-                                  backgroundColor: `${STATUS_COLORS[t.status]}15`,
-                                  color: STATUS_COLORS[t.status],
-                                }}>
-                                  {STATUS_LABELS[t.status]}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </>
+                      <button
+                        onClick={() => navigate(`/kanban?campaign=${cam.id}`)}
+                        style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                          width: '100%', padding: '8px 14px',
+                          background: `${camColor}08`, border: 'none',
+                          borderTop: `1px solid ${camColor}20`, cursor: 'pointer',
+                          fontSize: 10, fontWeight: 600, color: camColor,
+                        }}
+                      >
+                        <span>Ver {camTasks.length} tareas en Kanban</span>
+                        <ChevronRight size={12} />
+                      </button>
                     )}
                   </div>
                 )
@@ -513,8 +485,8 @@ export function ClientDetailPage() {
               <PriorityDot priority={task.priority} />
               <span style={{
                 flex: 1, fontSize: 12, fontWeight: 500,
-                color: task.status === 'hecho' ? C.muted : C.text,
-                textDecoration: task.status === 'hecho' ? 'line-through' : 'none',
+                color: task.status === 'done' ? C.muted : C.text,
+                textDecoration: task.status === 'done' ? 'line-through' : 'none',
               }}>
                 {task.title}
               </span>

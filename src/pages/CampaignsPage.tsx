@@ -124,7 +124,7 @@ function EtapaProgress({ campaignId, tasks }: { campaignId: string; tasks: Task[
     <div className="flex items-center gap-1 flex-wrap">
       {ETAPA_ORDER.map(etapa => {
         const et = campaignTasks.filter(t => t.etapa === etapa)
-        const done = et.filter(t => t.mini_status === 'aprobado').length
+        const done = et.filter(t => t.status === 'done').length
         const total = et.length
         const hasWork = total > 0
         const allDone = hasWork && done === total
@@ -372,7 +372,7 @@ function CampaignCard({
     setEditingName(false)
   }
   const campaignTasks = tasks.filter(t => t.campaign_id === campaign.id)
-  const completedCount = campaignTasks.filter(t => t.status === 'hecho').length
+  const completedCount = campaignTasks.filter(t => t.status === 'done').length
 
   return (
     <div style={{
@@ -498,14 +498,9 @@ function CampaignCard({
                       <div className="flex items-center gap-2">
                         <div style={{
                           width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
-                          backgroundColor: task.status === 'hecho' ? '#00C875' : task.status === 'en_progreso' ? '#579BFC' : task.status === 'revision' ? '#FDAB3D' : '#C4C4C4',
+                          backgroundColor: task.status === 'done' ? '#00C875' : task.status === 'en_proceso' ? '#579BFC' : task.status === 'aprobacion_interna' ? '#FDAB3D' : '#C4C4C4',
                         }} />
                         <span style={{ fontSize: 12, color: '#374151', fontWeight: 500 }}>{task.title}</span>
-                        {task.mini_status && (
-                          <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 99, backgroundColor: '#F0F3FF', color: '#6366F1', border: '1px solid #E0E7FF' }}>
-                            {task.mini_status === 'aprobado' ? '✓ Aprobado' : task.mini_status === 'aprobacion_interna' ? 'Apr. Interna' : task.mini_status === 'correcciones' ? 'Correcciones' : task.mini_status === 'enviado_cliente' ? 'Enviado' : 'Ajustes'}
-                          </span>
-                        )}
                       </div>
                       <div className="flex items-center gap-2">
                         {task.due_date && (
