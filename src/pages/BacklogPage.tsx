@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
+import { useUserPreference } from '../hooks/useUserPreferences'
 import { Search, Plus, X, ChevronDown, AlertTriangle, Columns as ColumnsIcon } from 'lucide-react'
 import { SavedViewsMenu } from '../components/widgets/SavedViewsMenu'
 import type { ViewConfig } from '../types'
@@ -344,19 +345,48 @@ export function BacklogPage() {
   const updateStatus = useUpdateTaskStatus()
   const ctx = useOutletContext<{ openNewTask?: () => void; openTaskDetail?: (t: Task) => void }>()
 
-  const [search, setSearch]         = useState('')
-  const [activePersons, setPersons] = useState<string[]>([])
-  const [activeClients, setClients] = useState<string[]>([])
-  const [activeStatuses, setStats]  = useState<TaskStatus[]>([])
-  const [activeArea, setArea]       = useState<Area | ''>('')
-  const [activeEtapa, setEtapa]     = useState<Etapa | ''>('')
-  const [groupBy, setGroupBy]       = useState<GroupByOption>('campaign')
+  const ALL_COLS = ['num','title','campaign','client','status','priority','area','etapa','assignee','week'] as const
+  const { value: prefs, setValue: setPrefs, loaded: prefsLoaded } = useUserPreference<{
+    search: string
+    activePersons: string[]
+    activeClients: string[]
+    activeStatuses: TaskStatus[]
+    activeArea: Area | ''
+    activeEtapa: Etapa | ''
+    groupBy: GroupByOption
+    visibleCols: string[]
+  }>('backlog', {
+    search: '',
+    activePersons: [],
+    activeClients: [],
+    activeStatuses: [],
+    activeArea: '',
+    activeEtapa: '',
+    groupBy: 'campaign',
+    visibleCols: [...ALL_COLS],
+  })
+
+  const search = prefs.search
+  const setSearch = (v: string) => setPrefs({ ...prefs, search: v })
+  const activePersons = prefs.activePersons
+  const setPersons = (v: string[]) => setPrefs({ ...prefs, activePersons: v })
+  const activeClients = prefs.activeClients
+  const setClients = (v: string[]) => setPrefs({ ...prefs, activeClients: v })
+  const activeStatuses = prefs.activeStatuses
+  const setStats = (v: TaskStatus[]) => setPrefs({ ...prefs, activeStatuses: v })
+  const activeArea = prefs.activeArea
+  const setArea = (v: Area | '') => setPrefs({ ...prefs, activeArea: v })
+  const activeEtapa = prefs.activeEtapa
+  const setEtapa = (v: Etapa | '') => setPrefs({ ...prefs, activeEtapa: v })
+  const groupBy = prefs.groupBy
+  const setGroupBy = (v: GroupByOption) => setPrefs({ ...prefs, groupBy: v })
+  const visibleCols = useMemo(() => new Set(prefs.visibleCols), [prefs.visibleCols])
+  const setVisibleCols = (next: Set<string>) => setPrefs({ ...prefs, visibleCols: Array.from(next) })
+  void prefsLoaded
+
   const [collapsedGroups, setCollapsed] = useState<Set<string>>(new Set())
   const [hoveredRow, setHoveredRow] = useState<string | null>(null)
-  // Columnas visibles (show/hide). Todas visibles por defecto.
-  const ALL_COLS = ['num','title','campaign','client','status','priority','area','etapa','assignee','week'] as const
-  const [visibleCols, setVisibleCols] = useState<Set<string>>(new Set(ALL_COLS))
-  const toggleCol = (k: string) => setVisibleCols(prev => { const n = new Set(prev); n.has(k) ? n.delete(k) : n.add(k); return n })
+  const toggleCol = (k: string) => { const n = new Set(visibleCols); if (n.has(k)) n.delete(k); else n.add(k); setVisibleCols(n) }
   const [colsMenuOpen, setColsMenuOpen] = useState(false)
   const colsMenuRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -377,7 +407,7 @@ export function BacklogPage() {
       setArea(cfg.filters.area ?? '')
       setEtapa(cfg.filters.etapa ?? '')
     }
-    if (cfg.columns) setVisibleCols(new Set(cfg.columns))
+    if (cfg.columns) setVisibleCols(new Set(cfg.columns as string[]))
   }
 
   const [filters] = useState<TaskFilters>({})

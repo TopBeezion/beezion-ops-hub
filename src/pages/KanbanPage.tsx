@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useTasks, useUpdateTaskStatus } from '../hooks/useTasks'
+import { useUserPreference } from '../hooks/useUserPreferences'
 import { getDaysOverdue } from '../lib/dates'
 import { useClients } from '../hooks/useClients'
 import { useCampaigns } from '../hooks/useCampaigns'
@@ -471,17 +472,36 @@ export function KanbanPage() {
 
   const updateTaskStatus = useUpdateTaskStatus()
 
-  const [groupBy, setGroupBy] = useState<GroupByKey>('status')
-  const [filterClients, setFilterClients] = useState<string[]>([])
-  const [filterAreas, setFilterAreas] = useState<string[]>([])
-  const [filterAssignees, setFilterAssignees] = useState<string[]>([])
-  const [draggedTask, setDraggedTask] = useState<Task | null>(null)
-  const [visibleFields, setVisibleFields] = useState<Set<string>>(() => {
-    try {
-      const saved = localStorage.getItem('kanban_visible_fields')
-      return saved ? new Set(JSON.parse(saved)) : new Set(DEFAULT_CARD_FIELDS)
-    } catch { return new Set(DEFAULT_CARD_FIELDS) }
+  const { value: prefs, setValue: setPrefs } = useUserPreference<{
+    groupBy: GroupByKey
+    filterClients: string[]
+    filterAreas: string[]
+    filterAssignees: string[]
+    visibleFields: string[]
+  }>('kanban', {
+    groupBy: 'status',
+    filterClients: [],
+    filterAreas: [],
+    filterAssignees: [],
+    visibleFields: DEFAULT_CARD_FIELDS,
   })
+  const groupBy = prefs.groupBy
+  const setGroupBy = (v: GroupByKey) => setPrefs({ ...prefs, groupBy: v })
+  const filterClients = prefs.filterClients
+  const setFilterClients = (v: string[] | ((p: string[]) => string[])) =>
+    setPrefs({ ...prefs, filterClients: typeof v === 'function' ? v(prefs.filterClients) : v })
+  const filterAreas = prefs.filterAreas
+  const setFilterAreas = (v: string[] | ((p: string[]) => string[])) =>
+    setPrefs({ ...prefs, filterAreas: typeof v === 'function' ? v(prefs.filterAreas) : v })
+  const filterAssignees = prefs.filterAssignees
+  const setFilterAssignees = (v: string[] | ((p: string[]) => string[])) =>
+    setPrefs({ ...prefs, filterAssignees: typeof v === 'function' ? v(prefs.filterAssignees) : v })
+  const [draggedTask, setDraggedTask] = useState<Task | null>(null)
+  const visibleFields = useMemo(() => new Set(prefs.visibleFields), [prefs.visibleFields])
+  const setVisibleFields = (updater: (prev: Set<string>) => Set<string>) => {
+    const next = updater(visibleFields)
+    setPrefs({ ...prefs, visibleFields: Array.from(next) })
+  }
   const [fieldPickerOpen, setFieldPickerOpen] = useState(false)
   const fieldPickerRef = useRef<HTMLDivElement>(null)
 
@@ -496,7 +516,6 @@ export function KanbanPage() {
     setVisibleFields(prev => {
       const next = new Set(prev)
       if (next.has(key)) next.delete(key); else next.add(key)
-      try { localStorage.setItem('kanban_visible_fields', JSON.stringify([...next])) } catch {}
       return next
     })
   }

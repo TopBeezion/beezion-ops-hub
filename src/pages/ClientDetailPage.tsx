@@ -8,7 +8,8 @@ import { AREA_LABELS, STATUS_LABELS, STATUS_COLORS, CAMPAIGN_TYPE_COLORS, CAMPAI
 import { AreaBadge } from '../components/ui/AreaBadge'
 import { AssigneeAvatar } from '../components/ui/AssigneeAvatar'
 import { PriorityDot } from '../components/ui/PriorityDot'
-import { ChevronRight, Target, AlertTriangle, CheckCircle2, Zap } from 'lucide-react'
+import { ChevronRight, Target, AlertTriangle, CheckCircle2, Zap, Plus, Trash2, Pencil, Check, X } from 'lucide-react'
+import { useClientStrategy, useUpsertClientStrategy } from '../hooks/useClientStrategy'
 
 const C = {
   bg: '#F0F2F8',
@@ -126,6 +127,130 @@ const CLIENT_STRATEGY: Record<string, { problems: string[]; strategies: string[]
 
 const STATUSES: TaskStatus[] = ['pendiente', 'en_proceso', 'aprobacion_interna', 'done']
 
+// ─── Editable list (problems / strategies / kpis) ────────────────────────────
+function EditableList({
+  items, accentColor, bgColor, renderBullet, onChange,
+  itemBg, itemBorder,
+}: {
+  items: string[]
+  accentColor: string
+  bgColor: string
+  renderBullet: (idx: number) => React.ReactNode
+  onChange: (next: string[]) => void
+  itemBg?: string
+  itemBorder?: string
+}) {
+  const [editingIdx, setEditingIdx] = useState<number | null>(null)
+  const [draft, setDraft] = useState('')
+  const [adding, setAdding] = useState(false)
+  const [newDraft, setNewDraft] = useState('')
+
+  const save = (idx: number) => {
+    const t = draft.trim()
+    if (!t) return
+    const next = [...items]
+    next[idx] = t
+    onChange(next)
+    setEditingIdx(null)
+  }
+  const remove = (idx: number) => {
+    const next = items.filter((_, i) => i !== idx)
+    onChange(next)
+  }
+  const add = () => {
+    const t = newDraft.trim()
+    if (!t) { setAdding(false); return }
+    onChange([...items, t])
+    setNewDraft('')
+    setAdding(false)
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {items.map((p, i) => (
+        <div key={i} style={{
+          display: 'flex', alignItems: 'flex-start', gap: 8,
+          padding: itemBg ? '8px 10px' : 0,
+          borderRadius: itemBg ? 8 : 0,
+          backgroundColor: itemBg, border: itemBorder,
+          group: 'item',
+        } as React.CSSProperties}>
+          {renderBullet(i)}
+          {editingIdx === i ? (
+            <>
+              <input
+                autoFocus value={draft} onChange={e => setDraft(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') save(i)
+                  if (e.key === 'Escape') setEditingIdx(null)
+                }}
+                style={{
+                  flex: 1, fontSize: 12, padding: '3px 6px', borderRadius: 5,
+                  border: `1px solid ${accentColor}`, outline: 'none', color: '#1A1D27', backgroundColor: '#fff',
+                }}
+              />
+              <button type="button" onClick={() => save(i)} title="Guardar"
+                style={{ background: accentColor, border: 'none', color: '#fff', borderRadius: 5, padding: 4, cursor: 'pointer', display: 'flex' }}>
+                <Check size={11} />
+              </button>
+              <button type="button" onClick={() => setEditingIdx(null)} title="Cancelar"
+                style={{ background: 'transparent', border: 'none', color: '#9699B0', cursor: 'pointer', display: 'flex', padding: 4 }}>
+                <X size={11} />
+              </button>
+            </>
+          ) : (
+            <>
+              <span style={{ flex: 1, fontSize: 12, color: bgColor, lineHeight: 1.5 }}>{p}</span>
+              <button type="button" onClick={() => { setDraft(p); setEditingIdx(i) }} title="Editar"
+                style={{ background: 'transparent', border: 'none', color: '#9699B0', cursor: 'pointer', display: 'flex', padding: 2, opacity: 0.6 }}
+                onMouseEnter={e => { e.currentTarget.style.opacity = '1' }}
+                onMouseLeave={e => { e.currentTarget.style.opacity = '0.6' }}>
+                <Pencil size={11} />
+              </button>
+              <button type="button" onClick={() => remove(i)} title="Eliminar"
+                style={{ background: 'transparent', border: 'none', color: '#9699B0', cursor: 'pointer', display: 'flex', padding: 2, opacity: 0.6 }}
+                onMouseEnter={e => { e.currentTarget.style.color = '#EF4444'; e.currentTarget.style.opacity = '1' }}
+                onMouseLeave={e => { e.currentTarget.style.color = '#9699B0'; e.currentTarget.style.opacity = '0.6' }}>
+                <Trash2 size={11} />
+              </button>
+            </>
+          )}
+        </div>
+      ))}
+      {adding ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <input
+            autoFocus value={newDraft} onChange={e => setNewDraft(e.target.value)}
+            placeholder="Nuevo item (Enter para guardar)"
+            onKeyDown={e => {
+              if (e.key === 'Enter') add()
+              if (e.key === 'Escape') { setNewDraft(''); setAdding(false) }
+            }}
+            onBlur={add}
+            style={{
+              flex: 1, fontSize: 12, padding: '5px 7px', borderRadius: 6,
+              border: `1px solid ${accentColor}`, outline: 'none', color: '#1A1D27', backgroundColor: '#fff',
+            }}
+          />
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setAdding(true)}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 5,
+            marginTop: 4, alignSelf: 'flex-start',
+            padding: '4px 9px', borderRadius: 6, fontSize: 10, fontWeight: 700,
+            backgroundColor: `${accentColor}12`, color: accentColor,
+            border: `1px dashed ${accentColor}50`, cursor: 'pointer',
+          }}>
+          <Plus size={10} /> Agregar
+        </button>
+      )}
+    </div>
+  )
+}
+
 export function ClientDetailPage() {
   const { clientId } = useParams<{ clientId: string }>()
   const { data: clients = [] } = useClients()
@@ -144,7 +269,21 @@ export function ClientDetailPage() {
   const filteredTasks = areaFilter ? tasks.filter(t => t.area === areaFilter) : tasks
   const completedCount = tasks.filter(t => t.status === 'done').length
   const progress = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0
-  const strategy = client ? CLIENT_STRATEGY[client.name] : null
+  const fallbackStrategy = client ? CLIENT_STRATEGY[client.name] : null
+  const { data: dbStrategy } = useClientStrategy(clientId)
+  const upsertStrategy = useUpsertClientStrategy()
+  const strategy = dbStrategy ?? fallbackStrategy ?? null
+
+  const saveStrategyField = (field: 'problems' | 'strategies' | 'kpis', next: string[]) => {
+    if (!clientId) return
+    const base = dbStrategy ?? { problems: fallbackStrategy?.problems ?? [], strategies: fallbackStrategy?.strategies ?? [], kpis: fallbackStrategy?.kpis ?? [] }
+    upsertStrategy.mutate({
+      client_id: clientId,
+      problems: field === 'problems' ? next : base.problems,
+      strategies: field === 'strategies' ? next : base.strategies,
+      kpis: field === 'kpis' ? next : base.kpis,
+    })
+  }
   const tasksByStatus = STATUSES.map(s => ({ status: s, tasks: tasks.filter(t => t.status === s) }))
   const clientColor = client?.color || '#6366F1'
 
@@ -365,19 +504,20 @@ export function ClientDetailPage() {
                     Problemas identificados
                   </p>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-                  {strategy.problems.map((p, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                      <span style={{
-                        fontSize: 9, fontWeight: 800, flexShrink: 0,
-                        width: 16, height: 16, borderRadius: 4, marginTop: 1,
-                        backgroundColor: '#FEF2F2', color: '#EF4444',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}>{i + 1}</span>
-                      <span style={{ fontSize: 12, color: C.sub, lineHeight: 1.5 }}>{p}</span>
-                    </div>
-                  ))}
-                </div>
+                <EditableList
+                  items={strategy.problems}
+                  accentColor="#EF4444"
+                  bgColor={C.sub}
+                  renderBullet={i => (
+                    <span style={{
+                      fontSize: 9, fontWeight: 800, flexShrink: 0,
+                      width: 16, height: 16, borderRadius: 4, marginTop: 1,
+                      backgroundColor: '#FEF2F2', color: '#EF4444',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>{i + 1}</span>
+                  )}
+                  onChange={next => saveStrategyField('problems', next)}
+                />
               </div>
 
               {/* KPIs */}
@@ -388,14 +528,17 @@ export function ClientDetailPage() {
                     KPIs objetivo
                   </p>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {strategy.kpis.map((k, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '8px 10px', borderRadius: 8, backgroundColor: '#EFF6FF', border: '1px solid #BFDBFE30' }}>
-                      <CheckCircle2 size={13} color="#3B82F6" style={{ flexShrink: 0, marginTop: 1 }} />
-                      <span style={{ fontSize: 12, fontWeight: 600, color: C.text, lineHeight: 1.5 }}>{k}</span>
-                    </div>
-                  ))}
-                </div>
+                <EditableList
+                  items={strategy.kpis}
+                  accentColor="#3B82F6"
+                  bgColor={C.text}
+                  itemBg="#EFF6FF"
+                  itemBorder="1px solid #BFDBFE30"
+                  renderBullet={() => (
+                    <CheckCircle2 size={13} color="#3B82F6" style={{ flexShrink: 0, marginTop: 1 }} />
+                  )}
+                  onChange={next => saveStrategyField('kpis', next)}
+                />
               </div>
             </div>
 
@@ -410,23 +553,22 @@ export function ClientDetailPage() {
                   {strategy.strategies.length} iniciativas
                 </span>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                {strategy.strategies.map((s, i) => (
-                  <div key={i} style={{
-                    display: 'flex', alignItems: 'flex-start', gap: 8,
-                    padding: '9px 11px', borderRadius: 8,
-                    backgroundColor: '#F0FDF4', border: '1px solid #86EFAC30',
-                  }}>
-                    <span style={{
-                      fontSize: 9, fontWeight: 800, flexShrink: 0,
-                      width: 16, height: 16, borderRadius: 4, marginTop: 1,
-                      backgroundColor: '#D1FAE5', color: '#10B981',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>{i + 1}</span>
-                    <span style={{ fontSize: 11, color: C.sub, lineHeight: 1.5 }}>{s}</span>
-                  </div>
-                ))}
-              </div>
+              <EditableList
+                items={strategy.strategies}
+                accentColor="#10B981"
+                bgColor={C.sub}
+                itemBg="#F0FDF4"
+                itemBorder="1px solid #86EFAC30"
+                renderBullet={i => (
+                  <span style={{
+                    fontSize: 9, fontWeight: 800, flexShrink: 0,
+                    width: 16, height: 16, borderRadius: 4, marginTop: 1,
+                    backgroundColor: '#D1FAE5', color: '#10B981',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>{i + 1}</span>
+                )}
+                onChange={next => saveStrategyField('strategies', next)}
+              />
             </div>
           </>
         )}
