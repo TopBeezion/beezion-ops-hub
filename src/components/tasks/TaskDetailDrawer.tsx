@@ -17,6 +17,7 @@ import {
   MINI_STATUS_LABELS, MINI_STATUS_COLORS, MINI_STATUS_ORDER,
 } from '../../lib/constants'
 import { TaskActivityLogPanel } from '../widgets/TaskActivityLogPanel'
+import { SubtasksPanel } from './SubtasksPanel'
 
 // ── Team ─────────────────────────────────────────────────────────────────────
 const ASSIGNEES = [
@@ -24,7 +25,7 @@ const ASSIGNEES = [
   { name: 'Alec',      role: 'Head of Paid · Estrategia',    color: '#f5a623', areas: ['trafico','tech'] },
   { name: 'Jose',      role: 'Trafficker',                   color: '#3b82f6', areas: ['trafico'] },
   { name: 'Luisa',     role: 'Copywriter',                   color: '#ef4444', areas: ['copy'] },
-  { name: 'Paula',     role: 'Aux. Marketing · Grabaciones', color: '#ec4899', areas: ['copy','admin'] },
+  { name: 'Paula',     role: 'Project Manager',              color: '#ec4899', areas: ['copy','admin','trafico','tech','produccion','edicion'] },
   { name: 'David',     role: 'Editor',                       color: '#06b6d4', areas: ['edicion'] },
   { name: 'Johan',     role: 'Editor',                       color: '#10b981', areas: ['edicion'] },
   { name: 'Felipe',    role: 'Lead Editor',                  color: '#f97316', areas: ['edicion'] },
@@ -520,6 +521,9 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
                 </div>
               )}
             </div>
+
+            {/* Subtareas */}
+            <SubtasksPanel taskId={task.id} />
 
             {/* Adjuntos */}
             <div>

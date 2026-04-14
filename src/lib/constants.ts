@@ -226,7 +226,7 @@ export const TEAM_ROLES: Record<string, string> = {
   Felipe: 'Editor',
   Johan: 'Editor',
   David: 'Editor',
-  Paula: 'Aux. Marketing · Grabaciones',
+  Paula: 'Project Manager',
   TBD: 'Por definir',
 }
 

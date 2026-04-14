@@ -121,6 +121,19 @@ export interface Task {
   attachments?: TaskAttachment[]
 }
 
+export interface Subtask {
+  id: string
+  task_id: string
+  title: string
+  status: TaskStatus
+  mini_status?: MiniStatus | null
+  assignee?: string | null
+  due_date?: string | null
+  position: number
+  created_at: string
+  updated_at: string
+}
+
 export interface TeamMember {
   id: string
   name: string
