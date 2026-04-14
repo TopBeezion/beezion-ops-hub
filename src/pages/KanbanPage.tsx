@@ -17,12 +17,16 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { GripVertical, Plus, ChevronDown } from 'lucide-react'
-import type { Task, TaskStatus, Area, Client } from '../types'
+import type { Task, TaskStatus, Area, Client, Priority, Etapa } from '../types'
 import {
   AREA_LABELS, AREA_COLORS,
-  PRIORITY_COLORS, ASSIGNEE_COLORS,
-  STATUS_LABELS,
+  PRIORITY_LABELS, PRIORITY_COLORS, ASSIGNEE_COLORS,
+  STATUS_LABELS, STATUS_COLORS, STATUS_ORDER,
+  ETAPA_LABELS, ETAPA_COLORS, ETAPA_ORDER,
+  KANBAN_GROUP_BY_OPTIONS,
 } from '../lib/constants'
+
+type GroupByKey = 'status' | 'etapa' | 'assignee' | 'priority' | 'area' | 'client'
 
 // ─── Tokens ───────────────────────────────────────────────────────────────────
 const C = {
@@ -35,12 +39,56 @@ const C = {
   accent: '#6366F1',
 }
 
-const COLUMNS: { id: TaskStatus; label: string; color: string; bg: string }[] = [
-  { id: 'todo',   label: 'Pendiente',  color: '#9699B0', bg: '#F4F5F7' },
-  { id: 'en_progreso', label: 'En Proceso', color: '#3B82F6', bg: '#EFF6FF' },
-  { id: 'revision',    label: 'Blocker',    color: '#EF4444', bg: '#FEF2F2' },
-  { id: 'hecho',  label: 'Done',       color: '#10B981', bg: '#F0FDF4' },
-]
+type Column = { id: string; label: string; color: string; bg: string }
+
+const bgFor = (color: string) => `${color}0D`
+
+const STATUS_COLUMNS: Column[] = STATUS_ORDER.map(s => ({
+  id: s, label: STATUS_LABELS[s], color: STATUS_COLORS[s], bg: bgFor(STATUS_COLORS[s]),
+}))
+
+function buildColumns(groupBy: GroupByKey, clients: Client[], tasks: Task[]): Column[] {
+  switch (groupBy) {
+    case 'status':
+      return STATUS_COLUMNS
+    case 'etapa':
+      return [
+        { id: '__none__', label: 'Sin etapa', color: '#9699B0', bg: '#F4F5F7' },
+        ...ETAPA_ORDER.map(e => ({ id: e, label: ETAPA_LABELS[e], color: ETAPA_COLORS[e], bg: bgFor(ETAPA_COLORS[e]) })),
+      ]
+    case 'assignee': {
+      const set = new Set<string>()
+      tasks.forEach(t => { if (t.assignee) set.add(t.assignee) })
+      return Array.from(set).sort().map(name => ({
+        id: name, label: name, color: ASSIGNEE_COLORS[name] ?? '#6B7280', bg: bgFor(ASSIGNEE_COLORS[name] ?? '#6B7280'),
+      }))
+    }
+    case 'priority':
+      return (['alerta_roja', 'alta', 'media', 'baja'] as Priority[]).map(p => ({
+        id: p, label: PRIORITY_LABELS[p], color: PRIORITY_COLORS[p], bg: bgFor(PRIORITY_COLORS[p]),
+      }))
+    case 'area':
+      return (Object.entries(AREA_LABELS) as [Area, string][]).map(([k, l]) => ({
+        id: k, label: l, color: AREA_COLORS[k], bg: bgFor(AREA_COLORS[k]),
+      }))
+    case 'client':
+      return [
+        { id: '__none__', label: 'Sin cliente', color: '#9699B0', bg: '#F4F5F7' },
+        ...clients.map(c => ({ id: c.id, label: c.name, color: c.color || '#6B7280', bg: bgFor(c.color || '#6B7280') })),
+      ]
+  }
+}
+
+function bucketOf(t: Task, groupBy: GroupByKey): string {
+  switch (groupBy) {
+    case 'status': return t.status
+    case 'etapa': return t.etapa ?? '__none__'
+    case 'assignee': return t.assignee ?? '__none__'
+    case 'priority': return t.priority
+    case 'area': return t.area
+    case 'client': return t.client_id ?? '__none__'
+  }
+}
 
 const KANBAN_ASSIGNEES = [
   { name: 'Alejandro', color: '#8B5CF6' },
@@ -278,12 +326,13 @@ function TaskCard({ task, onOpenDetail }: { task: Task; onOpenDetail: (t: Task) 
 
 // ─── Kanban column ────────────────────────────────────────────────────────────
 function KanbanColumn({
-  column, tasks, onOpenDetail, onNewTask,
+  column, tasks, onOpenDetail, onNewTask, showNewButton,
 }: {
-  column: typeof COLUMNS[0]
+  column: Column
   tasks: Task[]
   onOpenDetail: (t: Task) => void
   onNewTask?: () => void
+  showNewButton: boolean
 }) {
   const { setNodeRef } = useSortable({ id: column.id, data: { type: 'column' } })
 
@@ -315,7 +364,7 @@ function KanbanColumn({
             {tasks.length}
           </span>
         </div>
-        {onNewTask && column.id === 'todo' && (
+        {onNewTask && showNewButton && (
           <button
             onClick={onNewTask}
             style={{
@@ -378,6 +427,7 @@ export function KanbanPage() {
 
   const updateTaskStatus = useUpdateTaskStatus()
 
+  const [groupBy, setGroupBy] = useState<GroupByKey>('status')
   const [filterClients, setFilterClients] = useState<string[]>([])
   const [filterAreas, setFilterAreas] = useState<string[]>([])
   const [filterAssignees, setFilterAssignees] = useState<string[]>([])
@@ -396,13 +446,18 @@ export function KanbanPage() {
     return true
   }), [tasks, filterClients, filterAreas, filterAssignees])
 
-  const tasksByStatus = useMemo(() => {
-    const grouped: Record<TaskStatus, Task[]> = {
-      todo: [], en_progreso: [], revision: [], bloqueado: [], hecho: [],
-    }
-    filteredTasks.forEach(task => { grouped[task.status].push(task) })
+  const columns = useMemo(() => buildColumns(groupBy, clients, filteredTasks), [groupBy, clients, filteredTasks])
+
+  const tasksByBucket = useMemo(() => {
+    const grouped: Record<string, Task[]> = {}
+    columns.forEach(c => { grouped[c.id] = [] })
+    filteredTasks.forEach(task => {
+      const b = bucketOf(task, groupBy)
+      if (!grouped[b]) grouped[b] = []
+      grouped[b].push(task)
+    })
     return grouped
-  }, [filteredTasks])
+  }, [filteredTasks, columns, groupBy])
 
   const handleDragStart = ({ active }: DragStartEvent) => {
     const task = filteredTasks.find(t => t.id === active.id)
@@ -411,9 +466,11 @@ export function KanbanPage() {
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
     setDraggedTask(null)
-    if (!over) return
+    if (!over || !draggedTask) return
+    // Solo permitimos DnD cuando la agrupación es por status (otros campos requieren UI especial)
+    if (groupBy !== 'status') return
     const newStatus = over.id as TaskStatus
-    if (COLUMNS.map(c => c.id).includes(newStatus) && draggedTask) {
+    if (columns.map(c => c.id).includes(newStatus)) {
       updateTaskStatus.mutate({ id: draggedTask.id, status: newStatus })
     }
   }
@@ -446,14 +503,15 @@ export function KanbanPage() {
           multiValues={filterAreas}
           onMultiChange={v => setFilterAreas(v as Area[])}
         />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 6 }}>
+          <span style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: '0.05em' }}>AGRUPAR</span>
+          <select value={groupBy} onChange={e => setGroupBy(e.target.value as GroupByKey)}
+            style={{ height: 32, padding: '0 10px', fontSize: 11, fontWeight: 700, color: C.accent, backgroundColor: `${C.accent}10`, border: `1px solid ${C.accent}30`, borderRadius: 8, cursor: 'pointer', outline: 'none' }}>
+            {KANBAN_GROUP_BY_OPTIONS.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
+          </select>
+        </div>
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
-          {COLUMNS.map(col => (
-            <div key={col.id} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: col.color }} />
-              <span style={{ fontSize: 11, fontWeight: 600, color: C.sub }}>{tasksByStatus[col.id].length}</span>
-            </div>
-          ))}
-          <span style={{ fontSize: 10, color: C.muted, marginLeft: 4 }}>{filteredTasks.length} tareas</span>
+          <span style={{ fontSize: 10, color: C.muted }}>{filteredTasks.length} tareas · {columns.length} col.</span>
           {hasFilters && (
             <button onClick={clearFilters} style={{
               fontSize: 10, fontWeight: 700, cursor: 'pointer',
@@ -472,13 +530,14 @@ export function KanbanPage() {
           onDragEnd={handleDragEnd}
         >
           <div style={{ display: 'flex', gap: 14, height: '100%', minWidth: 'max-content' }}>
-            {COLUMNS.map(column => (
+            {columns.map(column => (
               <KanbanColumn
                 key={column.id}
                 column={column}
-                tasks={tasksByStatus[column.id]}
+                tasks={tasksByBucket[column.id] ?? []}
                 onOpenDetail={openTaskDetail}
                 onNewTask={openNewTask}
+                showNewButton={groupBy === 'status' ? column.id === 'todo' : false}
               />
             ))}
           </div>

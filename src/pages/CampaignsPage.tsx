@@ -4,6 +4,10 @@ import { useClients } from '../hooks/useClients'
 import { useCampaigns, useUpdateCampaign, useUpdateCampaignStatus, useCreateCampaign } from '../hooks/useCampaigns'
 import { useTasks } from '../hooks/useTasks'
 import { useOutletContext } from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth'
+import { useApplyCampaignTemplate, useCampaignTemplates } from '../hooks/useCampaignTemplates'
+import { CampaignProgressBar } from '../components/widgets/CampaignProgressBar'
+import { isAdminPlus } from '../lib/constants'
 import type { Task, Campaign, CampaignType, CampaignStatus } from '../types'
 import {
   CAMPAIGN_TYPE_LABELS, CAMPAIGN_TYPE_COLORS,
@@ -342,6 +346,7 @@ function AssigneePicker({ campaign, onUpdate }: {
 // ─── Campaign Card ────────────────────────────────────────────────────────────
 function CampaignCard({
   campaign, tasks, onOpenTask, onStatusUpdate, onAssigneesUpdate, onNameUpdate,
+  onApplyTemplate, onToggleRevisionFinal, canRevisionFinal,
 }: {
   campaign: Campaign
   tasks: Task[]
@@ -349,6 +354,9 @@ function CampaignCard({
   onStatusUpdate: (id: string, status: CampaignStatus) => void
   onAssigneesUpdate: (id: string, assignees: string[]) => void
   onNameUpdate: (id: string, name: string) => void
+  onApplyTemplate?: (id: string) => void
+  onToggleRevisionFinal?: (id: string, done: boolean) => void
+  canRevisionFinal?: boolean
 }) {
   const [expanded, setExpanded] = useState(false)
   const [editingName, setEditingName] = useState(false)
@@ -455,6 +463,10 @@ function CampaignCard({
             {campaign.objective}
           </p>
         )}
+        {/* Campaign progress bar */}
+        <div style={{ marginTop: 8, marginLeft: 22, marginRight: 4 }} onClick={e => e.stopPropagation()}>
+          <CampaignProgressBar campaignId={campaign.id} compact />
+        </div>
       </div>
 
       {/* Expanded task list */}
@@ -518,6 +530,37 @@ function CampaignCard({
               )
             })
           )}
+          {/* Action bar: template + revisión final (admin+) */}
+          <div style={{ padding: '10px 16px', borderTop: '1px solid #F0F1F5', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            {onApplyTemplate && (
+              <button
+                onClick={e => { e.stopPropagation(); onApplyTemplate(campaign.id) }}
+                style={{ fontSize: 11, fontWeight: 600, padding: '5px 10px', borderRadius: 6, border: '1px solid #E0E7FF', backgroundColor: '#EEF2FF', color: '#6366F1', cursor: 'pointer' }}
+              >
+                ⚡ Aplicar template
+              </button>
+            )}
+            {canRevisionFinal && onToggleRevisionFinal && (
+              <button
+                onClick={e => { e.stopPropagation(); onToggleRevisionFinal(campaign.id, !campaign.revision_final_done) }}
+                style={{
+                  fontSize: 11, fontWeight: 600, padding: '5px 10px', borderRadius: 6,
+                  border: `1px solid ${campaign.revision_final_done ? '#10B981' : '#E5E7EB'}`,
+                  backgroundColor: campaign.revision_final_done ? '#ECFDF5' : '#fff',
+                  color: campaign.revision_final_done ? '#047857' : '#6B7280',
+                  cursor: 'pointer',
+                }}
+              >
+                {campaign.revision_final_done ? '✓ Revisión final hecha' : 'Marcar revisión final'}
+              </button>
+            )}
+            {campaign.revision_final_done && campaign.revision_final_by && (
+              <span style={{ fontSize: 10, color: '#9CA3AF' }}>
+                por {campaign.revision_final_by}
+                {campaign.revision_final_at && ` · ${new Date(campaign.revision_final_at).toLocaleDateString('es')}`}
+              </span>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -604,6 +647,9 @@ export function CampaignsPage() {
   const updateCampaign = useUpdateCampaign()
   const createCampaign = useCreateCampaign()
   const ctx = useOutletContext<{ openTaskDetail?: (t: Task) => void }>()
+  const { user } = useAuth()
+  const canRevisionFinal = isAdminPlus(user)
+  const applyTemplate = useApplyCampaignTemplate()
 
   const [activeClient, setActiveClient] = useState<string | 'all'>('all')
   const [filterType, setFilterType] = useState<string>('')
@@ -621,6 +667,20 @@ export function CampaignsPage() {
 
   const handleNameUpdate = (id: string, name: string) => {
     updateCampaign.mutate({ id, name } as Parameters<typeof updateCampaign.mutate>[0])
+  }
+
+  const handleApplyTemplate = (id: string) => {
+    if (!confirm('¿Aplicar template a esta campaña? Se crearán las tareas faltantes.')) return
+    applyTemplate.mutate({ campaignId: id })
+  }
+
+  const handleToggleRevisionFinal = (id: string, done: boolean) => {
+    updateCampaign.mutate({
+      id,
+      revision_final_done: done,
+      revision_final_by: done ? (user?.name ?? user?.email ?? null) : null,
+      revision_final_at: done ? new Date().toISOString() : null,
+    } as Parameters<typeof updateCampaign.mutate>[0])
   }
 
   const handleCreateCampaign = (clientId: string, data: { name: string; type: CampaignType; objective: string }) => {
@@ -728,6 +788,9 @@ export function CampaignsPage() {
                   onStatusUpdate={handleStatusUpdate}
                   onAssigneesUpdate={handleAssigneesUpdate}
                   onNameUpdate={handleNameUpdate}
+                  onApplyTemplate={handleApplyTemplate}
+                  onToggleRevisionFinal={handleToggleRevisionFinal}
+                  canRevisionFinal={canRevisionFinal}
                 />
               ))}
             </div>
@@ -776,6 +839,9 @@ export function CampaignsPage() {
                       onStatusUpdate={handleStatusUpdate}
                       onAssigneesUpdate={handleAssigneesUpdate}
                       onNameUpdate={handleNameUpdate}
+                      onApplyTemplate={handleApplyTemplate}
+                      onToggleRevisionFinal={handleToggleRevisionFinal}
+                      canRevisionFinal={canRevisionFinal}
                     />
                   ))}
                 </div>

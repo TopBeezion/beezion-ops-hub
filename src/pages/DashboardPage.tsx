@@ -5,6 +5,7 @@ import { useCampaigns } from '../hooks/useCampaigns'
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import type { Task, Client, Area } from '../types'
 import { AREA_LABELS, AREA_COLORS, ASSIGNEE_COLORS, STATUS_LABELS, STATUS_COLORS, TEAM_MEMBERS, TEAM_ROLES } from '../lib/constants'
+import { TeamCapacityPanel } from '../components/widgets/TeamCapacityPanel'
 import {
   Flame, Zap, CheckCircle2, Clock, TrendingUp,
   Users, BarChart3, ChevronRight, Circle, Layers, Activity,
@@ -637,6 +638,11 @@ export function DashboardPage() {
               )
             })}
           </div>
+        </div>
+
+        {/* Capacidad del equipo (admin+ only) */}
+        <div style={{ marginTop: 16 }}>
+          <TeamCapacityPanel />
         </div>
       </div>
     </div>

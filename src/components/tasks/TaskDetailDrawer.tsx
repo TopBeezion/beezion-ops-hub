@@ -17,6 +17,7 @@ import {
   MINI_STATUS_LABELS, MINI_STATUS_COLORS, MINI_STATUS_ORDER,
 } from '../../lib/constants'
 import { getSprintDateRange } from '../../lib/dates'
+import { TaskActivityLogPanel } from '../widgets/TaskActivityLogPanel'
 
 // ── Team ─────────────────────────────────────────────────────────────────────
 const ASSIGNEES = [
@@ -563,6 +564,11 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
                   })}
                 </div>
               )}
+            </div>
+
+            {/* Historial de actividad */}
+            <div style={{ marginTop: 8 }}>
+              <TaskActivityLogPanel taskId={task.id} />
             </div>
 
           </div>
