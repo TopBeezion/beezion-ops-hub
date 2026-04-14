@@ -316,7 +316,13 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
       // Cerrar después de mostrar el éxito para que el usuario vea la confirmación
       setTimeout(() => { onClose() }, 1200)
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : 'Error al crear la tarea')
+      // Supabase PostgrestError tiene .message y .details; Error nativo tiene .message
+      const msg =
+        (err as { message?: string; details?: string })?.message ||
+        (err as { details?: string })?.details ||
+        (typeof err === 'string' ? err : JSON.stringify(err))
+      console.error('[TaskModal] createTask failed:', err)
+      setErrorMsg(`Error al crear la tarea: ${msg}`)
     }
   }
 
