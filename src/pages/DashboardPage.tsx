@@ -4,8 +4,9 @@ import { useClients } from '../hooks/useClients'
 import { useCampaigns } from '../hooks/useCampaigns'
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import type { Task, Client, Area } from '../types'
-import { AREA_LABELS, AREA_COLORS, ASSIGNEE_COLORS, STATUS_LABELS, STATUS_COLORS, TEAM_MEMBERS, TEAM_ROLES } from '../lib/constants'
+import { AREA_LABELS, AREA_COLORS, ASSIGNEE_COLORS, STATUS_LABELS, STATUS_COLORS, TEAM_MEMBERS, TEAM_ROLES, isAdminPlus } from '../lib/constants'
 import { TeamCapacityPanel } from '../components/widgets/TeamCapacityPanel'
+import { useAuth } from '../hooks/useAuth'
 import {
   Flame, Zap, CheckCircle2, Clock, TrendingUp,
   Users, BarChart3, ChevronRight, Circle, Layers, Activity,
@@ -303,6 +304,8 @@ export function DashboardPage() {
   const { data: clients = [] } = useClients()
   const { data: campaigns = [] } = useCampaigns()
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const canSeeTeamLoad = isAdminPlus(user)
   const ctx = useOutletContext<{ openNewTask?: () => void; openTaskDetail?: (t: Task) => void }>()
 
   // ── Mi Vista state ───────────────────────────────────────────────────────
@@ -592,9 +595,10 @@ export function DashboardPage() {
           </div>
         </div>
 
-        {/* Equipo */}
+        {/* Equipo (admin+ only) */}
+        {canSeeTeamLoad && (
         <div style={card({ padding: 18 })}>
-          <SectionHeader icon={Users} title="Carga del equipo" sub="Tareas por persona" color={C.orange} />
+          <SectionHeader icon={Users} title="Carga del equipo" sub="Tareas por persona · solo admin+" color={C.orange} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
             {teamStats.slice(0, 7).map(({ name, total, done, inProg }) => {
               const pct = total > 0 ? Math.round((done / total) * 100) : 0
@@ -639,6 +643,7 @@ export function DashboardPage() {
             })}
           </div>
         </div>
+        )}
 
         {/* Capacidad del equipo (admin+ only) */}
         <div style={{ marginTop: 16 }}>
