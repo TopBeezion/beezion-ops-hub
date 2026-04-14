@@ -16,7 +16,6 @@ import {
   ETAPA_LABELS, ETAPA_COLORS, ETAPA_ORDER,
   MINI_STATUS_LABELS, MINI_STATUS_COLORS, MINI_STATUS_ORDER,
 } from '../../lib/constants'
-import { getSprintDateRange } from '../../lib/dates'
 import { TaskActivityLogPanel } from '../widgets/TaskActivityLogPanel'
 
 // ── Team ─────────────────────────────────────────────────────────────────────
@@ -45,8 +44,6 @@ const DELIVERABLE_DEFS: { key: keyof Deliverables; label: string; color: string 
   { key: 'retargeting_scripts', label: 'Retargeting',          color: '#34d399' },
 ]
 
-const SPRINT_COLORS: Record<number, string> = { 1: '#8b5cf6', 2: '#ec4899', 3: '#3b82f6', 4: '#22c55e' }
-
 // ── usePopover ────────────────────────────────────────────────────────────────
 function usePopover() {
   const [open, setOpen] = useState(false)
@@ -64,13 +61,14 @@ function usePopover() {
 
 // ── Custom dropdown ───────────────────────────────────────────────────────────
 function FieldSel({
-  label, value, onChange, options, accentColor,
+  label, value, onChange, options, accentColor, required,
 }: {
   label: string
   value: string
   onChange: (v: string) => void
   options: { value: string; label: string; color?: string }[]
   accentColor?: string
+  required?: boolean
 }) {
   const { open, setOpen, ref } = usePopover()
   const sel = options.find(o => o.value === value)
@@ -78,7 +76,9 @@ function FieldSel({
 
   return (
     <div style={{ flex: 1, position: 'relative' }} ref={ref}>
-      <p style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>{label}</p>
+      <p style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>
+        {label}{required && <span style={{ color: '#EF4444' }}> *</span>}
+      </p>
       <button type="button" onClick={() => setOpen(v => !v)} style={{
         width: '100%', display: 'flex', alignItems: 'center', gap: 6,
         padding: '8px 10px', borderRadius: 8, cursor: 'pointer', outline: 'none',
@@ -156,10 +156,16 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const { data: campaigns = [] } = useCampaignsByClient(clientId || undefined)
-  const sprint      = getSprintDateRange(week)
-  const sprintColor = SPRINT_COLORS[week] ?? '#6366F1'
   const assigneeInfo = ASSIGNEES.find(a => a.name === assignee)
   const clientColor  = clients.find(c => c.id === clientId)?.color
+
+  // Validación: obligatorios
+  const missing: string[] = []
+  if (!title.trim())   missing.push('Título')
+  if (!clientId)       missing.push('Cliente')
+  if (!etapa)          missing.push('Etapa')
+  if (!dueDate)        missing.push('Fecha de entrega')
+  const isValid = missing.length === 0
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -274,8 +280,9 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               {isDirty && (
-                <button onClick={handleSave} disabled={saving}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg,#6366F1,#8B5CF6)', color: '#fff', boxShadow: '0 2px 12px rgba(99,102,241,0.35)', opacity: saving ? 0.7 : 1 }}>
+                <button onClick={handleSave} disabled={saving || !isValid}
+                  title={!isValid ? `Faltan: ${missing.join(', ')}` : undefined}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, border: 'none', cursor: (saving || !isValid) ? 'not-allowed' : 'pointer', background: 'linear-gradient(135deg,#6366F1,#8B5CF6)', color: '#fff', boxShadow: '0 2px 12px rgba(99,102,241,0.35)', opacity: (saving || !isValid) ? 0.5 : 1 }}>
                   <Save size={12} />
                   {saving ? 'Guardando…' : saved ? '✓ Guardado' : 'Guardar'}
                 </button>
@@ -418,49 +425,36 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
 
             {/* Cliente · Campaña */}
             <div style={{ display: 'flex', gap: 8 }}>
-              <FieldSel label="Cliente"  value={clientId}  onChange={v => { setClientId(v); setCampaignId('') }} options={clienteOpts}  accentColor={clientColor ?? '#D1D5DB'} />
-              <FieldSel label="Campaña"  value={campaignId} onChange={setCampaignId}                            options={campanaOpts} />
+              <FieldSel label="Cliente" required value={clientId}  onChange={v => { setClientId(v); setCampaignId('') }} options={clienteOpts}  accentColor={clientColor ?? '#D1D5DB'} />
+              <FieldSel label="Campaña" value={campaignId} onChange={setCampaignId}                            options={campanaOpts} />
             </div>
 
             {/* Etapa · Mini Status */}
             <div style={{ display: 'flex', gap: 8 }}>
-              <FieldSel label="Etapa"      value={etapa}      onChange={v => setEtapa(v as Etapa | '')}           options={etapaOpts}      accentColor={etapa ? ETAPA_COLORS[etapa as Etapa] : '#D1D5DB'} />
+              <FieldSel label="Etapa" required value={etapa}      onChange={v => setEtapa(v as Etapa | '')}           options={etapaOpts}      accentColor={etapa ? ETAPA_COLORS[etapa as Etapa] : '#D1D5DB'} />
               <FieldSel label="Mini Status" value={miniStatus} onChange={v => setMiniStatus(v as MiniStatus | '')} options={miniStatusOpts} accentColor={miniStatus ? MINI_STATUS_COLORS[miniStatus as MiniStatus] : '#D1D5DB'} />
             </div>
 
-            {/* Fecha · Sprint */}
+            {/* Fecha de Creación (auto) · Fecha de entrega */}
             <div style={{ display: 'flex', gap: 8 }}>
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>Fecha límite</p>
-                <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} style={{
+                <p style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>Fecha de Creación</p>
+                <input type="date" value={task.created_at ? new Date(task.created_at).toISOString().slice(0,10) : ''} readOnly disabled style={{
                   width: '100%', padding: '8px 10px', borderRadius: 8, outline: 'none',
-                  border: '1px solid #E5E7EB', backgroundColor: '#FAFBFC',
-                  fontSize: 12, color: dueDate && new Date(dueDate) < new Date() ? '#DC2626' : '#374151',
+                  border: '1px solid #E5E7EB', backgroundColor: '#EEF0F6',
+                  fontSize: 12, color: '#6B7280', cursor: 'not-allowed',
                 }} />
               </div>
-              <div style={{ flex: 1.5 }}>
-                <p style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>Sprint</p>
-                <div style={{ display: 'flex', gap: 4 }}>
-                  {[1,2,3,4].map(w => {
-                    const sc = SPRINT_COLORS[w]
-                    const s  = getSprintDateRange(w)
-                    const on = week === w
-                    return (
-                      <button key={w} onClick={() => setWeek(w)} style={{
-                        flex: 1, borderRadius: 8, padding: '7px 2px', textAlign: 'center',
-                        backgroundColor: on ? `${sc}10` : '#FAFBFC',
-                        border: `1px solid ${on ? sc + '50' : '#E5E7EB'}`,
-                        cursor: 'pointer', transition: 'all 0.12s',
-                      }}>
-                        <p style={{ fontSize: 11, fontWeight: 700, color: on ? sc : '#9CA3AF', margin: 0 }}>S{w}</p>
-                        <p style={{ fontSize: 8, color: '#D1D5DB', margin: 0 }}>{s.startFmt}</p>
-                      </button>
-                    )
-                  })}
-                </div>
-                <p style={{ fontSize: 10, color: sprintColor, fontWeight: 600, marginTop: 5 }}>
-                  Sprint {week} · <span style={{ color: '#9CA3AF', fontWeight: 400 }}>{sprint.label}</span>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>
+                  Fecha de entrega <span style={{ color: '#EF4444' }}>*</span>
                 </p>
+                <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} required style={{
+                  width: '100%', padding: '8px 10px', borderRadius: 8, outline: 'none',
+                  border: `1px solid ${!dueDate ? '#FCA5A5' : '#E5E7EB'}`,
+                  backgroundColor: !dueDate ? '#FEF2F2' : '#FAFBFC',
+                  fontSize: 12, color: dueDate && new Date(dueDate) < new Date() ? '#DC2626' : '#374151',
+                }} />
               </div>
             </div>
 
