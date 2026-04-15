@@ -12,7 +12,7 @@ import {
 } from '../lib/constants'
 import {
   ArrowLeft, Calendar, Target as TargetIcon,
-  ChevronDown, Archive, ArchiveRestore, Trash2, LayoutGrid,
+  ChevronDown, Archive, ArchiveRestore, Trash2, LayoutGrid, StickyNote,
 } from 'lucide-react'
 import { PriorityDot } from '../components/ui/PriorityDot'
 import { AssigneeAvatar } from '../components/ui/AssigneeAvatar'
@@ -135,6 +135,10 @@ export function CampaignDetailPage() {
   const [launchDate, setLaunchDate] = useState('')
   useEffect(() => { setLaunchDate(campaign?.launch_date ?? '') }, [campaign?.launch_date])
 
+  const [editNotes, setEditNotes] = useState(false)
+  const [notes, setNotes] = useState('')
+  useEffect(() => { setNotes(campaign?.notes ?? '') }, [campaign?.notes])
+
   const tasksByEtapa = useMemo(() => {
     const map: Record<string, Task[]> = {}
     ETAPA_ORDER.forEach(e => { map[e] = [] })
@@ -154,7 +158,7 @@ export function CampaignDetailPage() {
   const doneCount = tasks.filter(t => t.status === 'done').length
   const pct = tasks.length > 0 ? Math.round((doneCount / tasks.length) * 100) : 0
 
-  const saveField = (patch: Partial<{ type: CampaignType; status: CampaignStatus; objective: string; launch_date: string; name: string }>) => {
+  const saveField = (patch: Partial<{ type: CampaignType; status: CampaignStatus; objective: string; launch_date: string; name: string; notes: string }>) => {
     updateCampaign.mutate({ id: campaign.id, ...patch })
   }
 
@@ -299,6 +303,48 @@ export function CampaignDetailPage() {
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'transparent' }}
             >
               {campaign.objective || 'Click para agregar objetivo…'}
+            </button>
+          )}
+        </div>
+
+        {/* Notas */}
+        <div style={{ backgroundColor: '#FFFBEB', borderRadius: 14, padding: 18, border: '1px solid #FDE68A' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+            <StickyNote size={13} color="#B45309" />
+            <p style={{ fontSize: 10, fontWeight: 700, color: '#B45309', textTransform: 'uppercase', letterSpacing: '0.07em', margin: 0 }}>
+              Notas
+            </p>
+          </div>
+          {editNotes ? (
+            <textarea
+              autoFocus
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              onBlur={() => { setEditNotes(false); if (notes !== (campaign.notes ?? '')) saveField({ notes }) }}
+              rows={6}
+              style={{
+                width: '100%', padding: '10px 12px', borderRadius: 8,
+                border: '1px solid #F59E0B70', outline: 'none',
+                fontSize: 13, color: C.text, resize: 'vertical', fontFamily: 'inherit',
+                backgroundColor: '#FFFEF7', lineHeight: 1.55,
+              }}
+              placeholder="Notas de la campaña: decisiones, contexto, links, pendientes, lo que sea…"
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setEditNotes(true)}
+              style={{
+                width: '100%', textAlign: 'left', background: 'transparent',
+                border: '1px solid transparent', borderRadius: 8, padding: '10px 12px',
+                fontSize: 13, color: campaign.notes ? C.text : '#B45309',
+                fontStyle: campaign.notes ? 'normal' : 'italic',
+                cursor: 'text', minHeight: 80, whiteSpace: 'pre-wrap', lineHeight: 1.55,
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = '#FDE68A' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'transparent' }}
+            >
+              {campaign.notes || 'Click para agregar notas…'}
             </button>
           )}
         </div>

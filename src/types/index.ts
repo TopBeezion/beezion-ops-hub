@@ -47,6 +47,7 @@ export interface Campaign {
   type: CampaignType
   status: CampaignStatus
   objective?: string
+  notes?: string
   launch_date?: string
   assignees?: string[]
   revision_final_done?: boolean
