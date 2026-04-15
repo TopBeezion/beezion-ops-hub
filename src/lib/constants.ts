@@ -252,6 +252,13 @@ export function isAdminPlus(user?: { email?: string; role?: string; name?: strin
   return false
 }
 
+// Helper: siempre obtener lista de responsables (backcompat con assignee string)
+export function getTaskAssignees(t: { assignee?: string | null; assignees?: string[] | null }): string[] {
+  if (t.assignees && t.assignees.length > 0) return t.assignees.filter((x): x is string => !!x)
+  if (t.assignee && t.assignee.trim() !== '') return [t.assignee]
+  return []
+}
+
 // Cargos del equipo
 export const TEAM_ROLES: Record<string, string> = {
   Alejandro: 'CEO · Copy · Estrategia',

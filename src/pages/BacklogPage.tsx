@@ -13,6 +13,7 @@ import {
   AREA_LABELS, AREA_COLORS, STATUS_LABELS, STATUS_COLORS,
   PRIORITY_LABELS, PRIORITY_COLORS, CAMPAIGN_TYPE_COLORS,
   ETAPA_LABELS, ETAPA_COLORS, ETAPA_ORDER,
+  getTaskAssignees,
 } from '../lib/constants'
 
 // ─── Alias map: lo que el usuario escribe → lo que se busca ─────────────────
@@ -203,12 +204,20 @@ function AreaPicker({ task, onUpdate }: { task: Task; onUpdate: (id: string, a: 
   )
 }
 
-// ─── Assignee Picker ─────────────────────────────────────────────────────────
-function AssigneePicker({ task, onUpdate }: { task: Task; onUpdate: (id: string, name: string) => void }) {
+// ─── Assignee Picker (multi-select) ─────────────────────────────────────────
+function AssigneePicker({ task, onUpdate }: { task: Task; onUpdate: (id: string, names: string[]) => void }) {
   const { open, setOpen, ref } = usePopover()
-  const a = ASSIGNEES.find(x => x.name === task.assignee)
-  const color = a?.color ?? C.muted
-  const ini = task.assignee?.slice(0, 2).toUpperCase() ?? '?'
+  const selected = getTaskAssignees(task)
+  const primary = selected[0]
+  const primaryMeta = primary ? ASSIGNEES.find(x => x.name === primary) : undefined
+  const color = primaryMeta?.color ?? C.muted
+  const hasAny = selected.length > 0
+
+  const toggle = (name: string) => {
+    if (selected.includes(name)) onUpdate(task.id, selected.filter(n => n !== name))
+    else onUpdate(task.id, [...selected, name])
+  }
+
   return (
     <div ref={ref} style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
       <button onClick={() => setOpen(o => !o)} style={{
@@ -217,30 +226,74 @@ function AssigneePicker({ task, onUpdate }: { task: Task; onUpdate: (id: string,
         cursor: 'pointer', border: 'none', backgroundColor: `${color}12`,
         outline: `1.5px solid ${color}30`,
       }}>
-        <div style={{ width: 22, height: 22, borderRadius: '50%', backgroundColor: `${color}30`, color, fontSize: 8, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1.5px solid ${color}40` }}>{ini}</div>
-        <span style={{ color: C.sub }}>{task.assignee || '—'}</span>
+        {hasAny ? (
+          <>
+            <div style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
+              {selected.slice(0, 2).map((n, i) => {
+                const ac = ASSIGNEES.find(x => x.name === n)?.color ?? C.muted
+                return (
+                  <div key={n} style={{
+                    width: 22, height: 22, borderRadius: '50%',
+                    backgroundColor: `${ac}30`, color: ac,
+                    fontSize: 8, fontWeight: 800,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    border: `1.5px solid #fff`, marginLeft: i === 0 ? 0 : -6, zIndex: 10 - i,
+                  }}>{n.slice(0, 2).toUpperCase()}</div>
+                )
+              })}
+            </div>
+            <span style={{ color: C.sub }}>{selected.length === 1 ? primary : `${selected.length} personas`}</span>
+          </>
+        ) : (
+          <>
+            <div style={{ width: 22, height: 22, borderRadius: '50%', backgroundColor: `${color}30`, color, fontSize: 8, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: `1.5px solid ${color}40` }}>?</div>
+            <span style={{ color: C.sub }}>—</span>
+          </>
+        )}
         <ChevronDown size={9} style={{ color: C.muted, opacity: 0.6 }} />
       </button>
       {open && (
-        <div style={{ ...popoverBox, minWidth: 220, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, padding: 8 }}>
-          {ASSIGNEES.map(({ name, color: ac, role }) => {
-            const isActive = task.assignee === name
-            return (
-              <button key={name} onClick={() => { onUpdate(task.id, name); setOpen(false) }}
-                style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '6px 8px', borderRadius: 8, border: 'none', cursor: 'pointer', textAlign: 'left', backgroundColor: isActive ? `${ac}15` : 'transparent', outline: isActive ? `1.5px solid ${ac}40` : 'none', transition: 'all 0.1s' }}
-                onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.backgroundColor = '#F5F6FA' }}
-                onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent' }}
-              >
-                <div style={{ width: 24, height: 24, borderRadius: '50%', backgroundColor: isActive ? ac : `${ac}25`, color: isActive ? '#fff' : ac, fontSize: 9, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  {name.slice(0, 2).toUpperCase()}
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <p style={{ fontSize: 11, fontWeight: isActive ? 700 : 600, color: C.text, margin: 0 }}>{name}</p>
-                  <p style={{ fontSize: 9, color: C.muted, margin: 0 }}>{role}</p>
-                </div>
+        <div style={{ ...popoverBox, minWidth: 260, padding: 6 }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '4px 6px', fontSize: 9.5, fontWeight: 700, color: C.muted,
+            textTransform: 'uppercase', letterSpacing: '0.06em',
+          }}>
+            <span>Uno o varios</span>
+            {hasAny && (
+              <button type="button" onClick={() => onUpdate(task.id, [])}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 10, color: C.accent, fontWeight: 700 }}>
+                Limpiar
               </button>
-            )
-          })}
+            )}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+            {ASSIGNEES.map(({ name, color: ac, role }) => {
+              const isActive = selected.includes(name)
+              return (
+                <button key={name} onClick={() => toggle(name)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '6px 8px', borderRadius: 8, border: 'none', cursor: 'pointer', textAlign: 'left', backgroundColor: isActive ? `${ac}15` : 'transparent', outline: isActive ? `1.5px solid ${ac}40` : 'none', transition: 'all 0.1s' }}
+                  onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.backgroundColor = '#F5F6FA' }}
+                  onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent' }}
+                >
+                  <div style={{
+                    width: 15, height: 15, borderRadius: 3, flexShrink: 0,
+                    border: `1.5px solid ${isActive ? ac : C.border}`,
+                    background: isActive ? ac : '#fff',
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 9, color: '#fff', fontWeight: 800,
+                  }}>{isActive ? '✓' : ''}</div>
+                  <div style={{ width: 24, height: 24, borderRadius: '50%', backgroundColor: isActive ? ac : `${ac}25`, color: isActive ? '#fff' : ac, fontSize: 9, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    {name.slice(0, 2).toUpperCase()}
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <p style={{ fontSize: 11, fontWeight: isActive ? 700 : 600, color: C.text, margin: 0 }}>{name}</p>
+                    <p style={{ fontSize: 9, color: C.muted, margin: 0 }}>{role}</p>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
         </div>
       )}
     </div>
@@ -427,7 +480,10 @@ export function BacklogPage() {
 
   const filtered = tasks.filter(t => {
     if (search && !matchesSearch(t.title, search)) return false
-    if (activePersons.length && !activePersons.includes(t.assignee ?? '')) return false
+    if (activePersons.length) {
+      const names = getTaskAssignees(t)
+      if (!names.some(n => activePersons.includes(n))) return false
+    }
     if (activeClients.length && !activeClients.includes(t.client_id ?? '')) return false
     if (activeStatuses.length && !activeStatuses.includes(t.status)) return false
     if (activeArea && t.area !== activeArea) return false
@@ -435,12 +491,15 @@ export function BacklogPage() {
     return true
   })
 
-  const getKey = (t: Task): string => {
-    if (groupBy === 'campaign') return t.campaign_id ?? 'unassigned'
-    if (groupBy === 'client')   return t.client_id ?? 'unassigned'
-    if (groupBy === 'assignee') return t.assignee ?? 'unassigned'
-    if (groupBy === 'status')   return t.status
-    return 'all'
+  const getKeys = (t: Task): string[] => {
+    if (groupBy === 'campaign') return [t.campaign_id ?? 'unassigned']
+    if (groupBy === 'client')   return [t.client_id ?? 'unassigned']
+    if (groupBy === 'assignee') {
+      const names = getTaskAssignees(t)
+      return names.length > 0 ? names : ['unassigned']
+    }
+    if (groupBy === 'status')   return [t.status]
+    return ['all']
   }
 
   const getGroupMeta = (key: string): { label: string; color: string } => {
@@ -456,7 +515,11 @@ export function BacklogPage() {
   }
 
   const grouped = Object.entries(
-    filtered.reduce((acc, t) => { const k = getKey(t); if (!acc[k]) acc[k] = []; acc[k].push(t); return acc }, {} as Record<string, Task[]>)
+    filtered.reduce((acc, t) => {
+      const keys = getKeys(t)
+      keys.forEach(k => { if (!acc[k]) acc[k] = []; acc[k].push(t) })
+      return acc
+    }, {} as Record<string, Task[]>)
   ).map(([key, ts]) => ({ key, tasks: ts, ...getGroupMeta(key) }))
 
   const flatItems = (groupBy === 'none'
@@ -492,7 +555,7 @@ export function BacklogPage() {
   const handleStatusUpdate = (id: string, status: TaskStatus) => updateStatus.mutate({ id, status })
   const handlePriorityUpdate = (id: string, priority: Priority) => updateTask.mutate({ id, priority })
   const handleAreaUpdate = (id: string, area: Area) => updateTask.mutate({ id, area })
-  const handleAssigneeUpdate = (id: string, assignee: string) => updateTask.mutate({ id, assignee })
+  const handleAssigneeUpdate = (id: string, names: string[]) => updateTask.mutate({ id, assignees: names, assignee: names[0] ?? '' })
 
   const renderClient = (clientId?: string) => {
     const cl = clients.find(c => c.id === clientId)

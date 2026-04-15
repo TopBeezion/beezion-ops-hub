@@ -16,7 +16,7 @@ export function useTasks(filters?: TaskFilters) {
       if (filters?.campaign_id) query = query.eq('campaign_id', filters.campaign_id)
       if (filters?.area) query = query.eq('area', filters.area)
       if (filters?.week) query = query.eq('week', filters.week)
-      if (filters?.assignee) query = query.eq('assignee', filters.assignee)
+      if (filters?.assignee) query = query.contains('assignees', [filters.assignee])
       if (filters?.status) query = query.eq('status', filters.status)
       if (filters?.priority) query = query.eq('priority', filters.priority)
       if (filters?.etapa) query = query.eq('etapa', filters.etapa)

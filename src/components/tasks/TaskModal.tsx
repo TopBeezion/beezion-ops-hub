@@ -147,7 +147,7 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
   const [clientId,     setClientId]     = useState(defaultClientId || '')
   const [campaignId,   setCampaignId]   = useState(defaultCampaignId || '')
   const [area,         setArea]         = useState<Area>('copy')
-  const [assignee,     setAssignee]     = useState('Alejandro')
+  const [assignees,    setAssignees]    = useState<string[]>(['Alejandro'])
   const [priority,     setPriority]     = useState<Priority>('media')
   const [status,       setStatus]       = useState<TaskStatus>('pendiente')
   const [week,         setWeek]         = useState(1)
@@ -189,7 +189,8 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
   }, [dueDate, priorityManual])
 
   const { data: campaigns } = useCampaignsForSelector(clientId || undefined)
-  const assigneeInfo = ASSIGNEES.find(a => a.name === assignee)
+  const primaryAssignee = assignees[0] ?? ''
+  const assigneeInfo = ASSIGNEES.find(a => a.name === primaryAssignee)
   const relevantDel  = DELIVERABLE_DEFS.filter(d => d.areas.includes(area))
 
   // ── Auto-detect etapa from title ──────────────────────────────────────────
@@ -289,7 +290,7 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
       await createTask.mutateAsync({
         title, description: description || undefined,
         client_id: clientId || undefined, campaign_id: campaignId || undefined,
-        area, assignee, priority, status, week, tipo,
+        area, assignee: assignees[0] ?? '', assignees, priority, status, week, tipo,
         etapa: etapa || undefined,
         due_date: dueDate || undefined,
         priority_manual_override: priorityManual,
@@ -408,12 +409,15 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
               </div>
             </div>
             <div>
-              <label style={lbl}>Responsable</label>
+              <label style={lbl}>Responsables <span style={{ fontSize: 10, fontWeight: 500, color: '#9CA3AF' }}>(uno o varios)</span></label>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {ASSIGNEES.map(a => {
-                  const isActive = assignee === a.name
+                  const isActive = assignees.includes(a.name)
+                  const toggle = () => {
+                    setAssignees(prev => prev.includes(a.name) ? prev.filter(n => n !== a.name) : [...prev, a.name])
+                  }
                   return (
-                    <button key={a.name} type="button" onClick={() => setAssignee(a.name)}
+                    <button key={a.name} type="button" onClick={toggle}
                       title={a.role}
                       style={{
                         display: 'flex', alignItems: 'center', gap: 6,
@@ -427,8 +431,8 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
                         width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontSize: 8, fontWeight: 800,
-                        background: `linear-gradient(135deg,${a.color}40,${a.color}20)`,
-                        color: a.color, border: `1px solid ${a.color}30`,
+                        background: isActive ? `linear-gradient(135deg,${a.color},${a.color}80)` : `linear-gradient(135deg,${a.color}40,${a.color}20)`,
+                        color: isActive ? '#fff' : a.color, border: `1px solid ${a.color}30`,
                       }}>
                         {a.name.slice(0, 2).toUpperCase()}
                       </div>
@@ -439,7 +443,7 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
               </div>
               {assigneeInfo && !assigneeInfo.areas.includes(area) && (
                 <p style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: '#F59E0B', marginTop: 6 }}>
-                  <AlertTriangle size={10} /> {assignee} normalmente cubre {assigneeInfo.areas.join(', ')}, no <strong>{AREA_LABELS[area]}</strong>.
+                  <AlertTriangle size={10} /> {primaryAssignee} normalmente cubre {assigneeInfo.areas.join(', ')}, no <strong>{AREA_LABELS[area]}</strong>.
                 </p>
               )}
             </div>

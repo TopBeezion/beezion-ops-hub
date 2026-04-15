@@ -11,7 +11,7 @@ import {
   ETAPA_LABELS, ETAPA_COLORS, ETAPA_ORDER, ETAPA_TO_AREA,
   STATUS_LABELS, STATUS_COLORS, STATUS_ORDER,
   PRIORITY_LABELS, PRIORITY_COLORS, PRIORITY_ORDER,
-  TEAM_MEMBERS, ASSIGNEE_COLORS,
+  TEAM_MEMBERS, ASSIGNEE_COLORS, getTaskAssignees,
 } from '../lib/constants'
 import {
   ArrowLeft, Calendar, Target as TargetIcon,
@@ -195,6 +195,135 @@ function BadgePicker({
   )
 }
 
+// ── Multi-select badge picker (para responsables) ─────────────────────────
+function MultiBadgePicker({
+  values, options, onChange, width, align = 'left', title,
+}: {
+  values: string[]
+  options: { value: string; label: string; color?: string }[]
+  onChange: (v: string[]) => void
+  width?: number | string
+  align?: 'left' | 'right'
+  title?: string
+}) {
+  const { open, setOpen, ref } = usePop()
+  const initials = (n: string) => n.slice(0, 2).toUpperCase()
+  const selected = values.map(v => options.find(o => o.value === v)).filter(Boolean) as { value: string; label: string; color?: string }[]
+  const primary = selected[0]
+  const primaryColor = primary?.color ?? C.muted
+  const hasAny = selected.length > 0
+
+  const toggle = (val: string) => {
+    if (values.includes(val)) onChange(values.filter(v => v !== val))
+    else onChange([...values, val])
+  }
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
+      <button
+        type="button"
+        title={title}
+        onClick={e => { e.stopPropagation(); setOpen(o => !o) }}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          padding: '4px 10px 4px 5px', borderRadius: 7,
+          fontSize: 11.5, fontWeight: 700,
+          backgroundColor: hasAny ? `${primaryColor}15` : '#F5F6FA',
+          color: hasAny ? primaryColor : C.muted,
+          border: `1px solid ${hasAny ? `${primaryColor}40` : C.border}`,
+          cursor: 'pointer', width: width ?? 'auto', justifyContent: 'space-between',
+        }}
+      >
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
+          {hasAny ? (
+            <>
+              <span style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
+                {selected.slice(0, 2).map((s, i) => {
+                  const c = s.color ?? C.sub
+                  return (
+                    <span key={s.value} style={{
+                      width: 16, height: 16, borderRadius: '50%',
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 7.5, fontWeight: 800, color: '#fff',
+                      background: `linear-gradient(135deg,${c},${c}80)`,
+                      border: '1.5px solid #fff',
+                      marginLeft: i === 0 ? 0 : -5,
+                      zIndex: 10 - i,
+                    }}>{initials(s.label)}</span>
+                  )
+                })}
+              </span>
+              <span style={{ marginLeft: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {selected.length === 1 ? primary.label : `${selected.length} personas`}
+              </span>
+            </>
+          ) : (
+            <>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: C.muted, flexShrink: 0 }} />
+              Sin asignar
+            </>
+          )}
+        </span>
+        <ChevronDown size={11} />
+      </button>
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 4px)',
+          [align]: 0 as unknown as number,
+          zIndex: 1000,
+          background: '#fff', border: `1px solid ${C.border}`, borderRadius: 8,
+          boxShadow: '0 6px 20px rgba(0,0,0,0.12)', padding: 4, minWidth: 200,
+          maxHeight: 300, overflowY: 'auto',
+        } as React.CSSProperties}>
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '5px 8px', fontSize: 9.5, fontWeight: 700, color: C.muted,
+            textTransform: 'uppercase', letterSpacing: '0.07em',
+          }}>
+            <span>Uno o varios</span>
+            {hasAny && (
+              <button type="button" onClick={e => { e.stopPropagation(); onChange([]) }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 10, color: C.accent, fontWeight: 700 }}>
+                Limpiar
+              </button>
+            )}
+          </div>
+          {options.map(o => {
+            const c = o.color ?? C.sub
+            const sel = values.includes(o.value)
+            return (
+              <button
+                key={o.value}
+                type="button"
+                onClick={e => { e.stopPropagation(); toggle(o.value) }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 7, width: '100%',
+                  padding: '6px 9px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                  background: sel ? `${c}12` : 'transparent',
+                  textAlign: 'left', fontSize: 12, fontWeight: 600,
+                  color: sel ? c : C.text,
+                }}
+                onMouseEnter={e => { if (!sel) e.currentTarget.style.backgroundColor = '#F5F6FA' }}
+                onMouseLeave={e => { if (!sel) e.currentTarget.style.backgroundColor = 'transparent' }}
+              >
+                <span style={{
+                  width: 15, height: 15, borderRadius: 3, flexShrink: 0,
+                  border: `1.5px solid ${sel ? c : C.border}`,
+                  background: sel ? c : '#fff',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 9, color: '#fff', fontWeight: 800,
+                }}>{sel ? '✓' : ''}</span>
+                <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: c, flexShrink: 0 }} />
+                {o.label}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Inline editable task row ───────────────────────────────────────────────
 function InlineTaskRow({ task, onOpen }: { task: Task; onOpen: () => void }) {
   const updateTask = useUpdateTask()
@@ -203,7 +332,7 @@ function InlineTaskRow({ task, onOpen }: { task: Task; onOpen: () => void }) {
 
   const statusColor = STATUS_COLORS[task.status]
   const priorityColor = PRIORITY_COLORS[task.priority] ?? C.muted
-  const assigneeColor = task.assignee ? (ASSIGNEE_COLORS[task.assignee] ?? C.accent) : C.muted
+  const taskAssignees = getTaskAssignees(task)
   const etapaColor = task.etapa ? (ETAPA_COLORS[task.etapa as Etapa] ?? C.sub) : C.muted
 
   // Date overdue/urgency styling
@@ -231,12 +360,9 @@ function InlineTaskRow({ task, onOpen }: { task: Task; onOpen: () => void }) {
   const priorityOptions: BadgeOption[] = PRIORITY_ORDER.map(p => ({
     value: p, label: PRIORITY_LABELS[p], color: PRIORITY_COLORS[p],
   }))
-  const assigneeOptions: BadgeOption[] = [
-    { value: '', label: 'Sin asignar', color: C.muted },
-    ...TEAM_MEMBERS.map(m => ({
-      value: m, label: m, color: ASSIGNEE_COLORS[m] ?? C.accent,
-    })),
-  ]
+  const assigneeOptions = TEAM_MEMBERS.map(m => ({
+    value: m, label: m, color: ASSIGNEE_COLORS[m] ?? C.accent,
+  }))
 
   return (
     <div
@@ -325,15 +451,14 @@ function InlineTaskRow({ task, onOpen }: { task: Task; onOpen: () => void }) {
         />
       </div>
 
-      {/* Assignee */}
-      <BadgePicker
-        title="Responsable"
-        value={task.assignee ?? ''}
-        color={assigneeColor}
+      {/* Assignees (multi) */}
+      <MultiBadgePicker
+        title="Responsables"
+        values={taskAssignees}
         options={assigneeOptions}
         width="100%"
         align="right"
-        onChange={v => patch({ assignee: (v || undefined) } as Partial<Task>)}
+        onChange={vs => patch({ assignees: vs, assignee: vs[0] ?? '' } as Partial<Task>)}
       />
     </div>
   )
@@ -378,6 +503,7 @@ function AddTaskRow({
         campaign_id: target,
         area,
         assignee: '',
+        assignees: [],
         priority: 'baja',
         priority_manual_override: true,
         status: 'pendiente',

@@ -53,19 +53,26 @@ function usePopover() {
   return { open, setOpen, ref }
 }
 
-// ── Assignee dropdown (compact) ───────────────────────────────────────────────
+// ── Assignee dropdown (multi-select) ───────────────────────────────────────────
 type AssigneeItem = { name: string; role: string; color: string; areas: string[] }
 function AssigneeDropdown({
   value, onChange, options,
 }: {
-  value: string
-  onChange: (v: string) => void
+  value: string[]
+  onChange: (v: string[]) => void
   options: AssigneeItem[]
 }) {
   const { open, setOpen, ref } = usePopover()
-  const current = options.find(a => a.name === value)
   const initials = (n: string) => n.slice(0, 2).toUpperCase()
-  const color = current?.color ?? '#9CA3AF'
+  const selected = value.map(name => options.find(o => o.name === name)).filter(Boolean) as AssigneeItem[]
+  const hasAny = selected.length > 0
+  const primary = selected[0]
+  const primaryColor = primary?.color ?? '#9CA3AF'
+
+  const toggle = (name: string) => {
+    if (value.includes(name)) onChange(value.filter(v => v !== name))
+    else onChange([...value, name])
+  }
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
@@ -75,23 +82,35 @@ function AssigneeDropdown({
         style={{
           width: '100%', display: 'flex', alignItems: 'center', gap: 10,
           padding: '8px 11px', borderRadius: 9,
-          background: current ? `${color}10` : '#FAFBFC',
-          border: `1.5px solid ${current ? `${color}40` : '#F0F0F0'}`,
+          background: hasAny ? `${primaryColor}10` : '#FAFBFC',
+          border: `1.5px solid ${hasAny ? `${primaryColor}40` : '#F0F0F0'}`,
           cursor: 'pointer', textAlign: 'left',
         }}
       >
-        {current ? (
+        {hasAny ? (
           <>
-            <div style={{
-              width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 10, fontWeight: 800,
-              background: `linear-gradient(135deg,${color},${color}80)`,
-              color: '#fff',
-            }}>{initials(current.name)}</div>
+            {/* Stacked avatars (máx 3) */}
+            <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+              {selected.slice(0, 3).map((a, i) => (
+                <div key={a.name} style={{
+                  width: 26, height: 26, borderRadius: '50%',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 10, fontWeight: 800,
+                  background: `linear-gradient(135deg,${a.color},${a.color}80)`,
+                  color: '#fff',
+                  border: '2px solid #fff',
+                  marginLeft: i === 0 ? 0 : -8,
+                  zIndex: 10 - i,
+                }}>{initials(a.name)}</div>
+              ))}
+            </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: 12.5, fontWeight: 700, color, margin: 0 }}>{current.name}</p>
-              <p style={{ fontSize: 10, color: '#9CA3AF', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{current.role}</p>
+              <p style={{ fontSize: 12.5, fontWeight: 700, color: primaryColor, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {selected.map(s => s.name).join(', ')}
+              </p>
+              <p style={{ fontSize: 10, color: '#9CA3AF', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {selected.length === 1 ? primary?.role : `${selected.length} responsables`}
+              </p>
             </div>
           </>
         ) : (
@@ -113,34 +132,28 @@ function AssigneeDropdown({
           position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 120,
           background: '#fff', border: '1px solid #E5E7EB', borderRadius: 10,
           boxShadow: '0 10px 30px rgba(0,0,0,0.12)', padding: 4,
-          maxHeight: 320, overflowY: 'auto',
+          maxHeight: 340, overflowY: 'auto',
         }}>
-          <button
-            type="button"
-            onClick={() => { onChange(''); setOpen(false) }}
-            style={{
-              width: '100%', display: 'flex', alignItems: 'center', gap: 9,
-              padding: '7px 9px', borderRadius: 7, border: 'none', cursor: 'pointer',
-              background: !value ? '#F3F4F6' : 'transparent', textAlign: 'left',
-            }}
-            onMouseEnter={e => { if (value) e.currentTarget.style.backgroundColor = '#F9FAFB' }}
-            onMouseLeave={e => { if (value) e.currentTarget.style.backgroundColor = 'transparent' }}
-          >
-            <div style={{
-              width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
-              background: '#F3F4F6', color: '#9CA3AF',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 10, fontWeight: 800,
-            }}>—</div>
-            <span style={{ fontSize: 12, color: '#6B7280', fontWeight: 600 }}>Sin responsable</span>
-          </button>
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '6px 9px', fontSize: 10, fontWeight: 700, color: '#9CA3AF',
+            textTransform: 'uppercase', letterSpacing: '0.07em',
+          }}>
+            <span>Selecciona uno o varios</span>
+            {hasAny && (
+              <button type="button" onClick={() => onChange([])}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 10, color: '#6366F1', fontWeight: 700 }}>
+                Limpiar
+              </button>
+            )}
+          </div>
           {options.map(a => {
-            const sel = value === a.name
+            const sel = value.includes(a.name)
             return (
               <button
                 key={a.name}
                 type="button"
-                onClick={() => { onChange(a.name); setOpen(false) }}
+                onClick={() => toggle(a.name)}
                 style={{
                   width: '100%', display: 'flex', alignItems: 'center', gap: 9,
                   padding: '7px 9px', borderRadius: 7, border: 'none', cursor: 'pointer',
@@ -149,6 +162,14 @@ function AssigneeDropdown({
                 onMouseEnter={e => { if (!sel) e.currentTarget.style.backgroundColor = '#F9FAFB' }}
                 onMouseLeave={e => { if (!sel) e.currentTarget.style.backgroundColor = 'transparent' }}
               >
+                <div style={{
+                  width: 18, height: 18, borderRadius: 4, flexShrink: 0,
+                  border: `1.5px solid ${sel ? a.color : '#D1D5DB'}`,
+                  background: sel ? a.color : '#fff',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {sel && <Check size={12} color="#fff" strokeWidth={3} />}
+                </div>
                 <div style={{
                   width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -160,7 +181,6 @@ function AssigneeDropdown({
                   <p style={{ fontSize: 12, fontWeight: 700, color: sel ? a.color : '#111827', margin: 0 }}>{a.name}</p>
                   <p style={{ fontSize: 9.5, color: '#9CA3AF', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.role}</p>
                 </div>
-                {sel && <Check size={13} style={{ color: a.color }} />}
               </button>
             )
           })}
@@ -249,7 +269,11 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
   const [title,        setTitle]        = useState(task.title)
   const [description,  setDescription]  = useState(task.description ?? '')
   const [area,         setArea]         = useState<Area>(task.area)
-  const [assignee,     setAssignee]     = useState(task.assignee)
+  const [assignees,    setAssignees]    = useState<string[]>(
+    task.assignees && task.assignees.length > 0
+      ? task.assignees
+      : (task.assignee ? [task.assignee] : [])
+  )
   const [priority,     setPriority]     = useState<Priority>(task.priority)
   const [status,       setStatus]       = useState<TaskStatus>(task.status)
   const [week,         setWeek]         = useState(task.week)
@@ -281,7 +305,8 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const { data: campaigns = [] } = useCampaignsForSelector(clientId || undefined)
-  const assigneeInfo = ASSIGNEES.find(a => a.name === assignee)
+  const primaryAssignee = assignees[0] ?? ''
+  const assigneeInfo = ASSIGNEES.find(a => a.name === primaryAssignee)
   const clientColor  = clients.find(c => c.id === clientId)?.color
 
   // Validación: obligatorios
@@ -297,10 +322,13 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
     return () => window.removeEventListener('keydown', h)
   }, [onClose])
 
+  const prevAssigneesKey = (task.assignees && task.assignees.length > 0 ? task.assignees : (task.assignee ? [task.assignee] : [])).join('|')
+  const currAssigneesKey = assignees.join('|')
+
   const isDirty =
     title !== task.title || description !== (task.description ?? '') ||
     area !== task.area ||
-    assignee !== task.assignee || priority !== task.priority ||
+    currAssigneesKey !== prevAssigneesKey || priority !== task.priority ||
     status !== task.status || week !== task.week || tipo !== task.tipo ||
     clientId !== (task.client_id ?? '') || campaignId !== (task.campaign_id ?? '') ||
     etapa !== (task.etapa ?? '') ||
@@ -313,7 +341,7 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
     try {
       await updateTask.mutateAsync({
         id: task.id, title, description: description || undefined,
-        area, assignee, priority, status,
+        area, assignee: assignees[0] ?? '', assignees, priority, status,
         week, tipo, client_id: clientId || undefined,
         campaign_id: campaignId || undefined, etapa: etapa || undefined,
         due_date: dueDate || undefined,
@@ -338,7 +366,7 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
     const t = setTimeout(() => { saveRef.current() }, 700)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, description, area, assignee, priority, status, week, tipo, clientId, campaignId, etapa, dueDate, deliverables, attachments, isDirty, canSave])
+  }, [title, description, area, assignees, priority, status, week, tipo, clientId, campaignId, etapa, dueDate, deliverables, attachments, isDirty, canSave])
 
   // Save on close if still dirty
   useEffect(() => {
@@ -548,18 +576,18 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
               <FieldSel label="Etapa" required value={etapa} onChange={v => setEtapa(v as Etapa | '')} options={etapaOpts} accentColor={etapa ? ETAPA_COLORS[etapa as Etapa] : '#D1D5DB'} />
             </div>
 
-            {/* Responsable (dropdown compacto) */}
+            {/* Responsables (multi-select) */}
             <div>
-              {sLbl('Responsable')}
+              {sLbl('Responsables')}
               <AssigneeDropdown
-                value={assignee}
-                onChange={setAssignee}
+                value={assignees}
+                onChange={setAssignees}
                 options={ASSIGNEES}
               />
               {assigneeInfo && !assigneeInfo.areas.includes(area) && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 7, padding: '5px 10px', borderRadius: 7, backgroundColor: '#FFFBEB', border: '1px solid #FDE68A' }}>
                   <AlertTriangle size={11} color="#D97706" />
-                  <span style={{ fontSize: 11, color: '#92400E' }}>{assignee} normalmente no trabaja en <strong>{AREA_LABELS[area]}</strong>.</span>
+                  <span style={{ fontSize: 11, color: '#92400E' }}>{primaryAssignee} normalmente no trabaja en <strong>{AREA_LABELS[area]}</strong>.</span>
                 </div>
               )}
             </div>

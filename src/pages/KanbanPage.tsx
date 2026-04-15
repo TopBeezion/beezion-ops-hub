@@ -25,7 +25,7 @@ import {
   PRIORITY_LABELS, PRIORITY_COLORS, ASSIGNEE_COLORS,
   STATUS_LABELS, STATUS_COLORS, STATUS_ORDER,
   ETAPA_LABELS, ETAPA_COLORS, ETAPA_ORDER,
-  KANBAN_GROUP_BY_OPTIONS,
+  KANBAN_GROUP_BY_OPTIONS, getTaskAssignees,
 } from '../lib/constants'
 
 type GroupByKey = 'status' | 'etapa' | 'assignee' | 'priority' | 'area' | 'client'
@@ -60,10 +60,18 @@ function buildColumns(groupBy: GroupByKey, clients: Client[], tasks: Task[]): Co
       ]
     case 'assignee': {
       const set = new Set<string>()
-      tasks.forEach(t => { if (t.assignee) set.add(t.assignee) })
-      return Array.from(set).sort().map(name => ({
+      tasks.forEach(t => {
+        const names = getTaskAssignees(t)
+        names.forEach(n => set.add(n))
+      })
+      const columns: Column[] = Array.from(set).sort().map(name => ({
         id: name, label: name, color: ASSIGNEE_COLORS[name] ?? '#6B7280', bg: bgFor(ASSIGNEE_COLORS[name] ?? '#6B7280'),
       }))
+      // Bucket para tasks sin responsable
+      if (tasks.some(t => getTaskAssignees(t).length === 0)) {
+        columns.unshift({ id: '__none__', label: 'Sin asignar', color: '#9699B0', bg: '#F4F5F7' })
+      }
+      return columns
     }
     case 'priority':
       return (['alerta_roja', 'alta', 'media', 'baja'] as Priority[]).map(p => ({
@@ -81,14 +89,17 @@ function buildColumns(groupBy: GroupByKey, clients: Client[], tasks: Task[]): Co
   }
 }
 
-function bucketOf(t: Task, groupBy: GroupByKey): string {
+function bucketsOf(t: Task, groupBy: GroupByKey): string[] {
   switch (groupBy) {
-    case 'status': return t.status
-    case 'etapa': return t.etapa ?? '__none__'
-    case 'assignee': return t.assignee ?? '__none__'
-    case 'priority': return t.priority
-    case 'area': return t.area
-    case 'client': return t.client_id ?? '__none__'
+    case 'status': return [t.status]
+    case 'etapa': return [t.etapa ?? '__none__']
+    case 'assignee': {
+      const names = getTaskAssignees(t)
+      return names.length > 0 ? names : ['__none__']
+    }
+    case 'priority': return [t.priority]
+    case 'area': return [t.area]
+    case 'client': return [t.client_id ?? '__none__']
   }
 }
 
@@ -200,7 +211,9 @@ function TaskCard({ task, onOpenDetail, visibleFields }: { task: Task; onOpenDet
   } = useSortable({ id: task.id })
 
   const clientColor = (task.client as Client & { color: string })?.color
-  const assigneeColor = ASSIGNEE_COLORS[task.assignee] || C.muted
+  const taskAssignees = getTaskAssignees(task)
+  const primaryAssignee = taskAssignees[0] ?? ''
+  const assigneeColor = primaryAssignee ? (ASSIGNEE_COLORS[primaryAssignee] || C.muted) : C.muted
   const areaColor = AREA_COLORS[task.area] || C.muted
   const priorityColor = PRIORITY_COLORS[task.priority] || C.muted
   const isUrgent = task.tipo === 'urgente'
@@ -336,17 +349,38 @@ function TaskCard({ task, onOpenDetail, visibleFields }: { task: Task; onOpenDet
 
         {/* Footer */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          {visibleFields.has('assignee') ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <div style={{
-                width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
-                backgroundColor: assigneeColor,
-                color: '#fff', fontSize: 8, fontWeight: 800,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                {task.assignee.slice(0, 2).toUpperCase()}
+          {visibleFields.has('assignee') && taskAssignees.length > 0 ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+                {taskAssignees.slice(0, 3).map((name, i) => {
+                  const color = ASSIGNEE_COLORS[name] || C.muted
+                  return (
+                    <div key={name} style={{
+                      width: 22, height: 22, borderRadius: '50%',
+                      backgroundColor: color, color: '#fff',
+                      fontSize: 8, fontWeight: 800,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      border: '2px solid #fff',
+                      marginLeft: i === 0 ? 0 : -7,
+                      zIndex: 10 - i,
+                    }}>
+                      {name.slice(0, 2).toUpperCase()}
+                    </div>
+                  )
+                })}
+                {taskAssignees.length > 3 && (
+                  <div style={{
+                    width: 22, height: 22, borderRadius: '50%',
+                    backgroundColor: '#E5E7EB', color: C.sub,
+                    fontSize: 8, fontWeight: 800,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    border: '2px solid #fff', marginLeft: -7,
+                  }}>+{taskAssignees.length - 3}</div>
+                )}
               </div>
-              <span style={{ fontSize: 10, fontWeight: 500, color: C.sub }}>{task.assignee}</span>
+              <span style={{ fontSize: 10, fontWeight: 500, color: C.sub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {taskAssignees.length === 1 ? primaryAssignee : `${taskAssignees.length} personas`}
+              </span>
             </div>
           ) : <div />}
 
@@ -537,7 +571,10 @@ export function KanbanPage() {
     if (urlClientId && task.client_id !== urlClientId) return false
     if (filterClients.length && !filterClients.includes(task.client_id ?? '')) return false
     if (filterAreas.length && !filterAreas.includes(task.area ?? '')) return false
-    if (filterAssignees.length && !filterAssignees.includes(task.assignee ?? '')) return false
+    if (filterAssignees.length) {
+      const names = getTaskAssignees(task)
+      if (!names.some(n => filterAssignees.includes(n))) return false
+    }
     return true
   }), [tasks, filterClients, filterAreas, filterAssignees, urlCampaignId, urlClientId])
 
@@ -547,9 +584,11 @@ export function KanbanPage() {
     const grouped: Record<string, Task[]> = {}
     columns.forEach(c => { grouped[c.id] = [] })
     filteredTasks.forEach(task => {
-      const b = bucketOf(task, groupBy)
-      if (!grouped[b]) grouped[b] = []
-      grouped[b].push(task)
+      const bs = bucketsOf(task, groupBy)
+      bs.forEach(b => {
+        if (!grouped[b]) grouped[b] = []
+        grouped[b].push(task)
+      })
     })
     return grouped
   }, [filteredTasks, columns, groupBy])

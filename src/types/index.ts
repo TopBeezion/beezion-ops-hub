@@ -109,6 +109,7 @@ export interface Task {
   campaign_id?: string
   area: Area
   assignee: string
+  assignees?: string[]
   priority: Priority
   priority_manual_override?: boolean
   status: TaskStatus
