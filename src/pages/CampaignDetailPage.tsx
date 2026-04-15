@@ -161,7 +161,7 @@ function BadgePicker({
         <div style={{
           position: 'absolute', top: 'calc(100% + 4px)',
           [align]: 0 as unknown as number,
-          zIndex: 100,
+          zIndex: 1000,
           background: '#fff', border: `1px solid ${C.border}`, borderRadius: 8,
           boxShadow: '0 6px 20px rgba(0,0,0,0.12)', padding: 4, minWidth: 180,
           maxHeight: 280, overflowY: 'auto',
@@ -817,7 +817,7 @@ export function CampaignDetailPage() {
               )}
 
               {addingForEtapa === '__no_etapa' && canAddHere && (
-                <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: 'hidden', marginBottom: 10 }}>
+                <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, marginBottom: 10, position: 'relative' }}>
                   <AddTaskRow
                     clientId={campaign.client_id}
                     campaignId={campaign.id}
@@ -842,7 +842,7 @@ export function CampaignDetailPage() {
                     }
                     const ec = ETAPA_COLORS[etapa]
                     return (
-                      <div key={etapa} style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: 'hidden' }}>
+                      <div key={etapa} style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: isAddingHere ? 'visible' : 'hidden', position: 'relative' }}>
                         <div style={{
                           padding: '7px 12px',
                           backgroundColor: `${ec}12`, borderBottom: `1px solid ${ec}25`,
