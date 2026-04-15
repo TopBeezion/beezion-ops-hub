@@ -1,23 +1,22 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { useParams, Navigate, useNavigate, useOutletContext } from 'react-router-dom'
 import { useCampaigns, useUpdateCampaign, useDeleteCampaign } from '../hooks/useCampaigns'
+import { useEnsureGroupChildren } from '../hooks/useCampaignTemplates'
 import { useClients } from '../hooks/useClients'
-import { useTasks, useUpdateTask } from '../hooks/useTasks'
-import type { Task, CampaignType, CampaignStatus, Etapa, TaskStatus, Priority } from '../types'
+import { useTasks, useUpdateTask, useCreateTask } from '../hooks/useTasks'
+import type { Task, CampaignType, CampaignStatus, Etapa, TaskStatus, Priority, Area } from '../types'
 import {
   CAMPAIGN_TYPE_LABELS, CAMPAIGN_TYPE_COLORS,
   CAMPAIGN_STATUS_LABELS, CAMPAIGN_STATUS_COLORS,
-  ETAPA_LABELS, ETAPA_COLORS, ETAPA_ORDER,
+  ETAPA_LABELS, ETAPA_COLORS, ETAPA_ORDER, ETAPA_TO_AREA,
   STATUS_LABELS, STATUS_COLORS, STATUS_ORDER,
   PRIORITY_LABELS, PRIORITY_COLORS, PRIORITY_ORDER,
   TEAM_MEMBERS, ASSIGNEE_COLORS,
 } from '../lib/constants'
 import {
   ArrowLeft, Calendar, Target as TargetIcon,
-  ChevronDown, Archive, ArchiveRestore, Trash2, LayoutGrid, StickyNote,
+  ChevronDown, Archive, ArchiveRestore, Trash2, LayoutGrid, StickyNote, Plus,
 } from 'lucide-react'
-import { PriorityDot } from '../components/ui/PriorityDot'
-import { AssigneeAvatar } from '../components/ui/AssigneeAvatar'
 
 const C = {
   bg: '#F0F2F8', card: '#FFFFFF', border: '#E4E7F0',
@@ -340,6 +339,126 @@ function InlineTaskRow({ task, onOpen }: { task: Task; onOpen: () => void }) {
   )
 }
 
+// ── Add task inline row ────────────────────────────────────────────────────
+function AddTaskRow({
+  clientId, campaignId, defaultEtapa, subCampaigns, onDone, onCancel,
+}: {
+  clientId: string
+  campaignId: string  // target campaign (a sub-campaign id if group)
+  defaultEtapa?: Etapa
+  subCampaigns?: { id: string; label: string; color: string }[]  // only if group
+  onDone: () => void
+  onCancel: () => void
+}) {
+  const createTask = useCreateTask()
+  const [title, setTitle] = useState('')
+  const [etapa, setEtapa] = useState<Etapa | ''>(defaultEtapa ?? '')
+  const [subId, setSubId] = useState<string>(subCampaigns?.[0]?.id ?? campaignId)
+
+  const etapaOptions: BadgeOption[] = [
+    { value: '', label: '— sin etapa —', color: C.muted },
+    ...ETAPA_ORDER.map(et => ({
+      value: et, label: ETAPA_LABELS[et as Etapa] ?? et, color: ETAPA_COLORS[et as Etapa],
+    })),
+  ]
+  const etapaColor = etapa ? ETAPA_COLORS[etapa as Etapa] : C.muted
+  const subOptions: BadgeOption[] =
+    (subCampaigns ?? []).map(s => ({ value: s.id, label: s.label, color: s.color }))
+  const selectedSub = subCampaigns?.find(s => s.id === subId)
+
+  const submit = () => {
+    const t = title.trim()
+    if (!t) return
+    const area: Area = etapa ? (ETAPA_TO_AREA[etapa as Etapa] ?? 'copy') : 'copy'
+    const target = subCampaigns && subCampaigns.length > 0 ? subId : campaignId
+    createTask.mutate(
+      {
+        title: t,
+        client_id: clientId,
+        campaign_id: target,
+        area,
+        assignee: '',
+        priority: 'baja',
+        priority_manual_override: true,
+        status: 'pendiente',
+        etapa: (etapa || undefined) as Etapa | undefined,
+        week: 0,
+        tipo: 'nuevo',
+        source: 'manual',
+      } as Parameters<typeof createTask.mutate>[0],
+      {
+        onSuccess: () => { setTitle(''); onDone() },
+        onError: (e: unknown) => alert(`No se pudo crear la task: ${(e as { message?: string })?.message ?? e}`),
+      }
+    )
+  }
+
+  return (
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: subCampaigns && subCampaigns.length > 0
+        ? 'minmax(0,1fr) 160px 150px auto auto'
+        : 'minmax(0,1fr) 160px auto auto',
+      alignItems: 'center', gap: 8,
+      padding: '9px 12px',
+      background: '#F8FAFF', borderTop: `1px dashed ${C.accent}50`,
+    }}>
+      <input
+        autoFocus
+        value={title}
+        onChange={e => setTitle(e.target.value)}
+        onKeyDown={e => {
+          if (e.key === 'Enter') submit()
+          else if (e.key === 'Escape') onCancel()
+        }}
+        placeholder="Título de la task… (Enter para crear, Esc para cancelar)"
+        style={{
+          fontSize: 12.5, padding: '6px 10px', borderRadius: 7,
+          border: `1px solid ${C.border}`, outline: 'none',
+          background: '#fff', color: C.text, fontFamily: 'inherit',
+        }}
+      />
+      <BadgePicker
+        title="Etapa"
+        value={etapa}
+        color={etapaColor}
+        options={etapaOptions}
+        width="100%"
+        onChange={v => setEtapa(v as Etapa | '')}
+      />
+      {subCampaigns && subCampaigns.length > 0 && (
+        <BadgePicker
+          title="Sub-campaña"
+          value={subId}
+          color={selectedSub?.color ?? C.accent}
+          options={subOptions}
+          width="100%"
+          onChange={v => setSubId(v)}
+        />
+      )}
+      <button
+        onClick={submit}
+        disabled={!title.trim() || createTask.isPending}
+        style={{
+          padding: '6px 12px', borderRadius: 7,
+          background: C.accent, color: '#fff',
+          border: 'none', cursor: title.trim() ? 'pointer' : 'not-allowed',
+          fontSize: 11.5, fontWeight: 700, opacity: title.trim() ? 1 : 0.5,
+        }}
+      >Crear</button>
+      <button
+        onClick={onCancel}
+        style={{
+          padding: '6px 10px', borderRadius: 7,
+          background: 'transparent', color: C.sub,
+          border: `1px solid ${C.border}`, cursor: 'pointer',
+          fontSize: 11.5, fontWeight: 600,
+        }}
+      >Cancelar</button>
+    </div>
+  )
+}
+
 export function CampaignDetailPage() {
   const { campaignId } = useParams<{ campaignId: string }>()
   const navigate = useNavigate()
@@ -349,6 +468,8 @@ export function CampaignDetailPage() {
   const { data: tasks = [] } = useTasks({ campaign_id: campaignId })
   const updateCampaign = useUpdateCampaign()
   const deleteCampaign = useDeleteCampaign()
+  const ensureChildren = useEnsureGroupChildren()
+  const [addingForEtapa, setAddingForEtapa] = useState<Etapa | '__no_etapa' | null>(null)
 
   const campaign = campaigns.find(c => c.id === campaignId)
   const client = clients.find(c => c.id === campaign?.client_id)
@@ -638,59 +759,152 @@ export function CampaignDetailPage() {
         </div>
 
         {/* Tasks by etapa */}
-        <div style={{ backgroundColor: C.card, borderRadius: 14, padding: 18, border: `1px solid ${C.border}` }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <p style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.07em', margin: 0 }}>
-              Tareas por etapa · {tasks.length}
-            </p>
-          </div>
+        {(() => {
+          const isGroup = campaign.kind === 'group'
+          const subOptions = isGroup
+            ? children.map(kid => ({
+                id: kid.id,
+                label: kid.name,
+                color: CAMPAIGN_TYPE_COLORS[kid.type] ?? C.accent,
+              }))
+            : undefined
+          const canAddHere = !isGroup || (subOptions?.length ?? 0) > 0
+          const addEtapaProp = (et: Etapa | '__no_etapa' | null): Etapa | undefined =>
+            et && et !== '__no_etapa' ? et : undefined
+          return (
+            <div style={{ backgroundColor: C.card, borderRadius: 14, padding: 18, border: `1px solid ${C.border}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 10 }}>
+                <p style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.07em', margin: 0 }}>
+                  Tareas por etapa · {tasks.length}
+                </p>
+                {isGroup && subOptions && subOptions.length === 0 ? (
+                  <button
+                    onClick={() => ensureChildren.mutate(campaign.id)}
+                    disabled={ensureChildren.isPending}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                      padding: '6px 11px', borderRadius: 7,
+                      background: C.accent, color: '#fff', border: 'none',
+                      cursor: 'pointer', fontSize: 11, fontWeight: 700,
+                    }}
+                  >
+                    <Plus size={12} /> Crear Main / Iteración / Refresh
+                  </button>
+                ) : canAddHere ? (
+                  <button
+                    onClick={() => setAddingForEtapa(addingForEtapa === '__no_etapa' ? null : '__no_etapa')}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                      padding: '6px 11px', borderRadius: 7,
+                      background: addingForEtapa === '__no_etapa' ? '#F5F6FA' : C.accent,
+                      color: addingForEtapa === '__no_etapa' ? C.sub : '#fff',
+                      border: addingForEtapa === '__no_etapa' ? `1px solid ${C.border}` : 'none',
+                      cursor: 'pointer', fontSize: 11, fontWeight: 700,
+                    }}
+                  >
+                    <Plus size={12} /> {addingForEtapa === '__no_etapa' ? 'Cancelar' : 'Nueva task'}
+                  </button>
+                ) : null}
+              </div>
 
-          {tasks.length === 0 ? (
-            <div style={{ padding: 24, textAlign: 'center', color: C.muted, fontSize: 12 }}>
-              No hay tareas asociadas a esta campaña.
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {ETAPA_ORDER.map(etapa => {
-                const rows = tasksByEtapa[etapa] ?? []
-                if (rows.length === 0) return null
-                const ec = ETAPA_COLORS[etapa]
-                return (
-                  <div key={etapa} style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: 'hidden' }}>
-                    <div style={{
-                      padding: '7px 12px',
-                      backgroundColor: `${ec}12`, borderBottom: `1px solid ${ec}25`,
-                      display: 'flex', alignItems: 'center', gap: 7,
-                    }}>
-                      <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: ec }} />
-                      <span style={{ fontSize: 11, fontWeight: 700, color: ec }}>{ETAPA_LABELS[etapa as Etapa]}</span>
-                      <span style={{ fontSize: 10, fontWeight: 700, color: C.muted, marginLeft: 'auto' }}>{rows.length}</span>
+              {isGroup && (
+                <div style={{
+                  background: '#FFFBEB', border: '1px solid #FDE68A', color: '#92400E',
+                  padding: '8px 12px', borderRadius: 8, fontSize: 11.5, marginBottom: 10,
+                }}>
+                  Esta campaña es un contenedor. Las tasks se asignan a una sub-campaña: Main, Iteración o Refresh.
+                </div>
+              )}
+
+              {addingForEtapa === '__no_etapa' && canAddHere && (
+                <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: 'hidden', marginBottom: 10 }}>
+                  <AddTaskRow
+                    clientId={campaign.client_id}
+                    campaignId={campaign.id}
+                    subCampaigns={subOptions}
+                    onDone={() => setAddingForEtapa(null)}
+                    onCancel={() => setAddingForEtapa(null)}
+                  />
+                </div>
+              )}
+
+              {tasks.length === 0 && addingForEtapa !== '__no_etapa' ? (
+                <div style={{ padding: 24, textAlign: 'center', color: C.muted, fontSize: 12 }}>
+                  No hay tareas asociadas a esta campaña.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {ETAPA_ORDER.map(etapa => {
+                    const rows = tasksByEtapa[etapa] ?? []
+                    const isAddingHere = addingForEtapa === etapa
+                    if (rows.length === 0 && !isAddingHere) {
+                      return null
+                    }
+                    const ec = ETAPA_COLORS[etapa]
+                    return (
+                      <div key={etapa} style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: 'hidden' }}>
+                        <div style={{
+                          padding: '7px 12px',
+                          backgroundColor: `${ec}12`, borderBottom: `1px solid ${ec}25`,
+                          display: 'flex', alignItems: 'center', gap: 7,
+                        }}>
+                          <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: ec }} />
+                          <span style={{ fontSize: 11, fontWeight: 700, color: ec }}>{ETAPA_LABELS[etapa as Etapa]}</span>
+                          <span style={{ fontSize: 10, fontWeight: 700, color: C.muted, marginLeft: 8 }}>{rows.length}</span>
+                          {canAddHere && (
+                            <button
+                              onClick={() => setAddingForEtapa(isAddingHere ? null : etapa)}
+                              title="Agregar task a esta etapa"
+                              style={{
+                                marginLeft: 'auto',
+                                display: 'inline-flex', alignItems: 'center', gap: 4,
+                                padding: '3px 8px', borderRadius: 6,
+                                background: isAddingHere ? '#F5F6FA' : '#fff',
+                                color: ec, border: `1px solid ${ec}40`,
+                                cursor: 'pointer', fontSize: 10.5, fontWeight: 700,
+                              }}
+                            >
+                              <Plus size={11} /> {isAddingHere ? 'Cancelar' : 'Task'}
+                            </button>
+                          )}
+                        </div>
+                        {isAddingHere && (
+                          <AddTaskRow
+                            clientId={campaign.client_id}
+                            campaignId={campaign.id}
+                            defaultEtapa={addEtapaProp(addingForEtapa)}
+                            subCampaigns={subOptions}
+                            onDone={() => setAddingForEtapa(null)}
+                            onCancel={() => setAddingForEtapa(null)}
+                          />
+                        )}
+                        {rows.map(t => (
+                          <InlineTaskRow key={t.id} task={t} onOpen={() => ctx?.openTaskDetail?.(t)} />
+                        ))}
+                      </div>
+                    )
+                  })}
+                  {/* Tasks with no etapa */}
+                  {(tasksByEtapa['_no_etapa']?.length ?? 0) > 0 && (
+                    <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: 'hidden' }}>
+                      <div style={{ padding: '7px 12px', backgroundColor: '#F5F6FA', borderBottom: `1px solid ${C.border}`, fontSize: 11, fontWeight: 700, color: C.muted }}>
+                        Sin etapa · {tasksByEtapa['_no_etapa'].length}
+                      </div>
+                      {tasksByEtapa['_no_etapa'].map((t, i, arr) => (
+                        <div key={t.id} onClick={() => ctx?.openTaskDetail?.(t)} style={{
+                          padding: '8px 12px', fontSize: 12, cursor: 'pointer',
+                          borderBottom: i < arr.length - 1 ? `1px solid ${C.border}` : 'none', color: C.sub,
+                        }}>
+                          {t.title}
+                        </div>
+                      ))}
                     </div>
-                    {rows.map(t => (
-                      <InlineTaskRow key={t.id} task={t} onOpen={() => ctx?.openTaskDetail?.(t)} />
-                    ))}
-                  </div>
-                )
-              })}
-              {/* Tasks with no etapa */}
-              {(tasksByEtapa['_no_etapa']?.length ?? 0) > 0 && (
-                <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: 'hidden' }}>
-                  <div style={{ padding: '7px 12px', backgroundColor: '#F5F6FA', borderBottom: `1px solid ${C.border}`, fontSize: 11, fontWeight: 700, color: C.muted }}>
-                    Sin etapa · {tasksByEtapa['_no_etapa'].length}
-                  </div>
-                  {tasksByEtapa['_no_etapa'].map((t, i, arr) => (
-                    <div key={t.id} onClick={() => ctx?.openTaskDetail?.(t)} style={{
-                      padding: '8px 12px', fontSize: 12, cursor: 'pointer',
-                      borderBottom: i < arr.length - 1 ? `1px solid ${C.border}` : 'none', color: C.sub,
-                    }}>
-                      {t.title}
-                    </div>
-                  ))}
+                  )}
                 </div>
               )}
             </div>
-          )}
-        </div>
+          )
+        })()}
       </div>
     </div>
   )

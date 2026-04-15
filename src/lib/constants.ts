@@ -177,7 +177,7 @@ export const CAMPAIGN_CATEGORY_ORDER: CampaignCategory[] = [
 // ── Etapas (V2 — 8, sin revisión final) ──────────────────────
 export const ETAPA_LABELS: Record<Etapa, string> = {
   copy: 'Copy',
-  scripts: 'Scripts',
+  scripts: 'Scripts & Ads',
   produccion: 'Producción',
   edicion: 'Edición',
   landing_page: 'Landing Page',

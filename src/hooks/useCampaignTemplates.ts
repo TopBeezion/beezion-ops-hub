@@ -54,6 +54,24 @@ export function useApplyCampaignTemplate() {
   })
 }
 
+/**
+ * Ensures Main / Iteración / Refresh sub-campaigns exist for a group campaign.
+ * Returns the Main sub-campaign id.
+ */
+export function useEnsureGroupChildren() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (groupId: string) => {
+      const { data, error } = await supabase.rpc('ensure_group_children', { p_group_id: groupId })
+      if (error) throw error
+      return data as string
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['campaigns'] })
+    },
+  })
+}
+
 /** Update default_tasks of a template row. Allows the user to edit templates. */
 export function useUpdateCampaignTemplate() {
   const qc = useQueryClient()
