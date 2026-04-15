@@ -143,6 +143,37 @@ export const CAMPAIGN_STATUS_COLORS: Record<CampaignStatus, string> = {
   desactivada: '#C4C4C4',
 }
 
+// Indicador de dot de status en sidebar/cards
+export const CAMPAIGN_STATUS_DOT: Record<CampaignStatus, string> = {
+  activa: '#10B981',      // verde
+  pausada: '#F59E0B',     // amarillo
+  desactivada: '#EF4444', // rojo
+}
+
+// ── Campaign Categories (folders) ─────────────────────────────
+import type { CampaignCategory } from '../types'
+
+export const CAMPAIGN_CATEGORY_LABELS: Record<CampaignCategory, string> = {
+  general: 'General',
+  meta_ads: 'Meta Ads',
+  google_ads: 'Google Ads',
+  archivado: 'Archivado',
+}
+
+export const CAMPAIGN_CATEGORY_ICONS: Record<CampaignCategory, string> = {
+  general: '📋',
+  meta_ads: '📘',
+  google_ads: '🔍',
+  archivado: '🗄️',
+}
+
+export const CAMPAIGN_CATEGORY_ORDER: CampaignCategory[] = [
+  'general',
+  'meta_ads',
+  'google_ads',
+  'archivado',
+]
+
 // ── Etapas (V2 — 8, sin revisión final) ──────────────────────
 export const ETAPA_LABELS: Record<Etapa, string> = {
   copy: 'Copy',

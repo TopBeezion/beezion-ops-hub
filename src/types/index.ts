@@ -19,6 +19,8 @@ export type TeamRole = 'admin_plus' | 'admin' | 'member'
 // ── Campaign types ──────────────────────────────────────────
 export type CampaignType = 'nueva_campana' | 'iteracion' | 'refresh' | 'bombero'
 export type CampaignStatus = 'activa' | 'pausada' | 'desactivada'
+export type CampaignCategory = 'general' | 'meta_ads' | 'google_ads' | 'archivado'
+export type CampaignKind = 'group' | 'main' | 'iteracion' | 'refresh' | 'general'
 
 // Etapas del flujo (V2 — Scripts y Copy separados; Revisión Final OUT)
 export type Etapa =
@@ -53,10 +55,15 @@ export interface Campaign {
   revision_final_done?: boolean
   revision_final_by?: string
   revision_final_at?: string
+  category: CampaignCategory
+  kind: CampaignKind
+  parent_campaign_id?: string | null
+  position?: number
   created_at: string
   updated_at: string
   client?: Client
   tasks?: Task[]
+  children?: Campaign[]
 }
 
 export interface TaskAttachment {

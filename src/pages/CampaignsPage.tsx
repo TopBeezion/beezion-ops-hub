@@ -698,7 +698,7 @@ export function CampaignsPage() {
   }
 
   const handleCreateCampaign = (clientId: string, data: { name: string; type: CampaignType; objective: string }) => {
-    createCampaign.mutate({ name: data.name, client_id: clientId, type: data.type, status: 'activa', objective: data.objective })
+    createCampaign.mutate({ name: data.name, client_id: clientId, type: data.type, status: 'activa', objective: data.objective, category: 'meta_ads', kind: 'group' })
     setNewCampaignFor(null)
   }
 

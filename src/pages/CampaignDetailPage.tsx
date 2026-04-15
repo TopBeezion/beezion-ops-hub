@@ -127,6 +127,12 @@ export function CampaignDetailPage() {
 
   const campaign = campaigns.find(c => c.id === campaignId)
   const client = clients.find(c => c.id === campaign?.client_id)
+  const children = campaign
+    ? campaigns.filter(c => c.parent_campaign_id === campaign.id).sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+    : []
+  const parentGroup = campaign?.parent_campaign_id
+    ? campaigns.find(c => c.id === campaign.parent_campaign_id)
+    : undefined
 
   const [editObjective, setEditObjective] = useState(false)
   const [objective, setObjective] = useState('')
@@ -265,6 +271,63 @@ export function CampaignDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* Parent breadcrumb (if this is a child Main/Iteración/Refresh) */}
+        {parentGroup && (
+          <div style={{
+            backgroundColor: C.card, borderRadius: 12, padding: '10px 14px',
+            border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 8, fontSize: 12,
+          }}>
+            <span style={{ color: C.muted, fontWeight: 600 }}>Parte de:</span>
+            <button
+              onClick={() => navigate(`/campaigns/${parentGroup.id}`)}
+              style={{
+                background: '#EEF2FF', border: `1px solid ${C.accent}30`,
+                color: C.accent, padding: '3px 10px', borderRadius: 6,
+                fontWeight: 700, fontSize: 12, cursor: 'pointer',
+              }}
+            >
+              {parentGroup.name}
+            </button>
+          </div>
+        )}
+
+        {/* Group children nav (Main / Iteración / Refresh) */}
+        {children.length > 0 && (
+          <div style={{
+            backgroundColor: C.card, borderRadius: 14, padding: 14,
+            border: `1px solid ${C.border}`,
+          }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>
+              Sub-campañas
+            </div>
+            <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))' }}>
+              {children.map(kid => {
+                const kc = CAMPAIGN_TYPE_COLORS[kid.type] ?? C.accent
+                return (
+                  <button
+                    key={kid.id}
+                    onClick={() => navigate(`/campaigns/${kid.id}`)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      padding: '10px 12px', borderRadius: 10,
+                      border: `1px solid ${C.border}`, background: '#FAFBFD',
+                      cursor: 'pointer', textAlign: 'left',
+                    }}
+                  >
+                    <div style={{ width: 4, height: 22, borderRadius: 2, background: kc }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{kid.name}</div>
+                      <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>
+                        {CAMPAIGN_TYPE_LABELS[kid.type]}
+                      </div>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Objective */}
         <div style={{ backgroundColor: C.card, borderRadius: 14, padding: 18, border: `1px solid ${C.border}` }}>
