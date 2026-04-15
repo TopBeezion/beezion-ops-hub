@@ -162,7 +162,6 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
   if (!title.trim())   missing.push('Título')
   if (!clientId)       missing.push('Cliente')
   if (!etapa)          missing.push('Etapa')
-  if (!dueDate)        missing.push('Fecha de entrega')
   const isValid = missing.length === 0
 
   useEffect(() => {
@@ -552,12 +551,12 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
               </div>
               <div style={{ flex: 1 }}>
                 <p style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>
-                  Fecha de entrega <span style={{ color: '#EF4444' }}>*</span>
+                  Fecha de entrega
                 </p>
-                <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} required style={{
+                <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} style={{
                   width: '100%', padding: '8px 10px', borderRadius: 8, outline: 'none',
-                  border: `1px solid ${!dueDate ? '#FCA5A5' : '#E5E7EB'}`,
-                  backgroundColor: !dueDate ? '#FEF2F2' : '#FAFBFC',
+                  border: '1px solid #E5E7EB',
+                  backgroundColor: '#FAFBFC',
                   fontSize: 12, color: dueDate && new Date(dueDate) < new Date() ? '#DC2626' : '#374151',
                 }} />
               </div>

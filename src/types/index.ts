@@ -24,7 +24,6 @@ export type CampaignKind = 'group' | 'main' | 'iteracion' | 'refresh' | 'general
 
 // Etapas del flujo (V2 — Scripts y Copy separados; Revisión Final OUT)
 export type Etapa =
-  | 'copy'
   | 'scripts'
   | 'produccion'
   | 'edicion'

@@ -21,7 +21,6 @@ export const AREA_COLORS: Record<Area, string> = {
 
 // Mapping etapa → area (auto-derivación; puede sobreescribirse manualmente)
 export const ETAPA_TO_AREA: Record<Etapa, Area> = {
-  copy: 'copy',
   scripts: 'copy',
   landing_page: 'copy',
   lead_magnet: 'copy',
@@ -174,9 +173,8 @@ export const CAMPAIGN_CATEGORY_ORDER: CampaignCategory[] = [
   'archivado',
 ]
 
-// ── Etapas (V2 — 8, sin revisión final) ──────────────────────
+// ── Etapas (V3 — 'copy' eliminada, merge en 'scripts') ──────
 export const ETAPA_LABELS: Record<Etapa, string> = {
-  copy: 'Copy',
   scripts: 'Scripts & Ads',
   produccion: 'Producción',
   edicion: 'Edición',
@@ -187,7 +185,6 @@ export const ETAPA_LABELS: Record<Etapa, string> = {
 }
 
 export const ETAPA_COLORS: Record<Etapa, string> = {
-  copy: '#818CF8',
   scripts: '#A78BFA',
   produccion: '#F59E0B',
   edicion: '#EC4899',
@@ -198,7 +195,6 @@ export const ETAPA_COLORS: Record<Etapa, string> = {
 }
 
 export const ETAPA_ORDER: Etapa[] = [
-  'copy',
   'scripts',
   'produccion',
   'edicion',

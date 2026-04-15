@@ -164,13 +164,12 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
   const [justCreated,  setJustCreated]  = useState(false)
   const [errorMsg,     setErrorMsg]     = useState('')
 
-  // Required validation: título, cliente, etapa, fecha de entrega
-  const isValid = title.trim() !== '' && clientId !== '' && etapa !== '' && dueDate !== ''
+  // Required validation: título, cliente, etapa (fecha de entrega es opcional)
+  const isValid = title.trim() !== '' && clientId !== '' && etapa !== ''
   const missing: string[] = []
   if (!title.trim()) missing.push('Título')
   if (!clientId)     missing.push('Cliente')
   if (!etapa)        missing.push('Etapa')
-  if (!dueDate)      missing.push('Fecha de entrega')
 
   // Fecha de creación (hoy, read-only)
   const todayISO = new Date().toISOString().slice(0, 10)
@@ -256,7 +255,7 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
     else if (isTracking)   detected = 'tracking'
     else if (isEstructuracion) detected = 'estructuracion'
     else if (isScripts)    detected = 'scripts'
-    else if (isCopy)       detected = 'copy'
+    else if (isCopy)       detected = 'scripts'
 
     if (detected && detected !== autoEtapaRef.current) {
       // Only auto-set if current etapa is empty OR was previously auto-set (not manually chosen)
@@ -470,8 +469,8 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
                   style={{ ...fieldBase, padding: '8px 11px', fontSize: 12, backgroundColor: '#EEF0F6', color: '#6B7280', cursor: 'not-allowed' }} />
               </div>
               <div style={{ flex: 1 }}>
-                <label style={lbl}>Fecha de entrega <span style={{ color: '#EF4444' }}>*</span></label>
-                <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} required
+                <label style={lbl}>Fecha de entrega</label>
+                <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
                   style={{ ...fieldBase, padding: '8px 11px', fontSize: 12 }} />
               </div>
             </div>
