@@ -198,20 +198,26 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
     } finally { setSaving(false) }
   }
 
-  // ── Autosave: debounced 700ms when dirty + valid ──────────
+  // ── Autosave: debounced 700ms when dirty ──────────
+  // Only hard requirement to save is a non-empty title (DB NOT NULL).
+  // Other "required" fields (cliente/etapa/fecha) are soft-required: we still
+  // save and just surface a "Faltan campos" indicator so the user can complete
+  // them later. Previously, autosave was blocked on any missing field, which
+  // silently dropped edits (e.g., Alec renaming a task without a due_date).
+  const canSave = title.trim().length > 0
   const saveRef = useRef(handleSave)
   saveRef.current = handleSave
   useEffect(() => {
-    if (!isDirty || !isValid || saving) return
+    if (!isDirty || !canSave || saving) return
     const t = setTimeout(() => { saveRef.current() }, 700)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, description, area, assignee, priority, status, week, tipo, clientId, campaignId, etapa, dueDate, deliverables, attachments, isDirty, isValid])
+  }, [title, description, area, assignee, priority, status, week, tipo, clientId, campaignId, etapa, dueDate, deliverables, attachments, isDirty, canSave])
 
   // Save on close if still dirty
   useEffect(() => {
     return () => {
-      if (isDirty && isValid) { saveRef.current() }
+      if (isDirty && canSave) { saveRef.current() }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
