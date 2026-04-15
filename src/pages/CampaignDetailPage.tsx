@@ -117,35 +117,134 @@ function StatusPicker({ value, onChange }: { value: CampaignStatus; onChange: (v
   )
 }
 
+// ── Generic styled popover picker ─────────────────────────────────────────
+type BadgeOption = { value: string; label: string; color?: string }
+
+function BadgePicker({
+  value, options, onChange, color, title, width, align = 'left',
+  placeholder = '—',
+}: {
+  value: string
+  options: BadgeOption[]
+  onChange: (v: string) => void
+  color: string
+  title?: string
+  width?: number | string
+  align?: 'left' | 'right'
+  placeholder?: string
+}) {
+  const { open, setOpen, ref } = usePop()
+  const current = options.find(o => o.value === value)
+  const label = current?.label ?? placeholder
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
+      <button
+        type="button"
+        title={title}
+        onClick={e => { e.stopPropagation(); setOpen(o => !o) }}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          padding: '5px 10px', borderRadius: 7,
+          fontSize: 11.5, fontWeight: 700,
+          backgroundColor: `${color}15`, color,
+          border: `1px solid ${color}40`,
+          cursor: 'pointer', width: width ?? 'auto', justifyContent: 'space-between',
+        }}
+      >
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: color, flexShrink: 0 }} />
+          {label}
+        </span>
+        <ChevronDown size={11} />
+      </button>
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 4px)',
+          [align]: 0 as unknown as number,
+          zIndex: 100,
+          background: '#fff', border: `1px solid ${C.border}`, borderRadius: 8,
+          boxShadow: '0 6px 20px rgba(0,0,0,0.12)', padding: 4, minWidth: 180,
+          maxHeight: 280, overflowY: 'auto',
+        } as React.CSSProperties}>
+          {options.map(o => {
+            const c = o.color ?? C.sub
+            const sel = value === o.value
+            return (
+              <button
+                key={o.value}
+                type="button"
+                onClick={e => { e.stopPropagation(); onChange(o.value); setOpen(false) }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 7, width: '100%',
+                  padding: '7px 9px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                  background: sel ? `${c}12` : 'transparent',
+                  textAlign: 'left', fontSize: 12, fontWeight: 600,
+                  color: sel ? c : C.text,
+                }}
+                onMouseEnter={e => { if (!sel) e.currentTarget.style.backgroundColor = '#F5F6FA' }}
+                onMouseLeave={e => { if (!sel) e.currentTarget.style.backgroundColor = 'transparent' }}
+              >
+                <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: c, flexShrink: 0 }} />
+                {o.label}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Inline editable task row ───────────────────────────────────────────────
 function InlineTaskRow({ task, onOpen }: { task: Task; onOpen: () => void }) {
   const updateTask = useUpdateTask()
-
-  const stop = (e: React.MouseEvent | React.ChangeEvent) => e.stopPropagation()
-  const patch = (fields: Partial<Task>) => updateTask.mutate({ id: task.id, ...fields } as Parameters<typeof updateTask.mutate>[0])
+  const patch = (fields: Partial<Task>) =>
+    updateTask.mutate({ id: task.id, ...fields } as Parameters<typeof updateTask.mutate>[0])
 
   const statusColor = STATUS_COLORS[task.status]
   const priorityColor = PRIORITY_COLORS[task.priority] ?? C.muted
   const assigneeColor = task.assignee ? (ASSIGNEE_COLORS[task.assignee] ?? C.accent) : C.muted
+  const etapaColor = task.etapa ? (ETAPA_COLORS[task.etapa as Etapa] ?? C.sub) : C.muted
 
   // Date overdue/urgency styling
   let dateColor = C.muted
   let dateBg = '#F5F6FA'
+  let dateBorder = C.border
   if (task.due_date) {
     const today = new Date(); today.setHours(0,0,0,0)
     const due = new Date(task.due_date); due.setHours(0,0,0,0)
     const diff = (due.getTime() - today.getTime()) / (24 * 60 * 60 * 1000)
-    if (diff < 0) { dateColor = '#B91C1C'; dateBg = '#FEE2E2' }
-    else if (diff <= 3) { dateColor = '#92400E'; dateBg = '#FEF3C7' }
-    else { dateColor = C.sub; dateBg = '#F5F6FA' }
+    if (diff < 0) { dateColor = '#B91C1C'; dateBg = '#FEE2E2'; dateBorder = '#FCA5A5' }
+    else if (diff <= 3) { dateColor = '#92400E'; dateBg = '#FEF3C7'; dateBorder = '#FCD34D' }
+    else { dateColor = C.sub; dateBg = '#F5F6FA'; dateBorder = C.border }
   }
+
+  const etapaOptions: BadgeOption[] = [
+    { value: '', label: '— sin etapa —', color: C.muted },
+    ...ETAPA_ORDER.map(et => ({
+      value: et, label: ETAPA_LABELS[et as Etapa] ?? et, color: ETAPA_COLORS[et as Etapa],
+    })),
+  ]
+  const statusOptions: BadgeOption[] = STATUS_ORDER.map(s => ({
+    value: s, label: STATUS_LABELS[s], color: STATUS_COLORS[s],
+  }))
+  const priorityOptions: BadgeOption[] = PRIORITY_ORDER.map(p => ({
+    value: p, label: PRIORITY_LABELS[p], color: PRIORITY_COLORS[p],
+  }))
+  const assigneeOptions: BadgeOption[] = [
+    { value: '', label: 'Sin asignar', color: C.muted },
+    ...TEAM_MEMBERS.map(m => ({
+      value: m, label: m, color: ASSIGNEE_COLORS[m] ?? C.accent,
+    })),
+  ]
 
   return (
     <div
       onClick={onOpen}
       style={{
         display: 'grid',
-        gridTemplateColumns: '14px minmax(0,1fr) 110px 130px 90px 110px 26px',
+        gridTemplateColumns: '14px minmax(0,1fr) 140px 170px 110px 130px 130px',
         alignItems: 'center', gap: 8,
         padding: '8px 12px',
         borderTop: `1px solid ${C.border}`,
@@ -155,10 +254,10 @@ function InlineTaskRow({ task, onOpen }: { task: Task; onOpen: () => void }) {
       onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#FAFBFC')}
       onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#fff')}
     >
-      {/* Priority dot */}
+      {/* Status dot (was priority) */}
       <span
-        title={PRIORITY_LABELS[task.priority] ?? task.priority}
-        style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: priorityColor, display: 'inline-block' }}
+        title={STATUS_LABELS[task.status]}
+        style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: statusColor, display: 'inline-block' }}
       />
 
       {/* Title */}
@@ -170,115 +269,73 @@ function InlineTaskRow({ task, onOpen }: { task: Task; onOpen: () => void }) {
       </span>
 
       {/* Etapa */}
-      <select
-        value={task.etapa ?? ''}
-        onClick={stop}
-        onChange={e => { stop(e); patch({ etapa: (e.target.value || undefined) as Etapa | undefined }) }}
+      <BadgePicker
         title="Etapa"
-        style={{
-          fontSize: 11, fontWeight: 600, color: C.sub,
-          padding: '3px 6px', borderRadius: 6,
-          border: `1px solid ${C.border}`, background: '#fff',
-          cursor: 'pointer', maxWidth: 110,
-        }}
-      >
-        <option value="">— etapa —</option>
-        {ETAPA_ORDER.map(et => (
-          <option key={et} value={et}>{ETAPA_LABELS[et as Etapa] ?? et}</option>
-        ))}
-      </select>
-
-      {/* Status */}
-      <select
-        value={task.status}
-        onClick={stop}
-        onChange={e => { stop(e); patch({ status: e.target.value as TaskStatus }) }}
-        title="Status"
-        style={{
-          fontSize: 11, fontWeight: 700,
-          padding: '3px 8px', borderRadius: 6,
-          border: `1px solid ${statusColor}40`,
-          background: `${statusColor}15`,
-          color: statusColor,
-          cursor: 'pointer',
-        }}
-      >
-        {STATUS_ORDER.map(s => (
-          <option key={s} value={s}>{STATUS_LABELS[s]}</option>
-        ))}
-      </select>
-
-      {/* Priority */}
-      <select
-        value={task.priority}
-        onClick={stop}
-        onChange={e => { stop(e); patch({ priority: e.target.value as Priority }) }}
-        title="Prioridad"
-        style={{
-          fontSize: 11, fontWeight: 700,
-          padding: '3px 6px', borderRadius: 6,
-          border: `1px solid ${priorityColor}40`,
-          background: `${priorityColor}15`,
-          color: priorityColor,
-          cursor: 'pointer',
-        }}
-      >
-        {PRIORITY_ORDER.map(p => (
-          <option key={p} value={p}>{PRIORITY_LABELS[p]}</option>
-        ))}
-      </select>
-
-      {/* Due date — clicking anywhere in the field opens the picker */}
-      <input
-        type="date"
-        value={task.due_date ? task.due_date.slice(0, 10) : ''}
-        onClick={e => {
-          stop(e)
-          const el = e.currentTarget as HTMLInputElement & { showPicker?: () => void }
-          if (typeof el.showPicker === 'function') {
-            try { el.showPicker() } catch { /* unsupported / not user-gesture */ }
-          }
-        }}
-        onFocus={e => {
-          const el = e.currentTarget as HTMLInputElement & { showPicker?: () => void }
-          if (typeof el.showPicker === 'function') {
-            try { el.showPicker() } catch { /* ignore */ }
-          }
-        }}
-        onKeyDown={e => e.stopPropagation()}
-        onChange={e => { stop(e); patch({ due_date: e.target.value || undefined }) }}
-        title="Fecha de entrega"
-        style={{
-          fontSize: 11, fontWeight: 600,
-          padding: '3px 6px', borderRadius: 6,
-          border: `1px solid ${C.border}`,
-          background: dateBg, color: dateColor,
-          cursor: 'pointer', fontFamily: 'inherit',
-        }}
+        value={task.etapa ?? ''}
+        color={etapaColor}
+        options={etapaOptions}
+        width="100%"
+        onChange={v => patch({ etapa: (v || undefined) as Etapa | undefined })}
       />
 
+      {/* Status */}
+      <BadgePicker
+        title="Status"
+        value={task.status}
+        color={statusColor}
+        options={statusOptions}
+        width="100%"
+        onChange={v => patch({ status: v as TaskStatus })}
+      />
+
+      {/* Priority */}
+      <BadgePicker
+        title="Prioridad"
+        value={task.priority}
+        color={priorityColor}
+        options={priorityOptions}
+        width="100%"
+        onChange={v => patch({ priority: v as Priority })}
+      />
+
+      {/* Due date — clicking anywhere in the field opens the picker */}
+      <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
+        <input
+          type="date"
+          value={task.due_date ? task.due_date.slice(0, 10) : ''}
+          onClick={e => {
+            e.stopPropagation()
+            const el = e.currentTarget as HTMLInputElement & { showPicker?: () => void }
+            if (typeof el.showPicker === 'function') { try { el.showPicker() } catch { /* ignore */ } }
+          }}
+          onFocus={e => {
+            const el = e.currentTarget as HTMLInputElement & { showPicker?: () => void }
+            if (typeof el.showPicker === 'function') { try { el.showPicker() } catch { /* ignore */ } }
+          }}
+          onKeyDown={e => e.stopPropagation()}
+          onChange={e => { e.stopPropagation(); patch({ due_date: e.target.value || undefined }) }}
+          title="Fecha de entrega"
+          style={{
+            width: '100%',
+            fontSize: 11.5, fontWeight: 700,
+            padding: '5px 8px', borderRadius: 7,
+            border: `1px solid ${dateBorder}`,
+            background: dateBg, color: dateColor,
+            cursor: 'pointer', fontFamily: 'inherit',
+          }}
+        />
+      </div>
+
       {/* Assignee */}
-      <select
-        value={task.assignee ?? ''}
-        onClick={stop}
-        onChange={e => { stop(e); patch({ assignee: e.target.value || undefined } as Partial<Task>) }}
+      <BadgePicker
         title="Responsable"
-        style={{
-          fontSize: 10, fontWeight: 700,
-          padding: 0, borderRadius: '50%',
-          width: 26, height: 26,
-          border: `1.5px solid ${assigneeColor}50`,
-          background: task.assignee ? `${assigneeColor}20` : '#F5F6FA',
-          color: assigneeColor,
-          cursor: 'pointer', textAlign: 'center', appearance: 'none',
-          textAlignLast: 'center' as 'center',
-        }}
-      >
-        <option value="">—</option>
-        {TEAM_MEMBERS.map(m => (
-          <option key={m} value={m}>{m.slice(0, 2).toUpperCase()} · {m}</option>
-        ))}
-      </select>
+        value={task.assignee ?? ''}
+        color={assigneeColor}
+        options={assigneeOptions}
+        width="100%"
+        align="right"
+        onChange={v => patch({ assignee: (v || undefined) } as Partial<Task>)}
+      />
     </div>
   )
 }
