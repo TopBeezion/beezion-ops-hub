@@ -125,7 +125,7 @@ export const CAMPAIGN_TYPE_LABELS: Record<CampaignType, string> = {
 
 export const CAMPAIGN_TYPE_COLORS: Record<CampaignType, string> = {
   nueva_campana: '#6366F1',
-  iteracion: '#3B82F6',
+  iteracion: '#EAB308',
   refresh: '#F59E0B',
   bombero: '#EF4444',
 }

@@ -391,8 +391,13 @@ export function ClientDetailPage() {
 
         {/* ── Campaigns ───────────────────────────────────────────────────────── */}
         {(() => {
-          const activeCamps = clientCampaigns.filter(c => c.status !== 'desactivada')
-          const archivedCamps = clientCampaigns.filter(c => c.status === 'desactivada')
+          const sortIteracionLast = (a: typeof clientCampaigns[number], b: typeof clientCampaigns[number]) => {
+            const aIt = a.type === 'iteracion' ? 1 : 0
+            const bIt = b.type === 'iteracion' ? 1 : 0
+            return aIt - bIt
+          }
+          const activeCamps = clientCampaigns.filter(c => c.status !== 'desactivada').slice().sort(sortIteracionLast)
+          const archivedCamps = clientCampaigns.filter(c => c.status === 'desactivada').slice().sort(sortIteracionLast)
           const renderCampaignCard = (cam: typeof clientCampaigns[number]) => {
                 const camTasks = tasks.filter(t => t.campaign_id === cam.id)
                 const camDone = camTasks.filter(t => t.status === 'done').length

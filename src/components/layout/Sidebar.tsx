@@ -268,7 +268,16 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             {clientsOpen && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                 {(clients ?? []).map(client => {
-                  const clientCampaigns = campaigns.filter(c => c.client_id === client.id && c.status !== 'desactivada')
+                  const clientCampaigns = campaigns
+                    .filter(c => c.client_id === client.id && c.status !== 'desactivada')
+                    .slice()
+                    .sort((a, b) => {
+                      // Iteración siempre al final
+                      const aIt = a.type === 'iteracion' ? 1 : 0
+                      const bIt = b.type === 'iteracion' ? 1 : 0
+                      if (aIt !== bIt) return aIt - bIt
+                      return 0
+                    })
                   const isExpanded = expandedClients.has(client.id)
                   return (
                     <div key={client.id} className="group" style={{ display: 'flex', flexDirection: 'column' }}>
