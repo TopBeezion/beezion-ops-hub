@@ -228,11 +228,24 @@ function InlineTaskRow({ task, onOpen }: { task: Task; onOpen: () => void }) {
         ))}
       </select>
 
-      {/* Due date */}
+      {/* Due date — clicking anywhere in the field opens the picker */}
       <input
         type="date"
         value={task.due_date ? task.due_date.slice(0, 10) : ''}
-        onClick={stop}
+        onClick={e => {
+          stop(e)
+          const el = e.currentTarget as HTMLInputElement & { showPicker?: () => void }
+          if (typeof el.showPicker === 'function') {
+            try { el.showPicker() } catch { /* unsupported / not user-gesture */ }
+          }
+        }}
+        onFocus={e => {
+          const el = e.currentTarget as HTMLInputElement & { showPicker?: () => void }
+          if (typeof el.showPicker === 'function') {
+            try { el.showPicker() } catch { /* ignore */ }
+          }
+        }}
+        onKeyDown={e => e.stopPropagation()}
         onChange={e => { stop(e); patch({ due_date: e.target.value || undefined }) }}
         title="Fecha de entrega"
         style={{
