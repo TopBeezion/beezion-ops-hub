@@ -11,7 +11,7 @@ import { useClients } from '../../hooks/useClients'
 import { useCampaignsForSelector, useCreateCampaign } from '../../hooks/useCampaigns'
 import type { Task, Area, Priority, TaskStatus, TaskTipo, Etapa, Deliverables, TaskAttachment, CampaignType } from '../../types'
 import {
-  AREA_LABELS, AREA_COLORS, STATUS_LABELS, STATUS_COLORS,
+  AREA_LABELS, AREA_COLORS, ETAPA_TO_AREA, STATUS_LABELS, STATUS_COLORS,
   PRIORITY_LABELS, PRIORITY_COLORS,
   ETAPA_LABELS, ETAPA_COLORS, ETAPA_ORDER,
   CAMPAIGN_TYPE_LABELS, CAMPAIGN_TYPE_COLORS,
@@ -257,6 +257,16 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
   const [clientId,     setClientId]     = useState(task.client_id ?? '')
   const [campaignId,   setCampaignId]   = useState(task.campaign_id ?? '')
   const [etapa,        setEtapa]        = useState<Etapa | ''>(task.etapa ?? '')
+  const prevEtapaRef = useRef<Etapa | ''>(task.etapa ?? '')
+  // Auto-derive área from etapa whenever etapa changes.
+  useEffect(() => {
+    if (etapa && etapa !== prevEtapaRef.current) {
+      const mapped = ETAPA_TO_AREA[etapa as Etapa]
+      if (mapped) setArea(mapped)
+    }
+    prevEtapaRef.current = etapa
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [etapa])
   const [dueDate,      setDueDate]      = useState(task.due_date ?? '')
   const [deliverables, setDeliverables] = useState<Deliverables>(task.deliverables ?? {})
   const [attachments,  setAttachments]  = useState<TaskAttachment[]>(task.attachments ?? [])
@@ -398,6 +408,7 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
   const priorityOpts   = (Object.entries(PRIORITY_LABELS) as [Priority,   string][]).map(([v, l]) => ({ value: v, label: l, color: PRIORITY_COLORS[v] }))
   // tipo kept in state for save compatibility but not shown in UI
   const etapaOpts      = [{ value: '', label: 'Sin etapa', color: '#D1D5DB' }, ...ETAPA_ORDER.map(e => ({ value: e, label: ETAPA_LABELS[e as Etapa], color: ETAPA_COLORS[e as Etapa] }))]
+  const areaOpts       = (Object.entries(AREA_LABELS) as [Area, string][]).map(([v, l]) => ({ value: v, label: l, color: AREA_COLORS[v] }))
   const clienteOpts    = [{ value: '', label: 'Sin cliente', color: '#D1D5DB' }, ...clients.map(c => ({ value: c.id, label: c.name, color: c.color }))]
   const campanaOpts    = [{ value: '', label: 'Sin campaña', color: '#D1D5DB' }, ...campaigns.map(c => ({ value: c.id, label: c.name, color: '#6366F1' }))]
 
@@ -532,24 +543,9 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
               <FieldSel label="Prioridad" value={priority} onChange={v => setPriority(v as Priority)}   options={priorityOpts} />
             </div>
 
-            {/* Área */}
-            <div>
-              {sLbl('Área')}
-              <div style={{ display: 'flex', gap: 6 }}>
-                {(Object.entries(AREA_LABELS) as [Area, string][]).map(([v, l]) => {
-                  const active = area === v
-                  const col    = AREA_COLORS[v]
-                  return (
-                    <button key={v} onClick={() => setArea(v)} style={{
-                      padding: '6px 18px', borderRadius: 20, fontSize: 12, fontWeight: 700,
-                      cursor: 'pointer', border: 'none', transition: 'all 0.15s',
-                      backgroundColor: active ? col : `${col}12`,
-                      color: active ? '#fff' : col,
-                      boxShadow: active ? `0 2px 10px ${col}45` : 'none',
-                    }}>{l}</button>
-                  )
-                })}
-              </div>
+            {/* Etapa (antes ocupaba el lugar de Área) */}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <FieldSel label="Etapa" required value={etapa} onChange={v => setEtapa(v as Etapa | '')} options={etapaOpts} accentColor={etapa ? ETAPA_COLORS[etapa as Etapa] : '#D1D5DB'} />
             </div>
 
             {/* Responsable (dropdown compacto) */}
@@ -628,9 +624,9 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
               </div>
             </div>
 
-            {/* Etapa */}
+            {/* Área (auto-derivado de Etapa; editable) */}
             <div style={{ display: 'flex', gap: 8 }}>
-              <FieldSel label="Etapa" required value={etapa} onChange={v => setEtapa(v as Etapa | '')} options={etapaOpts} accentColor={etapa ? ETAPA_COLORS[etapa as Etapa] : '#D1D5DB'} />
+              <FieldSel label="Área" value={area} onChange={v => setArea(v as Area)} options={areaOpts} accentColor={AREA_COLORS[area]} />
             </div>
 
             {/* Fecha de Creación (auto) · Fecha de entrega */}
