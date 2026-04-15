@@ -2,13 +2,15 @@ import { useState, useRef, useEffect, useMemo } from 'react'
 import { useParams, Navigate, useNavigate, useOutletContext } from 'react-router-dom'
 import { useCampaigns, useUpdateCampaign, useDeleteCampaign } from '../hooks/useCampaigns'
 import { useClients } from '../hooks/useClients'
-import { useTasks } from '../hooks/useTasks'
-import type { Task, CampaignType, CampaignStatus, Etapa } from '../types'
+import { useTasks, useUpdateTask } from '../hooks/useTasks'
+import type { Task, CampaignType, CampaignStatus, Etapa, TaskStatus, Priority } from '../types'
 import {
   CAMPAIGN_TYPE_LABELS, CAMPAIGN_TYPE_COLORS,
   CAMPAIGN_STATUS_LABELS, CAMPAIGN_STATUS_COLORS,
   ETAPA_LABELS, ETAPA_COLORS, ETAPA_ORDER,
-  STATUS_LABELS, STATUS_COLORS,
+  STATUS_LABELS, STATUS_COLORS, STATUS_ORDER,
+  PRIORITY_LABELS, PRIORITY_COLORS, PRIORITY_ORDER,
+  TEAM_MEMBERS, ASSIGNEE_COLORS,
 } from '../lib/constants'
 import {
   ArrowLeft, Calendar, Target as TargetIcon,
@@ -111,6 +113,159 @@ function StatusPicker({ value, onChange }: { value: CampaignStatus; onChange: (v
           })}
         </div>
       )}
+    </div>
+  )
+}
+
+// ── Inline editable task row ───────────────────────────────────────────────
+function InlineTaskRow({ task, onOpen }: { task: Task; onOpen: () => void }) {
+  const updateTask = useUpdateTask()
+
+  const stop = (e: React.MouseEvent | React.ChangeEvent) => e.stopPropagation()
+  const patch = (fields: Partial<Task>) => updateTask.mutate({ id: task.id, ...fields } as Parameters<typeof updateTask.mutate>[0])
+
+  const statusColor = STATUS_COLORS[task.status]
+  const priorityColor = PRIORITY_COLORS[task.priority] ?? C.muted
+  const assigneeColor = task.assignee ? (ASSIGNEE_COLORS[task.assignee] ?? C.accent) : C.muted
+
+  // Date overdue/urgency styling
+  let dateColor = C.muted
+  let dateBg = '#F5F6FA'
+  if (task.due_date) {
+    const today = new Date(); today.setHours(0,0,0,0)
+    const due = new Date(task.due_date); due.setHours(0,0,0,0)
+    const diff = (due.getTime() - today.getTime()) / (24 * 60 * 60 * 1000)
+    if (diff < 0) { dateColor = '#B91C1C'; dateBg = '#FEE2E2' }
+    else if (diff <= 3) { dateColor = '#92400E'; dateBg = '#FEF3C7' }
+    else { dateColor = C.sub; dateBg = '#F5F6FA' }
+  }
+
+  return (
+    <div
+      onClick={onOpen}
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '14px minmax(0,1fr) 110px 130px 90px 110px 26px',
+        alignItems: 'center', gap: 8,
+        padding: '8px 12px',
+        borderTop: `1px solid ${C.border}`,
+        cursor: 'pointer',
+        background: '#fff',
+      }}
+      onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#FAFBFC')}
+      onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#fff')}
+    >
+      {/* Priority dot */}
+      <span
+        title={PRIORITY_LABELS[task.priority] ?? task.priority}
+        style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: priorityColor, display: 'inline-block' }}
+      />
+
+      {/* Title */}
+      <span style={{
+        fontSize: 12.5, color: C.text, fontWeight: 500,
+        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0,
+      }}>
+        {task.title}
+      </span>
+
+      {/* Etapa */}
+      <select
+        value={task.etapa ?? ''}
+        onClick={stop}
+        onChange={e => { stop(e); patch({ etapa: (e.target.value || undefined) as Etapa | undefined }) }}
+        title="Etapa"
+        style={{
+          fontSize: 11, fontWeight: 600, color: C.sub,
+          padding: '3px 6px', borderRadius: 6,
+          border: `1px solid ${C.border}`, background: '#fff',
+          cursor: 'pointer', maxWidth: 110,
+        }}
+      >
+        <option value="">— etapa —</option>
+        {ETAPA_ORDER.map(et => (
+          <option key={et} value={et}>{ETAPA_LABELS[et as Etapa] ?? et}</option>
+        ))}
+      </select>
+
+      {/* Status */}
+      <select
+        value={task.status}
+        onClick={stop}
+        onChange={e => { stop(e); patch({ status: e.target.value as TaskStatus }) }}
+        title="Status"
+        style={{
+          fontSize: 11, fontWeight: 700,
+          padding: '3px 8px', borderRadius: 6,
+          border: `1px solid ${statusColor}40`,
+          background: `${statusColor}15`,
+          color: statusColor,
+          cursor: 'pointer',
+        }}
+      >
+        {STATUS_ORDER.map(s => (
+          <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+        ))}
+      </select>
+
+      {/* Priority */}
+      <select
+        value={task.priority}
+        onClick={stop}
+        onChange={e => { stop(e); patch({ priority: e.target.value as Priority }) }}
+        title="Prioridad"
+        style={{
+          fontSize: 11, fontWeight: 700,
+          padding: '3px 6px', borderRadius: 6,
+          border: `1px solid ${priorityColor}40`,
+          background: `${priorityColor}15`,
+          color: priorityColor,
+          cursor: 'pointer',
+        }}
+      >
+        {PRIORITY_ORDER.map(p => (
+          <option key={p} value={p}>{PRIORITY_LABELS[p]}</option>
+        ))}
+      </select>
+
+      {/* Due date */}
+      <input
+        type="date"
+        value={task.due_date ? task.due_date.slice(0, 10) : ''}
+        onClick={stop}
+        onChange={e => { stop(e); patch({ due_date: e.target.value || undefined }) }}
+        title="Fecha de entrega"
+        style={{
+          fontSize: 11, fontWeight: 600,
+          padding: '3px 6px', borderRadius: 6,
+          border: `1px solid ${C.border}`,
+          background: dateBg, color: dateColor,
+          cursor: 'pointer', fontFamily: 'inherit',
+        }}
+      />
+
+      {/* Assignee */}
+      <select
+        value={task.assignee ?? ''}
+        onClick={stop}
+        onChange={e => { stop(e); patch({ assignee: e.target.value || undefined } as Partial<Task>) }}
+        title="Responsable"
+        style={{
+          fontSize: 10, fontWeight: 700,
+          padding: 0, borderRadius: '50%',
+          width: 26, height: 26,
+          border: `1.5px solid ${assigneeColor}50`,
+          background: task.assignee ? `${assigneeColor}20` : '#F5F6FA',
+          color: assigneeColor,
+          cursor: 'pointer', textAlign: 'center', appearance: 'none',
+          textAlignLast: 'center' as 'center',
+        }}
+      >
+        <option value="">—</option>
+        {TEAM_MEMBERS.map(m => (
+          <option key={m} value={m}>{m.slice(0, 2).toUpperCase()} · {m}</option>
+        ))}
+      </select>
     </div>
   )
 }
@@ -441,34 +596,8 @@ export function CampaignDetailPage() {
                       <span style={{ fontSize: 11, fontWeight: 700, color: ec }}>{ETAPA_LABELS[etapa as Etapa]}</span>
                       <span style={{ fontSize: 10, fontWeight: 700, color: C.muted, marginLeft: 'auto' }}>{rows.length}</span>
                     </div>
-                    {rows.map((t, i) => (
-                      <div
-                        key={t.id}
-                        onClick={() => ctx?.openTaskDetail?.(t)}
-                        style={{
-                          display: 'grid', gridTemplateColumns: '14px 1fr auto auto auto',
-                          alignItems: 'center', gap: 10,
-                          padding: '8px 12px',
-                          borderBottom: i < rows.length - 1 ? `1px solid ${C.border}` : 'none',
-                          cursor: 'pointer',
-                        }}
-                        onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#FAFBFC')}
-                        onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
-                      >
-                        <PriorityDot priority={t.priority} />
-                        <span style={{ fontSize: 12, color: C.text, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
-                        <span style={{
-                          fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 5,
-                          backgroundColor: `${STATUS_COLORS[t.status]}18`,
-                          color: STATUS_COLORS[t.status],
-                        }}>
-                          {STATUS_LABELS[t.status]}
-                        </span>
-                        <span style={{ fontSize: 10, color: C.muted, fontWeight: 600, minWidth: 70, textAlign: 'right' }}>
-                          {t.due_date ? new Date(t.due_date).toLocaleDateString('es', { day: '2-digit', month: 'short' }) : '—'}
-                        </span>
-                        {t.assignee ? <AssigneeAvatar name={t.assignee} size="sm" /> : <span style={{ width: 20 }} />}
-                      </div>
+                    {rows.map(t => (
+                      <InlineTaskRow key={t.id} task={t} onOpen={() => ctx?.openTaskDetail?.(t)} />
                     ))}
                   </div>
                 )
