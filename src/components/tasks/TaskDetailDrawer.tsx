@@ -2,18 +2,19 @@ import { useState, useEffect, useRef } from 'react'
 import {
   X, Save, ChevronDown, AlertTriangle, Check,
   Paperclip, Upload, Trash2, Download, File, Image, FileVideo, FileAudio,
-  Bot, Hand,
+  Bot, Hand, Plus,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useUpdateTask, useDeleteTask } from '../../hooks/useTasks'
 import { getDaysOverdue } from '../../lib/dates'
 import { useClients } from '../../hooks/useClients'
-import { useCampaignsByClient } from '../../hooks/useCampaigns'
-import type { Task, Area, Priority, TaskStatus, TaskTipo, Etapa, Deliverables, TaskAttachment } from '../../types'
+import { useCampaignsByClient, useCreateCampaign } from '../../hooks/useCampaigns'
+import type { Task, Area, Priority, TaskStatus, TaskTipo, Etapa, Deliverables, TaskAttachment, CampaignType } from '../../types'
 import {
   AREA_LABELS, AREA_COLORS, STATUS_LABELS, STATUS_COLORS,
   PRIORITY_LABELS, PRIORITY_COLORS,
   ETAPA_LABELS, ETAPA_COLORS, ETAPA_ORDER,
+  CAMPAIGN_TYPE_LABELS, CAMPAIGN_TYPE_COLORS,
 } from '../../lib/constants'
 import { TaskActivityLogPanel } from '../widgets/TaskActivityLogPanel'
 import { SubtasksPanel } from './SubtasksPanel'
@@ -69,9 +70,11 @@ function FieldSel({
 
   return (
     <div style={{ flex: 1, position: 'relative' }} ref={ref}>
-      <p style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>
-        {label}{required && <span style={{ color: '#EF4444' }}> *</span>}
-      </p>
+      {label && (
+        <p style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>
+          {label}{required && <span style={{ color: '#EF4444' }}> *</span>}
+        </p>
+      )}
       <button type="button" onClick={() => setOpen(v => !v)} style={{
         width: '100%', display: 'flex', alignItems: 'center', gap: 6,
         padding: '8px 10px', borderRadius: 8, cursor: 'pointer', outline: 'none',
@@ -123,6 +126,7 @@ interface Props { task: Task; onClose: () => void }
 export function TaskDetailDrawer({ task, onClose }: Props) {
   const updateTask  = useUpdateTask()
   const deleteTask  = useDeleteTask()
+  const createCampaign = useCreateCampaign()
   const { data: clients = [] } = useClients()
 
   const [title,        setTitle]        = useState(task.title)
@@ -144,6 +148,9 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
   const [saved,         setSaved]        = useState(false)
   const [showDel,       setShowDel]      = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [creatingCampaign, setCreatingCampaign] = useState(false)
+  const [newCampaignName, setNewCampaignName] = useState('')
+  const [newCampaignType, setNewCampaignType] = useState<CampaignType>('nueva_campana')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const { data: campaigns = [] } = useCampaignsByClient(clientId || undefined)
@@ -189,6 +196,24 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
       })
       setSaved(true); setTimeout(() => setSaved(false), 2000)
     } finally { setSaving(false) }
+  }
+
+  const handleCreateCampaign = async () => {
+    const name = newCampaignName.trim()
+    if (!name || !clientId) return
+    try {
+      const created = await createCampaign.mutateAsync({
+        client_id: clientId,
+        name,
+        type: newCampaignType,
+        status: 'activa',
+      } as Parameters<typeof createCampaign.mutateAsync>[0])
+      if (created?.id) setCampaignId(created.id)
+      setNewCampaignName('')
+      setCreatingCampaign(false)
+    } catch (err) {
+      console.error('Error creating campaign:', err)
+    }
   }
 
   const setDeliverable = (key: keyof Deliverables, value: number) => {
@@ -318,10 +343,15 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
             onChange={e => setTitle(e.target.value)}
             rows={2}
             style={{
-              width: '100%', border: 'none', outline: 'none', resize: 'none',
+              width: '100%', outline: 'none', resize: 'none',
               fontSize: 16, fontWeight: 600, color: '#111827', lineHeight: 1.4,
-              backgroundColor: 'transparent', fontFamily: 'inherit',
+              backgroundColor: '#FAFBFC', fontFamily: 'inherit',
+              padding: '8px 10px', borderRadius: 8,
+              border: '1px dashed #D1D5DB',
+              transition: 'all 0.15s',
             }}
+            onFocus={e => { e.currentTarget.style.border = '1px solid #6366F1'; e.currentTarget.style.backgroundColor = '#FAFBFF' }}
+            onBlur={e => { e.currentTarget.style.border = '1px dashed #D1D5DB'; e.currentTarget.style.backgroundColor = '#FAFBFC' }}
             placeholder="Título de la tarea..."
           />
 
@@ -422,9 +452,63 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
             </div>
 
             {/* Cliente · Campaña */}
-            <div style={{ display: 'flex', gap: 8 }}>
-              <FieldSel label="Cliente" required value={clientId}  onChange={v => { setClientId(v); setCampaignId('') }} options={clienteOpts}  accentColor={clientColor ?? '#D1D5DB'} />
-              <FieldSel label="Campaña" value={campaignId} onChange={setCampaignId}                            options={campanaOpts} />
+            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+              <FieldSel label="Cliente" required value={clientId}  onChange={v => { setClientId(v); setCampaignId(''); setCreatingCampaign(false) }} options={clienteOpts}  accentColor={clientColor ?? '#D1D5DB'} />
+              <div style={{ flex: 1 }}>
+                {creatingCampaign ? (
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
+                      <p style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em', margin: 0 }}>
+                        Nueva Campaña
+                      </p>
+                      <button type="button" onClick={() => { setCreatingCampaign(false); setNewCampaignName('') }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 10, color: '#6B7280', fontWeight: 600 }}>
+                        Cancelar
+                      </button>
+                    </div>
+                    <input
+                      autoFocus
+                      value={newCampaignName}
+                      onChange={e => setNewCampaignName(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleCreateCampaign() } }}
+                      placeholder="Nombre de la campaña"
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: 8, outline: 'none', border: '1px solid #6366F1', fontSize: 12, fontWeight: 500, color: '#374151', backgroundColor: '#FAFBFF', marginBottom: 6 }}
+                    />
+                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 6 }}>
+                      {(Object.entries(CAMPAIGN_TYPE_LABELS) as [CampaignType, string][]).map(([v, l]) => {
+                        const active = newCampaignType === v
+                        const col = CAMPAIGN_TYPE_COLORS[v]
+                        return (
+                          <button key={v} type="button" onClick={() => setNewCampaignType(v)}
+                            style={{ padding: '4px 10px', borderRadius: 16, fontSize: 10, fontWeight: 700, cursor: 'pointer', border: 'none', backgroundColor: active ? col : `${col}15`, color: active ? '#fff' : col, transition: 'all 0.12s' }}>
+                            {l}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    <button type="button" onClick={handleCreateCampaign}
+                      disabled={!newCampaignName.trim() || createCampaign.isPending}
+                      style={{ width: '100%', padding: '7px 10px', borderRadius: 8, border: 'none', cursor: newCampaignName.trim() ? 'pointer' : 'not-allowed', fontSize: 11, fontWeight: 700, background: 'linear-gradient(135deg,#6366F1,#8B5CF6)', color: '#fff', opacity: (!newCampaignName.trim() || createCampaign.isPending) ? 0.5 : 1 }}>
+                      {createCampaign.isPending ? 'Creando…' : '✓ Crear campaña'}
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
+                      <p style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em', margin: 0 }}>
+                        Campaña
+                      </p>
+                      {clientId && (
+                        <button type="button" onClick={() => setCreatingCampaign(true)}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: 'none', border: 'none', cursor: 'pointer', fontSize: 10, color: '#6366F1', fontWeight: 700 }}>
+                          <Plus size={10} /> Nueva
+                        </button>
+                      )}
+                    </div>
+                    <FieldSel label="" value={campaignId} onChange={setCampaignId} options={campanaOpts} />
+                  </>
+                )}
+              </div>
             </div>
 
             {/* Etapa */}
