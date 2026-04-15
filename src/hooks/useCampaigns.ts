@@ -39,6 +39,28 @@ export function useCampaignsByClient(clientId?: string) {
   })
 }
 
+/**
+ * Selector hook: returns ONLY top-level campaigns (kind='group' or 'general').
+ * Hides Main/Iteración/Refresh children which are internal sub-components of each group.
+ * Use this in: task forms, filter dropdowns, anywhere a user picks a campaign for a task.
+ */
+export function useCampaignsForSelector(clientId?: string) {
+  return useQuery<Campaign[]>({
+    queryKey: ['campaigns', 'selector', clientId ?? 'all'],
+    queryFn: async () => {
+      let query = supabase
+        .from('campaigns')
+        .select('*, client:clients(*)')
+        .in('kind', ['group', 'general'])
+        .order('name')
+      if (clientId) query = query.eq('client_id', clientId)
+      const { data, error } = await query
+      if (error) throw error
+      return data ?? []
+    },
+  })
+}
+
 export function useCampaignsGroupedByClient() {
   return useQuery<Record<string, Campaign[]>>({
     queryKey: ['campaigns', 'by-client'],

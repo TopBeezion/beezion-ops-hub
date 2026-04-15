@@ -712,6 +712,7 @@ export function CampaignsPage() {
   }
 
   const visibleCampaigns = campaigns.filter(c => {
+    if (c.kind !== 'group' && c.kind !== 'general') return false
     if (activeClient !== 'all' && c.client_id !== activeClient) return false
     if (filterType && c.type !== filterType) return false
     if (filterStatus && c.status !== filterStatus) return false

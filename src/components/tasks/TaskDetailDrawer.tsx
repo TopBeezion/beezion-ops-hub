@@ -8,7 +8,7 @@ import { supabase } from '../../lib/supabase'
 import { useUpdateTask, useDeleteTask } from '../../hooks/useTasks'
 import { getDaysOverdue } from '../../lib/dates'
 import { useClients } from '../../hooks/useClients'
-import { useCampaignsByClient, useCreateCampaign } from '../../hooks/useCampaigns'
+import { useCampaignsForSelector, useCreateCampaign } from '../../hooks/useCampaigns'
 import type { Task, Area, Priority, TaskStatus, TaskTipo, Etapa, Deliverables, TaskAttachment, CampaignType } from '../../types'
 import {
   AREA_LABELS, AREA_COLORS, STATUS_LABELS, STATUS_COLORS,
@@ -153,7 +153,7 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
   const [newCampaignType, setNewCampaignType] = useState<CampaignType>('nueva_campana')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const { data: campaigns = [] } = useCampaignsByClient(clientId || undefined)
+  const { data: campaigns = [] } = useCampaignsForSelector(clientId || undefined)
   const assigneeInfo = ASSIGNEES.find(a => a.name === assignee)
   const clientColor  = clients.find(c => c.id === clientId)?.color
 

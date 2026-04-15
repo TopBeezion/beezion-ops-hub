@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useTasks } from '../hooks/useTasks'
 import { useClients } from '../hooks/useClients'
-import { useCampaigns } from '../hooks/useCampaigns'
+import { useCampaignsForSelector } from '../hooks/useCampaigns'
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import type { Task, Client, Area } from '../types'
 import { AREA_LABELS, AREA_COLORS, ASSIGNEE_COLORS, STATUS_LABELS, STATUS_COLORS, TEAM_MEMBERS, TEAM_ROLES, isAdminPlus } from '../lib/constants'
@@ -302,7 +302,7 @@ function MemberChip({ name, active, onClick }: { name: string; active: boolean; 
 export function DashboardPage() {
   const { data: tasks = [], isLoading } = useTasks()
   const { data: clients = [] } = useClients()
-  const { data: campaigns = [] } = useCampaigns()
+  const { data: campaigns = [] } = useCampaignsForSelector()
   const navigate = useNavigate()
   const { user } = useAuth()
   const canSeeTeamLoad = isAdminPlus(user)

@@ -266,7 +266,7 @@ export function ClientDetailPage() {
   const client = clients.find(c => c.id === clientId)
   if (!isLoading && !client) return <Navigate to="/" replace />
 
-  const clientCampaigns = allCampaigns.filter(c => c.client_id === clientId)
+  const clientCampaigns = allCampaigns.filter(c => c.client_id === clientId && (c.kind === 'group' || c.kind === 'general'))
   const filteredTasks = areaFilter ? tasks.filter(t => t.area === areaFilter) : tasks
   const completedCount = tasks.filter(t => t.status === 'done').length
   const progress = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0

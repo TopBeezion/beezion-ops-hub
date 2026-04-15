@@ -6,7 +6,7 @@ import type { ViewConfig } from '../types'
 import { getDaysOverdue } from '../lib/dates'
 import { useTasks, useUpdateTask, useUpdateTaskStatus } from '../hooks/useTasks'
 import { useClients } from '../hooks/useClients'
-import { useCampaigns } from '../hooks/useCampaigns'
+import { useCampaignsForSelector } from '../hooks/useCampaigns'
 import { useOutletContext } from 'react-router-dom'
 import type { Task, Area, Priority, TaskStatus, TaskFilters, Etapa } from '../types'
 import {
@@ -340,7 +340,7 @@ function Chip({ label, active, color, onClick }: { label: string; active: boolea
 
 export function BacklogPage() {
   const { data: clients = [] } = useClients()
-  const { data: campaigns = [] } = useCampaigns()
+  const { data: campaigns = [] } = useCampaignsForSelector()
   const updateTask = useUpdateTask()
   const updateStatus = useUpdateTaskStatus()
   const ctx = useOutletContext<{ openNewTask?: () => void; openTaskDetail?: (t: Task) => void }>()

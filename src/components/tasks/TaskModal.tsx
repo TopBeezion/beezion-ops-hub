@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import type { FormEvent } from 'react'
 import { X, ChevronDown, AlertTriangle, Check } from 'lucide-react'
 import { useClients } from '../../hooks/useClients'
-import { useCampaignsByClient } from '../../hooks/useCampaigns'
+import { useCampaignsForSelector } from '../../hooks/useCampaigns'
 import { useCreateTask } from '../../hooks/useTasks'
 import type { Area, Priority, TaskStatus, TaskTipo, Etapa, Deliverables, TaskAttachment } from '../../types'
 import {
@@ -189,7 +189,7 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
     if (dueDate) setPriority(priorityFromDueDate(dueDate))
   }, [dueDate, priorityManual])
 
-  const { data: campaigns } = useCampaignsByClient(clientId || undefined)
+  const { data: campaigns } = useCampaignsForSelector(clientId || undefined)
   const assigneeInfo = ASSIGNEES.find(a => a.name === assignee)
   const relevantDel  = DELIVERABLE_DEFS.filter(d => d.areas.includes(area))
 
