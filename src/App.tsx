@@ -13,6 +13,7 @@ import { ClientDetailPage } from './pages/ClientDetailPage'
 import { CampaignDetailPage } from './pages/CampaignDetailPage'
 import { FolderPage } from './pages/FolderPage'
 import { SettingsPage } from './pages/SettingsPage'
+import { TrashPage } from './pages/TrashPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -46,6 +47,7 @@ function App() {
             <Route path="/clients/:clientId/folder/:category" element={<FolderPage />} />
             <Route path="/campaigns/:campaignId" element={<CampaignDetailPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/trash" element={<TrashPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

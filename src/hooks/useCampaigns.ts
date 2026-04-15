@@ -9,6 +9,7 @@ export function useCampaigns(filters?: CampaignFilters) {
       let query = supabase
         .from('campaigns')
         .select('*, client:clients(*)')
+        .is('deleted_at', null)
         .order('created_at', { ascending: false })
 
       if (filters?.client_id) query = query.eq('client_id', filters.client_id)
@@ -31,6 +32,7 @@ export function useCampaignsByClient(clientId?: string) {
         .from('campaigns')
         .select('*, client:clients(*)')
         .eq('client_id', clientId)
+        .is('deleted_at', null)
         .order('name')
       if (error) throw error
       return data ?? []
@@ -52,6 +54,7 @@ export function useCampaignsForSelector(clientId?: string) {
         .from('campaigns')
         .select('*, client:clients(*)')
         .in('kind', ['group', 'general'])
+        .is('deleted_at', null)
         .order('name')
       if (clientId) query = query.eq('client_id', clientId)
       const { data, error } = await query
@@ -68,6 +71,7 @@ export function useCampaignsGroupedByClient() {
       const { data, error } = await supabase
         .from('campaigns')
         .select('*, client:clients(*)')
+        .is('deleted_at', null)
         .order('name')
 
       if (error) throw error
@@ -129,7 +133,59 @@ export function useUpdateCampaignStatus() {
   })
 }
 
+/**
+ * Soft-delete: moves the campaign (and its sub-campaigns) to Papelera.
+ * Auto-purged after 7 days by pg_cron job `purge_trashed_campaigns_daily`.
+ */
 export function useDeleteCampaign() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.rpc('soft_delete_campaign', { p_campaign_id: id })
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] })
+      queryClient.invalidateQueries({ queryKey: ['tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['campaigns', 'trashed'] })
+    },
+  })
+}
+
+// ─── Trash / Papelera ──────────────────────────────────────────────────
+export interface TrashedCampaign extends Campaign {
+  deleted_at: string
+}
+
+export function useTrashedCampaigns() {
+  return useQuery<TrashedCampaign[]>({
+    queryKey: ['campaigns', 'trashed'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('campaigns')
+        .select('*, client:clients(*)')
+        .not('deleted_at', 'is', null)
+        .order('deleted_at', { ascending: false })
+      if (error) throw error
+      return (data ?? []) as TrashedCampaign[]
+    },
+  })
+}
+
+export function useRestoreCampaign() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.rpc('restore_campaign', { p_campaign_id: id })
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] })
+    },
+  })
+}
+
+export function useHardDeleteCampaign() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (id: string) => {

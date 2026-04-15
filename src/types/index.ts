@@ -59,6 +59,7 @@ export interface Campaign {
   kind: CampaignKind
   parent_campaign_id?: string | null
   position?: number
+  deleted_at?: string | null
   created_at: string
   updated_at: string
   client?: Client

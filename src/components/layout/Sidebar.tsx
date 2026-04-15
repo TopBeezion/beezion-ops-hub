@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, List, Kanban, CalendarDays, Settings,
   ChevronLeft, ChevronRight, ChevronDown, Rocket, Flame, LogOut,
-  Zap, Plus, Pencil, Trash2,
+  Zap, Plus, Pencil, Trash2, Trash,
 } from 'lucide-react'
 import { useClients, useCreateClient, useUpdateClient, useDeleteClient } from '../../hooks/useClients'
 import { useCampaigns, useCreateCampaign, useUpdateCampaign, useDeleteCampaign } from '../../hooks/useCampaigns'
@@ -28,6 +28,7 @@ const NAV = [
   { id: 'backlog',   label: 'Backlog',      icon: List,            path: '/backlog' },
   { id: 'kanban',    label: 'Kanban',       icon: Kanban,          path: '/kanban' },
   { id: 'timeline',  label: 'Timeline',     icon: CalendarDays,    path: '/timeline' },
+  { id: 'trash',     label: 'Papelera',     icon: Trash,           path: '/trash' },
   { id: 'settings',  label: 'Config',       icon: Settings,        path: '/settings' },
 ]
 
@@ -156,7 +157,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   }
 
   const handleDeleteCampaign = async (id: string, name: string) => {
-    if (!window.confirm(`¿Eliminar campaña "${name}"? Esta acción no se puede deshacer.`)) return
+    if (!window.confirm(`¿Mover "${name}" a la papelera? Podés restaurarla durante 7 días.`)) return
     try {
       await deleteCampaign.mutateAsync(id)
     } catch (e) {
