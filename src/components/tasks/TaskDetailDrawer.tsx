@@ -53,6 +53,123 @@ function usePopover() {
   return { open, setOpen, ref }
 }
 
+// ── Assignee dropdown (compact) ───────────────────────────────────────────────
+type AssigneeItem = { name: string; role: string; color: string; areas: string[] }
+function AssigneeDropdown({
+  value, onChange, options,
+}: {
+  value: string
+  onChange: (v: string) => void
+  options: AssigneeItem[]
+}) {
+  const { open, setOpen, ref } = usePopover()
+  const current = options.find(a => a.name === value)
+  const initials = (n: string) => n.slice(0, 2).toUpperCase()
+  const color = current?.color ?? '#9CA3AF'
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+          padding: '8px 11px', borderRadius: 9,
+          background: current ? `${color}10` : '#FAFBFC',
+          border: `1.5px solid ${current ? `${color}40` : '#F0F0F0'}`,
+          cursor: 'pointer', textAlign: 'left',
+        }}
+      >
+        {current ? (
+          <>
+            <div style={{
+              width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 10, fontWeight: 800,
+              background: `linear-gradient(135deg,${color},${color}80)`,
+              color: '#fff',
+            }}>{initials(current.name)}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 12.5, fontWeight: 700, color, margin: 0 }}>{current.name}</p>
+              <p style={{ fontSize: 10, color: '#9CA3AF', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{current.role}</p>
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{
+              width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
+              background: '#F3F4F6', color: '#9CA3AF',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 12, fontWeight: 800,
+            }}>?</div>
+            <span style={{ flex: 1, fontSize: 12.5, color: '#9CA3AF', fontWeight: 600 }}>Sin responsable</span>
+          </>
+        )}
+        <ChevronDown size={13} style={{ color: '#9CA3AF', transform: open ? 'rotate(180deg)' : 'none', transition: '150ms' }} />
+      </button>
+
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 120,
+          background: '#fff', border: '1px solid #E5E7EB', borderRadius: 10,
+          boxShadow: '0 10px 30px rgba(0,0,0,0.12)', padding: 4,
+          maxHeight: 320, overflowY: 'auto',
+        }}>
+          <button
+            type="button"
+            onClick={() => { onChange(''); setOpen(false) }}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 9,
+              padding: '7px 9px', borderRadius: 7, border: 'none', cursor: 'pointer',
+              background: !value ? '#F3F4F6' : 'transparent', textAlign: 'left',
+            }}
+            onMouseEnter={e => { if (value) e.currentTarget.style.backgroundColor = '#F9FAFB' }}
+            onMouseLeave={e => { if (value) e.currentTarget.style.backgroundColor = 'transparent' }}
+          >
+            <div style={{
+              width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+              background: '#F3F4F6', color: '#9CA3AF',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 10, fontWeight: 800,
+            }}>—</div>
+            <span style={{ fontSize: 12, color: '#6B7280', fontWeight: 600 }}>Sin responsable</span>
+          </button>
+          {options.map(a => {
+            const sel = value === a.name
+            return (
+              <button
+                key={a.name}
+                type="button"
+                onClick={() => { onChange(a.name); setOpen(false) }}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 9,
+                  padding: '7px 9px', borderRadius: 7, border: 'none', cursor: 'pointer',
+                  background: sel ? `${a.color}14` : 'transparent', textAlign: 'left',
+                }}
+                onMouseEnter={e => { if (!sel) e.currentTarget.style.backgroundColor = '#F9FAFB' }}
+                onMouseLeave={e => { if (!sel) e.currentTarget.style.backgroundColor = 'transparent' }}
+              >
+                <div style={{
+                  width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 9.5, fontWeight: 800,
+                  background: sel ? `linear-gradient(135deg,${a.color},${a.color}80)` : `${a.color}1A`,
+                  color: sel ? '#fff' : a.color,
+                }}>{initials(a.name)}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: sel ? a.color : '#111827', margin: 0 }}>{a.name}</p>
+                  <p style={{ fontSize: 9.5, color: '#9CA3AF', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.role}</p>
+                </div>
+                {sel && <Check size={13} style={{ color: a.color }} />}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Custom dropdown ───────────────────────────────────────────────────────────
 function FieldSel({
   label, value, onChange, options, accentColor, required,
@@ -435,37 +552,14 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
               </div>
             </div>
 
-            {/* Responsable */}
+            {/* Responsable (dropdown compacto) */}
             <div>
               {sLbl('Responsable')}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 5 }}>
-                {ASSIGNEES.map(a => {
-                  const active = assignee === a.name
-                  return (
-                    <button key={a.name} onClick={() => setAssignee(a.name)} style={{
-                      display: 'flex', alignItems: 'center', gap: 9, padding: '8px 11px',
-                      borderRadius: 9, cursor: 'pointer', textAlign: 'left', border: 'none',
-                      backgroundColor: active ? `${a.color}10` : '#FAFBFC',
-                      outline: active ? `1.5px solid ${a.color}40` : '1.5px solid #F0F0F0',
-                      transition: 'all 0.12s',
-                    }}>
-                      <div style={{
-                        width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 10, fontWeight: 800,
-                        background: active ? `linear-gradient(135deg,${a.color},${a.color}80)` : `${a.color}18`,
-                        color: active ? '#fff' : a.color,
-                      }}>
-                        {a.name.slice(0, 2).toUpperCase()}
-                      </div>
-                      <div style={{ minWidth: 0 }}>
-                        <p style={{ fontSize: 12, fontWeight: 600, color: active ? a.color : '#374151', margin: 0 }}>{a.name}</p>
-                        <p style={{ fontSize: 9, color: '#9CA3AF', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.role}</p>
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
+              <AssigneeDropdown
+                value={assignee}
+                onChange={setAssignee}
+                options={ASSIGNEES}
+              />
               {assigneeInfo && !assigneeInfo.areas.includes(area) && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 7, padding: '5px 10px', borderRadius: 7, backgroundColor: '#FFFBEB', border: '1px solid #FDE68A' }}>
                   <AlertTriangle size={11} color="#D97706" />
