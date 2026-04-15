@@ -345,7 +345,7 @@ export function BacklogPage() {
   const updateStatus = useUpdateTaskStatus()
   const ctx = useOutletContext<{ openNewTask?: () => void; openTaskDetail?: (t: Task) => void }>()
 
-  const ALL_COLS = ['num','title','campaign','client','status','priority','area','etapa','assignee','week'] as const
+  const ALL_COLS = ['num','title','campaign','client','status','priority','area','etapa','assignee','due_date'] as const
   const { value: prefs, setValue: setPrefs, loaded: prefsLoaded } = useUserPreference<{
     search: string
     activePersons: string[]
@@ -380,7 +380,11 @@ export function BacklogPage() {
   const setEtapa = (v: Etapa | '') => setPrefs({ ...prefs, activeEtapa: v })
   const groupBy = prefs.groupBy
   const setGroupBy = (v: GroupByOption) => setPrefs({ ...prefs, groupBy: v })
-  const visibleCols = useMemo(() => new Set(prefs.visibleCols), [prefs.visibleCols])
+  // Migrate legacy 'week' → 'due_date' from saved preferences
+  const visibleCols = useMemo(() => {
+    const cols = (prefs.visibleCols ?? []).map(c => c === 'week' ? 'due_date' : c)
+    return new Set(cols)
+  }, [prefs.visibleCols])
   const setVisibleCols = (next: Set<string>) => setPrefs({ ...prefs, visibleCols: Array.from(next) })
   void prefsLoaded
 
@@ -549,7 +553,7 @@ export function BacklogPage() {
               {colsMenuOpen && (
                 <div style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 0, zIndex: 50, backgroundColor: '#fff', border: `1px solid ${C.border}`, borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', padding: 6, minWidth: 180 }}>
                   {ALL_COLS.map(k => {
-                    const labels: Record<string, string> = { num: '#', title: 'Tarea', campaign: 'Campaña', client: 'Cliente', status: 'Estado', priority: 'Prioridad', area: 'Área', etapa: 'Etapa', assignee: 'Responsable', week: 'Semana' }
+                    const labels: Record<string, string> = { num: '#', title: 'Tarea', campaign: 'Campaña', client: 'Cliente', status: 'Estado', priority: 'Prioridad', area: 'Área', etapa: 'Etapa', assignee: 'Responsable', due_date: 'Fecha entrega' }
                     const on = visibleCols.has(k)
                     return (
                       <label key={k} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', borderRadius: 6, cursor: 'pointer', fontSize: 12, color: on ? C.text : C.muted }}>
@@ -679,7 +683,7 @@ export function BacklogPage() {
                     style={{ cursor: 'pointer', width: 14, height: 14 }}
                   />
                 </th>
-                {(([['num','#', '3%'], ['title','TAREA', '21%'], ['campaign','CAMPAÑA', '13%'], ['client','CLIENTE', '8%'], ['status','ESTADO', '9%'], ['priority','PRIORIDAD', '8%'], ['area','ÁREA', '7%'], ['etapa','ETAPA', '9%'], ['assignee','RESPONSABLE', '10%'], ['week','SEMANA', '6%']]) as [string, string, string][]).filter(([k]) => visibleCols.has(k)).map(([k,l,w]) => (
+                {(([['num','#', '3%'], ['title','TAREA', '19%'], ['campaign','CAMPAÑA', '12%'], ['client','CLIENTE', '8%'], ['status','ESTADO', '9%'], ['priority','PRIORIDAD', '8%'], ['area','ÁREA', '7%'], ['etapa','ETAPA', '9%'], ['assignee','RESPONSABLE', '10%'], ['due_date','FECHA ENTREGA', '10%']]) as [string, string, string][]).filter(([k]) => visibleCols.has(k)).map(([k,l,w]) => (
                   <th key={k} style={{ padding: '8px 14px', textAlign: 'left', fontSize: 9, fontWeight: 800, letterSpacing: '0.09em', color: C.muted, width: w, whiteSpace: 'nowrap' }}>{l}</th>
                 ))}
                 <th style={{ width: '4%' }} />
@@ -772,9 +776,24 @@ export function BacklogPage() {
                     </td>}
                     {/* Responsable */}
                     {visibleCols.has('assignee') && <td style={{ padding: '9px 14px' }}><AssigneePicker task={task} onUpdate={handleAssigneeUpdate} /></td>}
-                    {/* Sprint */}
-                    {visibleCols.has('week') && <td style={{ padding: '9px 14px' }}>
-                      {task.week ? <span style={{ padding: '3px 9px', borderRadius: 8, fontSize: 10, fontWeight: 700, backgroundColor: '#EEF2FF', color: C.accent, border: `1px solid ${C.accent}20`, whiteSpace: 'nowrap' }}>Sem. {task.week}</span> : <span style={{ color: C.muted }}>—</span>}
+                    {/* Fecha de entrega */}
+                    {visibleCols.has('due_date') && <td style={{ padding: '9px 14px' }}>
+                      {task.due_date ? (() => {
+                        const d = new Date(task.due_date + 'T00:00:00')
+                        const today = new Date(); today.setHours(0,0,0,0)
+                        const diffDays = Math.round((d.getTime() - today.getTime()) / 86400000)
+                        const overdue = diffDays < 0 && task.status !== 'done'
+                        const soon = diffDays >= 0 && diffDays <= 3 && task.status !== 'done'
+                        const fmt = d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })
+                        const bg = overdue ? '#FEF2F2' : soon ? '#FFFBEB' : '#F3F4F6'
+                        const color = overdue ? '#DC2626' : soon ? '#B45309' : C.sub
+                        const border = overdue ? '#FCA5A5' : soon ? '#FCD34D' : C.border
+                        return (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 8, fontSize: 10.5, fontWeight: 700, backgroundColor: bg, color, border: `1px solid ${border}`, whiteSpace: 'nowrap' }}>
+                            {fmt}
+                          </span>
+                        )
+                      })() : <span style={{ color: C.muted }}>—</span>}
                     </td>}
                     <td style={{ padding: '9px 14px' }} />
                   </tr>
