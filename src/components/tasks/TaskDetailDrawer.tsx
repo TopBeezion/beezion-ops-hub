@@ -198,6 +198,24 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
     } finally { setSaving(false) }
   }
 
+  // ── Autosave: debounced 700ms when dirty + valid ──────────
+  const saveRef = useRef(handleSave)
+  saveRef.current = handleSave
+  useEffect(() => {
+    if (!isDirty || !isValid || saving) return
+    const t = setTimeout(() => { saveRef.current() }, 700)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title, description, area, assignee, priority, status, week, tipo, clientId, campaignId, etapa, dueDate, deliverables, attachments, isDirty, isValid])
+
+  // Save on close if still dirty
+  useEffect(() => {
+    return () => {
+      if (isDirty && isValid) { saveRef.current() }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const handleCreateCampaign = async () => {
     const name = newCampaignName.trim()
     if (!name || !clientId) return
@@ -302,13 +320,13 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
               </span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              {isDirty && (
-                <button onClick={handleSave} disabled={saving || !isValid}
+              {/* Autosave indicator */}
+              {(saving || saved || (isDirty && !isValid)) && (
+                <span
                   title={!isValid ? `Faltan: ${missing.join(', ')}` : undefined}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, border: 'none', cursor: (saving || !isValid) ? 'not-allowed' : 'pointer', background: 'linear-gradient(135deg,#6366F1,#8B5CF6)', color: '#fff', boxShadow: '0 2px 12px rgba(99,102,241,0.35)', opacity: (saving || !isValid) ? 0.5 : 1 }}>
-                  <Save size={12} />
-                  {saving ? 'Guardando…' : saved ? '✓ Guardado' : 'Guardar'}
-                </button>
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 7, fontSize: 11, fontWeight: 600, border: `1px solid ${!isValid ? '#FCA5A5' : saved ? '#BBF7D0' : '#E5E7EB'}`, backgroundColor: !isValid ? '#FEF2F2' : saved ? '#F0FDF4' : '#F9FAFB', color: !isValid ? '#DC2626' : saved ? '#16A34A' : '#6B7280' }}>
+                  {saving ? <><Save size={11} /> Guardando…</> : saved ? <><Check size={11} /> Guardado</> : <><AlertTriangle size={11} /> Faltan campos</>}
+                </span>
               )}
               {/* Delete */}
               {confirmDelete ? (
