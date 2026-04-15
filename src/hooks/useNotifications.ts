@@ -148,7 +148,7 @@ export function useOverdueNotifier() {
         .from('tasks')
         .select('id, title, area, assignee, status, due_date, created_at, client:clients(name)')
         .eq('assignee', user!.name)
-        .neq('status', 'completado')
+        .neq('status', 'hecho')
         .order('created_at', { ascending: false })
 
       if (!data || data.length === 0) return

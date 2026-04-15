@@ -3,11 +3,17 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, List, Kanban, CalendarDays, Settings,
   ChevronLeft, ChevronRight, ChevronDown, Rocket, Flame, LogOut,
-  Zap,
+  Zap, Plus, Pencil, Trash2,
 } from 'lucide-react'
-import { useClients } from '../../hooks/useClients'
+import { useClients, useCreateClient, useUpdateClient, useDeleteClient } from '../../hooks/useClients'
+import { useCampaigns, useCreateCampaign, useUpdateCampaign, useDeleteCampaign } from '../../hooks/useCampaigns'
 import { useAuth } from '../../hooks/useAuth'
-import { ASSIGNEE_COLORS, TEAM_ROLES } from '../../lib/constants'
+import {
+  ASSIGNEE_COLORS, TEAM_ROLES, CAMPAIGN_TYPE_COLORS,
+  CAMPAIGN_CATEGORY_LABELS, CAMPAIGN_CATEGORY_ICONS, CAMPAIGN_CATEGORY_ORDER,
+  CAMPAIGN_STATUS_DOT,
+} from '../../lib/constants'
+import type { Campaign, CampaignCategory } from '../../types'
 
 interface SidebarProps {
   collapsed: boolean
@@ -40,9 +46,145 @@ const S = {
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const { data: clients } = useClients()
+  const { data: campaigns = [] } = useCampaigns()
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
+  const createClient = useCreateClient()
+  const updateClient = useUpdateClient()
+  const deleteClient = useDeleteClient()
+  const createCampaign = useCreateCampaign()
+  const updateCampaign = useUpdateCampaign()
+  const deleteCampaign = useDeleteCampaign()
+
+  const randomColor = () => {
+    const palette = ['#ec4899', '#f97316', '#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#06b6d4', '#ef4444']
+    return palette[Math.floor(Math.random() * palette.length)]
+  }
+
+  const handleAddClient = async () => {
+    const name = window.prompt('Nombre del nuevo cliente:')
+    if (!name || !name.trim()) return
+    try {
+      await createClient.mutateAsync({ name: name.trim(), color: randomColor() })
+    } catch (e) {
+      alert(`No se pudo crear el cliente: ${(e as { message?: string })?.message ?? e}`)
+    }
+  }
+
+  const handleRenameClient = async (id: string, currentName: string) => {
+    const name = window.prompt('Nuevo nombre del cliente:', currentName)
+    if (!name || !name.trim() || name === currentName) return
+    try {
+      await updateClient.mutateAsync({ id, name: name.trim() })
+    } catch (e) {
+      alert(`No se pudo renombrar: ${(e as { message?: string })?.message ?? e}`)
+    }
+  }
+
+  const handleDeleteClient = async (id: string, name: string) => {
+    if (!window.confirm(`¿Eliminar cliente "${name}"? (sus campañas y tareas se preservan)`)) return
+    try {
+      await deleteClient.mutateAsync(id)
+    } catch (e) {
+      alert(`No se pudo eliminar: ${(e as { message?: string })?.message ?? e}`)
+    }
+  }
+
+  const handleAddCampaign = async (clientId: string, category: CampaignCategory = 'meta_ads') => {
+    const name = window.prompt('Nombre de la nueva campaña:')
+    if (!name || !name.trim()) return
+    try {
+      await createCampaign.mutateAsync({
+        name: name.trim(),
+        client_id: clientId,
+        type: 'nueva_campana',
+        status: 'activa',
+        category,
+        kind: 'group',
+      } as Parameters<typeof createCampaign.mutateAsync>[0])
+    } catch (e) {
+      alert(`No se pudo crear la campaña: ${(e as { message?: string })?.message ?? e}`)
+    }
+  }
+
+  const handleDropToCategory = async (e: React.DragEvent, clientId: string, category: CampaignCategory) => {
+    e.preventDefault()
+    const campaignId = e.dataTransfer.getData('campaignId')
+    const fromClient = e.dataTransfer.getData('clientId')
+    if (!campaignId || fromClient !== clientId) return
+    try {
+      const patch: Partial<Campaign> & { id: string } = { id: campaignId, category }
+      if (category === 'archivado') patch.status = 'desactivada'
+      else patch.status = 'activa'
+      await updateCampaign.mutateAsync(patch as Parameters<typeof updateCampaign.mutateAsync>[0])
+    } catch (err) {
+      alert(`No se pudo mover: ${(err as { message?: string })?.message ?? err}`)
+    }
+  }
+
+  const handleRenameCampaign = async (id: string, currentName: string) => {
+    const name = window.prompt('Nuevo nombre de la campaña:', currentName)
+    if (!name || !name.trim() || name === currentName) return
+    try {
+      await updateCampaign.mutateAsync({ id, name: name.trim() })
+    } catch (e) {
+      alert(`No se pudo renombrar: ${(e as { message?: string })?.message ?? e}`)
+    }
+  }
+
+  const handleDeleteCampaign = async (id: string, name: string) => {
+    if (!window.confirm(`¿Eliminar campaña "${name}"? Esta acción no se puede deshacer.`)) return
+    try {
+      await deleteCampaign.mutateAsync(id)
+    } catch (e) {
+      alert(`No se pudo eliminar: ${(e as { message?: string })?.message ?? e}`)
+    }
+  }
   const [clientsOpen, setClientsOpen] = useState(true)
+  const [expandedClients, setExpandedClients] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('sidebar_expanded_clients')
+      return saved ? new Set(JSON.parse(saved)) : new Set()
+    } catch { return new Set() }
+  })
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('sidebar_expanded_folders')
+      return saved ? new Set(JSON.parse(saved)) : new Set()
+    } catch { return new Set() }
+  })
+  const [expandedCampaigns, setExpandedCampaigns] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('sidebar_expanded_campaigns')
+      return saved ? new Set(JSON.parse(saved)) : new Set()
+    } catch { return new Set() }
+  })
+  const [dragOver, setDragOver] = useState<string | null>(null)
+
+  const toggleClientExpanded = (id: string) => {
+    setExpandedClients(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      try { localStorage.setItem('sidebar_expanded_clients', JSON.stringify([...next])) } catch {}
+      return next
+    })
+  }
+  const toggleFolderExpanded = (key: string) => {
+    setExpandedFolders(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key); else next.add(key)
+      try { localStorage.setItem('sidebar_expanded_folders', JSON.stringify([...next])) } catch {}
+      return next
+    })
+  }
+  const toggleCampaignExpanded = (id: string) => {
+    setExpandedCampaigns(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      try { localStorage.setItem('sidebar_expanded_campaigns', JSON.stringify([...next])) } catch {}
+      return next
+    })
+  }
 
   const handleSignOut = () => { signOut(); navigate('/login') }
 
@@ -142,52 +284,362 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         </div>
 
         {/* ── Clients ──────────────────────────────── */}
-        {!collapsed && clients && clients.length > 0 && (
+        {!collapsed && (
           <div style={{ marginTop: 22, paddingTop: 16, borderTop: `1px solid ${S.border}` }}>
-            <button
-              onClick={() => setClientsOpen(o => !o)}
-              style={{
-                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '3px 11px 6px', background: 'none', border: 'none', cursor: 'pointer',
-              }}
-            >
-              <span style={{ fontSize: 10, fontWeight: 700, color: S.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                Clientes
-              </span>
-              <ChevronDown
-                size={11} color={S.muted}
-                style={{ transform: clientsOpen ? 'rotate(0)' : 'rotate(-90deg)', transition: 'transform 0.2s' }}
-              />
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '3px 8px 6px 11px' }}>
+              <button
+                onClick={() => setClientsOpen(o => !o)}
+                style={{
+                  flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                }}
+              >
+                <span style={{ fontSize: 10, fontWeight: 700, color: S.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  Clientes
+                </span>
+                <ChevronDown
+                  size={11} color={S.muted}
+                  style={{ transform: clientsOpen ? 'rotate(0)' : 'rotate(-90deg)', transition: 'transform 0.2s' }}
+                />
+              </button>
+              <button
+                onClick={handleAddClient}
+                title="Agregar cliente"
+                style={{
+                  marginLeft: 6, background: 'none', border: 'none', cursor: 'pointer',
+                  color: S.muted, padding: 2, borderRadius: 5, display: 'flex',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.color = S.accent; e.currentTarget.style.backgroundColor = S.hover }}
+                onMouseLeave={e => { e.currentTarget.style.color = S.muted; e.currentTarget.style.backgroundColor = 'transparent' }}
+              >
+                <Plus size={12} />
+              </button>
+            </div>
 
             {clientsOpen && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {clients.map(client => (
-                  <NavLink
-                    key={client.id}
-                    to={`/clients/${client.id}`}
-                    style={({ isActive }) => ({
-                      display: 'flex', alignItems: 'center', gap: 9,
-                      padding: '6px 11px', borderRadius: 8,
-                      fontSize: 12, fontWeight: isActive ? 600 : 400,
-                      color: isActive ? S.text : S.sub,
-                      backgroundColor: isActive ? S.active : 'transparent',
-                      textDecoration: 'none', transition: 'all 0.12s',
-                    })}
-                    onMouseEnter={e => { e.currentTarget.style.backgroundColor = S.hover; e.currentTarget.style.color = S.text }}
-                    onMouseLeave={e => {
-                      const isActive = e.currentTarget.getAttribute('aria-current') === 'page'
-                      e.currentTarget.style.backgroundColor = isActive ? S.active : 'transparent'
-                      e.currentTarget.style.color = isActive ? S.text : S.sub
-                    }}
-                  >
-                    <div style={{
-                      width: 7, height: 7, borderRadius: '50%',
-                      backgroundColor: client.color, flexShrink: 0,
-                    }} />
-                    <span className="truncate">{client.name}</span>
-                  </NavLink>
-                ))}
+                {(clients ?? []).map(client => {
+                  const clientAll = campaigns.filter(c => c.client_id === client.id)
+                  const generalCamp = clientAll.find(c => c.kind === 'general')
+                  // Group (top-level) campaigns per category
+                  const groupsByCat: Record<CampaignCategory, Campaign[]> = {
+                    general: [], meta_ads: [], google_ads: [], archivado: [],
+                  }
+                  clientAll
+                    .filter(c => c.kind === 'group')
+                    .forEach(c => { groupsByCat[c.category]?.push(c) })
+                  ;(Object.keys(groupsByCat) as CampaignCategory[]).forEach(k => {
+                    groupsByCat[k].sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+                  })
+                  // Children for a group
+                  const childrenOf = (parentId: string) =>
+                    clientAll
+                      .filter(c => c.parent_campaign_id === parentId)
+                      .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+                  const isExpanded = expandedClients.has(client.id)
+                  return (
+                    <div key={client.id} className="group" style={{ display: 'flex', flexDirection: 'column' }}>
+                      {/* Client row (folder-style) */}
+                      <div className="sidebar-row" style={{ display: 'flex', alignItems: 'center', gap: 0, position: 'relative' }}>
+                        <button
+                          onClick={() => toggleClientExpanded(client.id)}
+                          title={isExpanded ? 'Colapsar' : 'Expandir'}
+                          style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            width: 18, height: 26, border: 'none', cursor: 'pointer',
+                            background: 'transparent', color: S.muted, flexShrink: 0, borderRadius: 4,
+                          }}
+                        >
+                          <ChevronRight
+                            size={11}
+                            style={{ transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }}
+                          />
+                        </button>
+                        <NavLink
+                          to={`/clients/${client.id}`}
+                          style={({ isActive }) => ({
+                            display: 'flex', alignItems: 'center', gap: 8,
+                            padding: '5px 8px', borderRadius: 7, flex: 1,
+                            fontSize: 12, fontWeight: isActive ? 700 : 600,
+                            color: isActive ? S.text : S.text,
+                            backgroundColor: isActive ? S.active : 'transparent',
+                            textDecoration: 'none', transition: 'all 0.12s',
+                          })}
+                          onMouseEnter={e => { e.currentTarget.style.backgroundColor = S.hover }}
+                          onMouseLeave={e => {
+                            const active = e.currentTarget.getAttribute('aria-current') === 'page'
+                            e.currentTarget.style.backgroundColor = active ? S.active : 'transparent'
+                          }}
+                        >
+                          <div style={{
+                            width: 14, height: 14, borderRadius: 3,
+                            backgroundColor: `${client.color}25`,
+                            border: `1.5px solid ${client.color}`,
+                            flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          }}>
+                            <div style={{ width: 5, height: 5, borderRadius: '50%', backgroundColor: client.color }} />
+                          </div>
+                          <span className="truncate" style={{ flex: 1 }}>{client.name}</span>
+                        </NavLink>
+                        <div className="sidebar-actions" style={{
+                          display: 'none', alignItems: 'center', gap: 2,
+                          position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)',
+                          background: S.bg, padding: '2px 3px', borderRadius: 6,
+                          boxShadow: `0 1px 3px rgba(0,0,0,0.08)`,
+                        }}>
+                          <button
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleAddCampaign(client.id) }}
+                            title="Agregar campaña"
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: S.muted, padding: 2, display: 'flex', borderRadius: 4 }}
+                            onMouseEnter={e => { e.currentTarget.style.color = S.accent }}
+                            onMouseLeave={e => { e.currentTarget.style.color = S.muted }}
+                          >
+                            <Plus size={12} />
+                          </button>
+                          <button
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleRenameClient(client.id, client.name) }}
+                            title="Renombrar cliente"
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: S.muted, padding: 2, display: 'flex', borderRadius: 4 }}
+                            onMouseEnter={e => { e.currentTarget.style.color = S.accent }}
+                            onMouseLeave={e => { e.currentTarget.style.color = S.muted }}
+                          >
+                            <Pencil size={11} />
+                          </button>
+                          <button
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteClient(client.id, client.name) }}
+                            title="Eliminar cliente"
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: S.muted, padding: 2, display: 'flex', borderRadius: 4 }}
+                            onMouseEnter={e => { e.currentTarget.style.color = S.red }}
+                            onMouseLeave={e => { e.currentTarget.style.color = S.muted }}
+                          >
+                            <Trash2 size={11} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Category folders under client */}
+                      {isExpanded && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 1, marginLeft: 18, paddingLeft: 8, borderLeft: `1px dashed ${S.border}` }}>
+                          {/* General campaign (kind=general) */}
+                          {generalCamp && (
+                            <NavLink
+                              to={`/campaigns/${generalCamp.id}`}
+                              style={({ isActive }) => ({
+                                display: 'flex', alignItems: 'center', gap: 6,
+                                padding: '4px 8px', borderRadius: 6,
+                                fontSize: 11, fontWeight: isActive ? 700 : 600,
+                                color: isActive ? S.text : S.sub,
+                                backgroundColor: isActive ? S.active : 'transparent',
+                                textDecoration: 'none',
+                              })}
+                              onMouseEnter={e => { e.currentTarget.style.backgroundColor = S.hover }}
+                              onMouseLeave={e => {
+                                const active = e.currentTarget.getAttribute('aria-current') === 'page'
+                                e.currentTarget.style.backgroundColor = active ? S.active : 'transparent'
+                              }}
+                            >
+                              <span style={{ fontSize: 11 }}>📋</span>
+                              <span className="truncate" style={{ flex: 1 }}>General</span>
+                              <span style={{
+                                width: 7, height: 7, borderRadius: '50%',
+                                backgroundColor: CAMPAIGN_STATUS_DOT[generalCamp.status],
+                                flexShrink: 0,
+                              }} />
+                            </NavLink>
+                          )}
+
+                          {/* Meta Ads / Google Ads / Archivado folders */}
+                          {CAMPAIGN_CATEGORY_ORDER.filter(cat => cat !== 'general').map(cat => {
+                            const folderKey = `${client.id}:${cat}`
+                            const folderOpen = expandedFolders.has(folderKey)
+                            const groups = groupsByCat[cat] ?? []
+                            const isDropping = dragOver === folderKey
+                            return (
+                              <div key={cat} style={{ display: 'flex', flexDirection: 'column' }}>
+                                <div
+                                  onDragOver={e => { e.preventDefault(); setDragOver(folderKey) }}
+                                  onDragLeave={() => setDragOver(null)}
+                                  onDrop={e => { setDragOver(null); handleDropToCategory(e, client.id, cat) }}
+                                  style={{
+                                    display: 'flex', alignItems: 'center', gap: 4,
+                                    borderRadius: 6,
+                                    backgroundColor: isDropping ? S.accentBg : 'transparent',
+                                    border: isDropping ? `1px dashed ${S.accent}` : '1px solid transparent',
+                                  }}
+                                >
+                                  <button
+                                    onClick={() => toggleFolderExpanded(folderKey)}
+                                    style={{
+                                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                      width: 14, height: 22, border: 'none', cursor: 'pointer',
+                                      background: 'transparent', color: S.muted, flexShrink: 0,
+                                    }}
+                                  >
+                                    <ChevronRight size={10} style={{ transform: folderOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }} />
+                                  </button>
+                                  <NavLink
+                                    to={`/clients/${client.id}/folder/${cat}`}
+                                    style={({ isActive }) => ({
+                                      display: 'flex', alignItems: 'center', gap: 6, flex: 1,
+                                      padding: '4px 6px', borderRadius: 6,
+                                      fontSize: 11, fontWeight: isActive ? 700 : 600,
+                                      color: isActive ? S.text : S.sub,
+                                      backgroundColor: isActive ? S.active : 'transparent',
+                                      textDecoration: 'none',
+                                    })}
+                                    onMouseEnter={e => { e.currentTarget.style.backgroundColor = S.hover }}
+                                    onMouseLeave={e => {
+                                      const active = e.currentTarget.getAttribute('aria-current') === 'page'
+                                      e.currentTarget.style.backgroundColor = active ? S.active : 'transparent'
+                                    }}
+                                  >
+                                    <span>{CAMPAIGN_CATEGORY_ICONS[cat]}</span>
+                                    <span className="truncate" style={{ flex: 1 }}>{CAMPAIGN_CATEGORY_LABELS[cat]}</span>
+                                    {groups.length > 0 && (
+                                      <span style={{ fontSize: 9, fontWeight: 700, color: S.muted }}>{groups.length}</span>
+                                    )}
+                                  </NavLink>
+                                  {cat !== 'archivado' && (
+                                    <button
+                                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleAddCampaign(client.id, cat) }}
+                                      title="Agregar campaña"
+                                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: S.muted, padding: 2, display: 'flex', borderRadius: 4, marginRight: 4 }}
+                                      onMouseEnter={e => { e.currentTarget.style.color = S.accent }}
+                                      onMouseLeave={e => { e.currentTarget.style.color = S.muted }}
+                                    >
+                                      <Plus size={11} />
+                                    </button>
+                                  )}
+                                </div>
+
+                                {/* Group campaigns in this folder */}
+                                {folderOpen && (
+                                  <div style={{ display: 'flex', flexDirection: 'column', marginLeft: 14, paddingLeft: 6, borderLeft: `1px dashed ${S.border}` }}>
+                                    {groups.length === 0 && (
+                                      <span style={{ fontSize: 10, color: S.muted, fontStyle: 'italic', padding: '3px 8px' }}>
+                                        Vacío
+                                      </span>
+                                    )}
+                                    {groups.map(camp => {
+                                      const kids = childrenOf(camp.id)
+                                      const campOpen = expandedCampaigns.has(camp.id)
+                                      const color = CAMPAIGN_TYPE_COLORS[camp.type] ?? S.accent
+                                      return (
+                                        <div key={camp.id} style={{ display: 'flex', flexDirection: 'column' }}>
+                                          <div
+                                            className="sidebar-row"
+                                            draggable
+                                            onDragStart={e => {
+                                              e.dataTransfer.setData('campaignId', camp.id)
+                                              e.dataTransfer.setData('clientId', client.id)
+                                              e.dataTransfer.effectAllowed = 'move'
+                                            }}
+                                            style={{ display: 'flex', alignItems: 'center', position: 'relative' }}
+                                          >
+                                            <button
+                                              onClick={() => toggleCampaignExpanded(camp.id)}
+                                              style={{
+                                                width: 12, height: 20, border: 'none', cursor: 'pointer',
+                                                background: 'transparent', color: S.muted,
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                                              }}
+                                            >
+                                              <ChevronRight size={9} style={{ transform: campOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }} />
+                                            </button>
+                                            <NavLink
+                                              to={`/campaigns/${camp.id}`}
+                                              style={({ isActive }) => ({
+                                                display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0,
+                                                padding: '3px 6px', borderRadius: 6,
+                                                fontSize: 11, fontWeight: isActive ? 600 : 400,
+                                                color: isActive ? S.text : S.sub,
+                                                backgroundColor: isActive ? S.active : 'transparent',
+                                                textDecoration: 'none',
+                                              })}
+                                              onMouseEnter={e => { e.currentTarget.style.backgroundColor = S.hover; e.currentTarget.style.color = S.text }}
+                                              onMouseLeave={e => {
+                                                const active = e.currentTarget.getAttribute('aria-current') === 'page'
+                                                e.currentTarget.style.backgroundColor = active ? S.active : 'transparent'
+                                                e.currentTarget.style.color = active ? S.text : S.sub
+                                              }}
+                                            >
+                                              <div style={{ width: 3, height: 12, borderRadius: 2, backgroundColor: color, flexShrink: 0 }} />
+                                              <span className="truncate" style={{ flex: 1 }}>{camp.name}</span>
+                                              <span style={{
+                                                width: 6, height: 6, borderRadius: '50%',
+                                                backgroundColor: CAMPAIGN_STATUS_DOT[camp.status],
+                                                flexShrink: 0,
+                                              }} />
+                                            </NavLink>
+                                            <div className="sidebar-actions" style={{
+                                              display: 'none', alignItems: 'center', gap: 2,
+                                              position: 'absolute', right: 2, top: '50%', transform: 'translateY(-50%)',
+                                              background: S.bg, padding: '2px 3px', borderRadius: 6,
+                                              boxShadow: `0 1px 3px rgba(0,0,0,0.08)`,
+                                            }}>
+                                              <button
+                                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleRenameCampaign(camp.id, camp.name) }}
+                                                title="Renombrar"
+                                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: S.muted, padding: 2, display: 'flex', borderRadius: 4 }}
+                                              >
+                                                <Pencil size={10} />
+                                              </button>
+                                              <button
+                                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteCampaign(camp.id, camp.name) }}
+                                                title="Eliminar"
+                                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: S.muted, padding: 2, display: 'flex', borderRadius: 4 }}
+                                                onMouseEnter={e => { e.currentTarget.style.color = S.red }}
+                                                onMouseLeave={e => { e.currentTarget.style.color = S.muted }}
+                                              >
+                                                <Trash2 size={10} />
+                                              </button>
+                                            </div>
+                                          </div>
+
+                                          {/* Children: Main / Iteración / Refresh */}
+                                          {campOpen && (
+                                            <div style={{ display: 'flex', flexDirection: 'column', marginLeft: 12, paddingLeft: 6, borderLeft: `1px dashed ${S.border}` }}>
+                                              {kids.map(kid => (
+                                                <NavLink
+                                                  key={kid.id}
+                                                  to={`/campaigns/${kid.id}`}
+                                                  style={({ isActive }) => ({
+                                                    display: 'flex', alignItems: 'center', gap: 6,
+                                                    padding: '3px 8px', borderRadius: 5,
+                                                    fontSize: 10.5, fontWeight: isActive ? 600 : 400,
+                                                    color: isActive ? S.text : S.sub,
+                                                    backgroundColor: isActive ? S.active : 'transparent',
+                                                    textDecoration: 'none',
+                                                  })}
+                                                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = S.hover }}
+                                                  onMouseLeave={e => {
+                                                    const active = e.currentTarget.getAttribute('aria-current') === 'page'
+                                                    e.currentTarget.style.backgroundColor = active ? S.active : 'transparent'
+                                                  }}
+                                                >
+                                                  <div style={{
+                                                    width: 4, height: 4, borderRadius: '50%',
+                                                    backgroundColor: CAMPAIGN_TYPE_COLORS[kid.type] ?? S.muted,
+                                                    flexShrink: 0,
+                                                  }} />
+                                                  <span className="truncate">{kid.name}</span>
+                                                </NavLink>
+                                              ))}
+                                            </div>
+                                          )}
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             )}
           </div>

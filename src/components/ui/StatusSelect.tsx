@@ -7,7 +7,7 @@ interface StatusSelectProps {
   disabled?: boolean
 }
 
-const STATUS_OPTIONS: TaskStatus[] = ['pendiente', 'en_progreso', 'revision', 'completado']
+const STATUS_OPTIONS: TaskStatus[] = ['todo', 'en_progreso', 'revision', 'hecho']
 
 export function StatusSelect({ status, onChange, disabled }: StatusSelectProps) {
   return (

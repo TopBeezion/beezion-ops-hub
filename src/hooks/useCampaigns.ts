@@ -65,8 +65,9 @@ export function useCreateCampaign() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (campaign: Omit<Campaign, 'id' | 'created_at' | 'updated_at' | 'client' | 'tasks'>) => {
-      const { error } = await supabase.from('campaigns').insert([campaign])
+      const { data, error } = await supabase.from('campaigns').insert([campaign]).select().single()
       if (error) throw error
+      return data as Campaign
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['campaigns'] })

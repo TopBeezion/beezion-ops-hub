@@ -1,9 +1,13 @@
 import { useState, useRef, useEffect } from 'react'
-import { Plus, ChevronDown, ChevronRight, Flame, Zap, RefreshCw, TrendingUp, Circle, Check, UserPlus, Pencil } from 'lucide-react'
+import { Plus, ChevronDown, ChevronRight, Flame, Zap, RefreshCw, TrendingUp, Circle, Check, UserPlus, Pencil, ExternalLink } from 'lucide-react'
 import { useClients } from '../hooks/useClients'
 import { useCampaigns, useUpdateCampaign, useUpdateCampaignStatus, useCreateCampaign } from '../hooks/useCampaigns'
 import { useTasks } from '../hooks/useTasks'
-import { useOutletContext } from 'react-router-dom'
+import { useOutletContext, useNavigate } from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth'
+import { useApplyCampaignTemplate, useCampaignTemplates } from '../hooks/useCampaignTemplates'
+import { CampaignProgressBar } from '../components/widgets/CampaignProgressBar'
+import { isAdminPlus } from '../lib/constants'
 import type { Task, Campaign, CampaignType, CampaignStatus } from '../types'
 import {
   CAMPAIGN_TYPE_LABELS, CAMPAIGN_TYPE_COLORS,
@@ -18,7 +22,7 @@ const TEAM = [
   { name: 'Alec',      color: '#F59E0B', role: 'Head of Paid' },
   { name: 'Jose',      color: '#3B82F6', role: 'Trafficker' },
   { name: 'Luisa',     color: '#EF4444', role: 'Copywriter' },
-  { name: 'Paula',     color: '#EC4899', role: 'Aux. Marketing' },
+  { name: 'Paula',     color: '#EC4899', role: 'Project Manager' },
   { name: 'David',     color: '#06B6D4', role: 'Editor' },
   { name: 'Johan',     color: '#10B981', role: 'Editor' },
   { name: 'Felipe',    color: '#F97316', role: 'Editor' },
@@ -120,7 +124,7 @@ function EtapaProgress({ campaignId, tasks }: { campaignId: string; tasks: Task[
     <div className="flex items-center gap-1 flex-wrap">
       {ETAPA_ORDER.map(etapa => {
         const et = campaignTasks.filter(t => t.etapa === etapa)
-        const done = et.filter(t => t.mini_status === 'aprobado').length
+        const done = et.filter(t => t.status === 'done').length
         const total = et.length
         const hasWork = total > 0
         const allDone = hasWork && done === total
@@ -342,6 +346,7 @@ function AssigneePicker({ campaign, onUpdate }: {
 // ─── Campaign Card ────────────────────────────────────────────────────────────
 function CampaignCard({
   campaign, tasks, onOpenTask, onStatusUpdate, onAssigneesUpdate, onNameUpdate,
+  onApplyTemplate, onToggleRevisionFinal, canRevisionFinal,
 }: {
   campaign: Campaign
   tasks: Task[]
@@ -349,11 +354,15 @@ function CampaignCard({
   onStatusUpdate: (id: string, status: CampaignStatus) => void
   onAssigneesUpdate: (id: string, assignees: string[]) => void
   onNameUpdate: (id: string, name: string) => void
+  onApplyTemplate?: (id: string) => void
+  onToggleRevisionFinal?: (id: string, done: boolean) => void
+  canRevisionFinal?: boolean
 }) {
   const [expanded, setExpanded] = useState(false)
   const [editingName, setEditingName] = useState(false)
   const [nameVal, setNameVal] = useState(campaign.name)
   const nameInputRef = useRef<HTMLInputElement>(null)
+  const navigate = useNavigate()
 
   useEffect(() => { if (editingName) nameInputRef.current?.focus() }, [editingName])
 
@@ -364,7 +373,7 @@ function CampaignCard({
     setEditingName(false)
   }
   const campaignTasks = tasks.filter(t => t.campaign_id === campaign.id)
-  const completedCount = campaignTasks.filter(t => t.status === 'completado').length
+  const completedCount = campaignTasks.filter(t => t.status === 'done').length
 
   return (
     <div style={{
@@ -436,6 +445,24 @@ function CampaignCard({
               </span>
             )}
 
+            {/* Open campaign detail */}
+            <button
+              onClick={() => navigate(`/campaigns/${campaign.id}`)}
+              title="Abrir detalle de campaña"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                padding: '4px 8px', borderRadius: 6,
+                background: 'transparent', border: '1px solid #E5E7EB',
+                fontSize: 11, fontWeight: 600, color: '#4B5563',
+                cursor: 'pointer', transition: 'all 0.15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = '#6366F1'; e.currentTarget.style.color = '#6366F1' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = '#E5E7EB'; e.currentTarget.style.color = '#4B5563' }}
+            >
+              <ExternalLink size={11} />
+              Abrir
+            </button>
+
             {/* Assignee picker */}
             <AssigneePicker campaign={campaign} onUpdate={onAssigneesUpdate} />
 
@@ -455,6 +482,10 @@ function CampaignCard({
             {campaign.objective}
           </p>
         )}
+        {/* Campaign progress bar */}
+        <div style={{ marginTop: 8, marginLeft: 22, marginRight: 4 }} onClick={e => e.stopPropagation()}>
+          <CampaignProgressBar campaignId={campaign.id} compact />
+        </div>
       </div>
 
       {/* Expanded task list */}
@@ -486,14 +517,9 @@ function CampaignCard({
                       <div className="flex items-center gap-2">
                         <div style={{
                           width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
-                          backgroundColor: task.status === 'completado' ? '#00C875' : task.status === 'en_progreso' ? '#579BFC' : task.status === 'revision' ? '#FDAB3D' : '#C4C4C4',
+                          backgroundColor: task.status === 'done' ? '#00C875' : task.status === 'en_proceso' ? '#579BFC' : task.status === 'aprobacion_interna' ? '#FDAB3D' : '#C4C4C4',
                         }} />
                         <span style={{ fontSize: 12, color: '#374151', fontWeight: 500 }}>{task.title}</span>
-                        {task.mini_status && (
-                          <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 99, backgroundColor: '#F0F3FF', color: '#6366F1', border: '1px solid #E0E7FF' }}>
-                            {task.mini_status === 'aprobado' ? '✓ Aprobado' : task.mini_status === 'aprobacion_interna' ? 'Apr. Interna' : task.mini_status === 'correcciones' ? 'Correcciones' : task.mini_status === 'enviado_cliente' ? 'Enviado' : 'Ajustes'}
-                          </span>
-                        )}
                       </div>
                       <div className="flex items-center gap-2">
                         {task.due_date && (
@@ -518,6 +544,37 @@ function CampaignCard({
               )
             })
           )}
+          {/* Action bar: template + revisión final (admin+) */}
+          <div style={{ padding: '10px 16px', borderTop: '1px solid #F0F1F5', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            {onApplyTemplate && (
+              <button
+                onClick={e => { e.stopPropagation(); onApplyTemplate(campaign.id) }}
+                style={{ fontSize: 11, fontWeight: 600, padding: '5px 10px', borderRadius: 6, border: '1px solid #E0E7FF', backgroundColor: '#EEF2FF', color: '#6366F1', cursor: 'pointer' }}
+              >
+                ⚡ Aplicar template
+              </button>
+            )}
+            {canRevisionFinal && onToggleRevisionFinal && (
+              <button
+                onClick={e => { e.stopPropagation(); onToggleRevisionFinal(campaign.id, !campaign.revision_final_done) }}
+                style={{
+                  fontSize: 11, fontWeight: 600, padding: '5px 10px', borderRadius: 6,
+                  border: `1px solid ${campaign.revision_final_done ? '#10B981' : '#E5E7EB'}`,
+                  backgroundColor: campaign.revision_final_done ? '#ECFDF5' : '#fff',
+                  color: campaign.revision_final_done ? '#047857' : '#6B7280',
+                  cursor: 'pointer',
+                }}
+              >
+                {campaign.revision_final_done ? '✓ Revisión final hecha' : 'Marcar revisión final'}
+              </button>
+            )}
+            {campaign.revision_final_done && campaign.revision_final_by && (
+              <span style={{ fontSize: 10, color: '#9CA3AF' }}>
+                por {campaign.revision_final_by}
+                {campaign.revision_final_at && ` · ${new Date(campaign.revision_final_at).toLocaleDateString('es')}`}
+              </span>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -604,6 +661,9 @@ export function CampaignsPage() {
   const updateCampaign = useUpdateCampaign()
   const createCampaign = useCreateCampaign()
   const ctx = useOutletContext<{ openTaskDetail?: (t: Task) => void }>()
+  const { user } = useAuth()
+  const canRevisionFinal = isAdminPlus(user)
+  const applyTemplate = useApplyCampaignTemplate()
 
   const [activeClient, setActiveClient] = useState<string | 'all'>('all')
   const [filterType, setFilterType] = useState<string>('')
@@ -623,8 +683,22 @@ export function CampaignsPage() {
     updateCampaign.mutate({ id, name } as Parameters<typeof updateCampaign.mutate>[0])
   }
 
+  const handleApplyTemplate = (id: string) => {
+    if (!confirm('¿Aplicar template a esta campaña? Se crearán las tareas faltantes.')) return
+    applyTemplate.mutate({ campaignId: id })
+  }
+
+  const handleToggleRevisionFinal = (id: string, done: boolean) => {
+    updateCampaign.mutate({
+      id,
+      revision_final_done: done,
+      revision_final_by: done ? (user?.name ?? user?.email ?? null) : null,
+      revision_final_at: done ? new Date().toISOString() : null,
+    } as Parameters<typeof updateCampaign.mutate>[0])
+  }
+
   const handleCreateCampaign = (clientId: string, data: { name: string; type: CampaignType; objective: string }) => {
-    createCampaign.mutate({ name: data.name, client_id: clientId, type: data.type, status: 'activa', objective: data.objective })
+    createCampaign.mutate({ name: data.name, client_id: clientId, type: data.type, status: 'activa', objective: data.objective, category: 'meta_ads', kind: 'group' })
     setNewCampaignFor(null)
   }
 
@@ -728,6 +802,9 @@ export function CampaignsPage() {
                   onStatusUpdate={handleStatusUpdate}
                   onAssigneesUpdate={handleAssigneesUpdate}
                   onNameUpdate={handleNameUpdate}
+                  onApplyTemplate={handleApplyTemplate}
+                  onToggleRevisionFinal={handleToggleRevisionFinal}
+                  canRevisionFinal={canRevisionFinal}
                 />
               ))}
             </div>
@@ -776,6 +853,9 @@ export function CampaignsPage() {
                       onStatusUpdate={handleStatusUpdate}
                       onAssigneesUpdate={handleAssigneesUpdate}
                       onNameUpdate={handleNameUpdate}
+                      onApplyTemplate={handleApplyTemplate}
+                      onToggleRevisionFinal={handleToggleRevisionFinal}
+                      canRevisionFinal={canRevisionFinal}
                     />
                   ))}
                 </div>

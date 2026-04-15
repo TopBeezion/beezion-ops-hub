@@ -40,9 +40,9 @@ const C = {
 // Column config
 const COLUMNS: { status: TaskStatus; label: string; icon: React.ElementType; color: string; bg: string; border: string }[] = [
   { status: 'en_progreso', label: 'EN PROCESO',  icon: Flame,        color: C.blue,   bg: '#EFF6FF', border: '#BFDBFE' },
-  { status: 'pendiente',   label: 'PENDIENTES',  icon: Clock,        color: C.orange, bg: '#FFFBEB', border: '#FDE68A' },
+  { status: 'todo',   label: 'PENDIENTES',  icon: Clock,        color: C.orange, bg: '#FFFBEB', border: '#FDE68A' },
   { status: 'revision',    label: 'BLOCKER',     icon: AlertTriangle,color: C.red,    bg: '#FEF2F2', border: '#FECACA' },
-  { status: 'completado',  label: 'DONE',        icon: CheckCircle2, color: C.green,  bg: '#ECFDF5', border: '#A7F3D0' },
+  { status: 'hecho',  label: 'DONE',        icon: CheckCircle2, color: C.green,  bg: '#ECFDF5', border: '#A7F3D0' },
 ]
 
 // ─── Filter Dropdown for Bomberos ────────────────────────────────────────────
@@ -201,7 +201,7 @@ function TaskCard({ task, onClick, onStatusChange, isLast }: {
   const clientColor = (task.client as Client & { color: string })?.color || C.red
   const priorityColor = PRIORITY_COLORS[task.priority]
   const assigneeColor = ASSIGNEE_COLORS[task.assignee] || C.muted
-  const isCompleted = task.status === 'completado'
+  const isCompleted = task.status === 'hecho'
 
   return (
     <div
@@ -336,7 +336,7 @@ export function BomberosPage() {
   const [filterAssignee, setFilterAssignee] = useState('')
   // Which columns are visible (all by default except done)
   const [visibleCols, setVisibleCols] = useState<Record<TaskStatus, boolean>>({
-    en_progreso: true, pendiente: true, revision: true, completado: false,
+    en_progreso: true, todo: true, revision: true, bloqueado: true, hecho: false,
   })
 
   const allBomberos = useMemo(() => tasks
@@ -346,7 +346,7 @@ export function BomberosPage() {
   [tasks, filterClient, filterAssignee])
 
   const byStatus = useMemo(() => {
-    const map: Record<TaskStatus, Task[]> = { en_progreso: [], pendiente: [], revision: [], completado: [] }
+    const map: Record<TaskStatus, Task[]> = { en_progreso: [], todo: [], revision: [], bloqueado: [], hecho: [] }
     for (const t of allBomberos) {
       if (map[t.status]) map[t.status].push(t)
     }
@@ -356,9 +356,9 @@ export function BomberosPage() {
   const stats = useMemo(() => ({
     total:      tasks.filter(t => t.priority === 'alta').length,
     enProceso:  tasks.filter(t => t.priority === 'alta' && t.status === 'en_progreso').length,
-    pendientes: tasks.filter(t => t.priority === 'alta' && t.status === 'pendiente').length,
+    pendientes: tasks.filter(t => t.priority === 'alta' && t.status === 'todo').length,
     blocker:    tasks.filter(t => t.priority === 'alta' && t.status === 'revision').length,
-    done:       tasks.filter(t => t.priority === 'alta' && t.status === 'completado').length,
+    done:       tasks.filter(t => t.priority === 'alta' && t.status === 'hecho').length,
   }), [tasks])
 
   const assignees = TEAM_MEMBERS.filter(m => m !== 'TBD')

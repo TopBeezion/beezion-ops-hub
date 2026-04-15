@@ -4,13 +4,14 @@ import { X, ChevronDown, AlertTriangle, Check } from 'lucide-react'
 import { useClients } from '../../hooks/useClients'
 import { useCampaignsByClient } from '../../hooks/useCampaigns'
 import { useCreateTask } from '../../hooks/useTasks'
-import type { Area, Priority, TaskStatus, TaskTipo, Etapa, MiniStatus, Deliverables } from '../../types'
+import type { Area, Priority, TaskStatus, TaskTipo, Etapa, MiniStatus, Deliverables, TaskAttachment } from '../../types'
 import {
   AREA_COLORS, AREA_LABELS,
   STATUS_LABELS, STATUS_COLORS,
   PRIORITY_LABELS, PRIORITY_COLORS,
-  ETAPA_LABELS, ETAPA_COLORS, ETAPA_ORDER,
+  ETAPA_LABELS, ETAPA_COLORS, ETAPA_ORDER, ETAPA_TO_AREA,
   MINI_STATUS_LABELS, MINI_STATUS_COLORS, MINI_STATUS_ORDER,
+  priorityFromDueDate,
 } from '../../lib/constants'
 import { getSprintDateRange } from '../../lib/dates'
 
@@ -158,15 +159,36 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
   const [area,         setArea]         = useState<Area>('copy')
   const [assignee,     setAssignee]     = useState('Alejandro')
   const [priority,     setPriority]     = useState<Priority>('media')
-  const [status,       setStatus]       = useState<TaskStatus>('pendiente')
+  const [status,       setStatus]       = useState<TaskStatus>('todo')
   const [week,         setWeek]         = useState(1)
   const [tipo,         setTipo]         = useState<TaskTipo>('nuevo')
   const [problema,     setProblema]     = useState('')
   const [etapa,        setEtapa]        = useState<Etapa | ''>('')
   const [miniStatus,   setMiniStatus]   = useState<MiniStatus | ''>('')
   const [dueDate,      setDueDate]      = useState('')
+  const [durationDays, setDurationDays] = useState<number | ''>('')
+  const [cantidadHooks, setCantidadHooks] = useState<number | ''>('')
+  const [attachments,  setAttachments]  = useState<TaskAttachment[]>([])
+  const [newAttUrl,    setNewAttUrl]    = useState('')
+  const [newAttName,   setNewAttName]   = useState('')
+  const [priorityManual, setPriorityManual] = useState(false)
+  const [areaManual,   setAreaManual]   = useState(false)
   const [deliverables, setDeliverables] = useState<Deliverables>({})
   const [showDel,      setShowDel]      = useState(false)
+
+  // Auto-derive area from etapa (unless user manually overrode)
+  useEffect(() => {
+    if (areaManual) return
+    if (etapa && ETAPA_TO_AREA[etapa as Etapa]) {
+      setArea(ETAPA_TO_AREA[etapa as Etapa])
+    }
+  }, [etapa, areaManual])
+
+  // Auto-derive priority from due_date (unless user manually overrode)
+  useEffect(() => {
+    if (priorityManual) return
+    if (dueDate) setPriority(priorityFromDueDate(dueDate))
+  }, [dueDate, priorityManual])
 
   const { data: campaigns } = useCampaignsByClient(clientId || undefined)
   const assigneeInfo = ASSIGNEES.find(a => a.name === assignee)
@@ -209,7 +231,7 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
       tl.includes('pixel') ||
       tl.includes('google tag') ||
       tl.includes('conversion event')
-    const isMediaBuying =
+    const isEstructuracion =
       tl.includes('media buying') ||
       tl.includes('estructurar campa') ||
       tl.includes('estructuraci') ||
@@ -217,13 +239,25 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
       tl.includes('budget') ||
       tl.includes('distribuir presupuesto') ||
       tl.includes('pautar')
+    const isScripts =
+      tl.includes('script') ||
+      tl.includes('guion') ||
+      tl.includes('guión')
+    const isCopy =
+      tl.includes('hook') ||
+      tl.includes('body copy') ||
+      tl.includes('email') ||
+      tl.includes('headline') ||
+      tl.includes('copy ')
 
     let detected: Etapa | '' = ''
     if (isLP || isTYP)     detected = 'landing_page'
     else if (isLM)         detected = 'lead_magnet'
     else if (isProduccion) detected = 'produccion'
     else if (isTracking)   detected = 'tracking'
-    else if (isMediaBuying) detected = 'media_buying'
+    else if (isEstructuracion) detected = 'estructuracion'
+    else if (isScripts)    detected = 'scripts'
+    else if (isCopy)       detected = 'copy'
 
     if (detected && detected !== autoEtapaRef.current) {
       // Only auto-set if current etapa is empty OR was previously auto-set (not manually chosen)
@@ -254,7 +288,11 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
       area, assignee, priority, status, week, tipo,
       problema: problema || undefined, etapa: etapa || undefined,
       mini_status: miniStatus || undefined, due_date: dueDate || undefined,
+      duration_days: typeof durationDays === 'number' ? durationDays : undefined,
+      cantidad_hooks: typeof cantidadHooks === 'number' ? cantidadHooks : undefined,
+      priority_manual_override: priorityManual,
       source: 'manual',
+      attachments: attachments.length > 0 ? attachments : undefined,
       deliverables: Object.keys(deliverables).length > 0 ? deliverables : undefined,
     })
     onClose()
@@ -329,7 +367,7 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <FieldSel label="Status" value={status} onChange={v => setStatus(v as TaskStatus)} options={statusOpts} />
-              <FieldSel label="Prioridad" value={priority} onChange={v => setPriority(v as Priority)} options={priorityOpts} />
+              <FieldSel label={priorityManual ? 'Prioridad (manual)' : 'Prioridad (auto)'} value={priority} onChange={v => { setPriority(v as Priority); setPriorityManual(true) }} options={priorityOpts} />
             </div>
           </div>
 
@@ -342,7 +380,7 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
                   const active = area === v
                   const col    = AREA_COLORS[v]
                   return (
-                    <button key={v} type="button" onClick={() => setArea(v)} style={{
+                    <button key={v} type="button" onClick={() => { setArea(v); setAreaManual(true) }} style={{
                       padding: '5px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700,
                       cursor: 'pointer', border: 'none', transition: 'all 0.12s',
                       backgroundColor: active ? col : `${col}12`, color: active ? '#fff' : col,
@@ -451,6 +489,52 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
               <input value={problema} onChange={e => setProblema(e.target.value)}
                 style={{ ...fieldBase, padding: '8px 11px', fontSize: 12 }}
                 placeholder="Ej: Show rate de Book Demos bajo" />
+            </div>
+          </div>
+
+          {/* ── Card 5b: Extras (Duración + Cantidad Hooks + Attachments) ── */}
+          <div style={formCard}>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <div style={{ flex: 1 }}>
+                <label style={lbl}>Duración (días)</label>
+                <input type="number" min={0} value={durationDays}
+                  onChange={e => setDurationDays(e.target.value === '' ? '' : Number(e.target.value))}
+                  style={{ ...fieldBase, padding: '8px 11px', fontSize: 12 }} placeholder="Ej: 3" />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={lbl}>Cantidad Hooks</label>
+                <input type="number" min={0} value={cantidadHooks}
+                  onChange={e => setCantidadHooks(e.target.value === '' ? '' : Number(e.target.value))}
+                  style={{ ...fieldBase, padding: '8px 11px', fontSize: 12 }} placeholder="Ej: 50" />
+              </div>
+            </div>
+            <div>
+              <label style={lbl}>Attachments (Drive URLs)</label>
+              <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+                <input value={newAttName} onChange={e => setNewAttName(e.target.value)}
+                  style={{ ...fieldBase, padding: '7px 10px', fontSize: 11, flex: '0 0 100px' }} placeholder="Nombre" />
+                <input value={newAttUrl} onChange={e => setNewAttUrl(e.target.value)}
+                  style={{ ...fieldBase, padding: '7px 10px', fontSize: 11, flex: 1 }} placeholder="https://drive.google.com/..." />
+                <button type="button"
+                  onClick={() => {
+                    if (!newAttUrl.trim()) return
+                    setAttachments(prev => [...prev, { name: newAttName.trim() || newAttUrl.trim(), url: newAttUrl.trim() }])
+                    setNewAttName(''); setNewAttUrl('')
+                  }}
+                  style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid #6366F1', backgroundColor: '#6366F1', color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>+</button>
+              </div>
+              {attachments.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {attachments.map((a, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 8px', borderRadius: 6, backgroundColor: '#F0F2F8', fontSize: 11 }}>
+                      <span style={{ flex: 1, color: '#374151', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>📎 {a.name}</span>
+                      <a href={a.url} target="_blank" rel="noreferrer" style={{ color: '#6366F1', fontSize: 10 }}>abrir</a>
+                      <button type="button" onClick={() => setAttachments(prev => prev.filter((_, j) => j !== i))}
+                        style={{ border: 'none', background: 'none', color: '#EF4444', cursor: 'pointer', fontSize: 12 }}>×</button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
