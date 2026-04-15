@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { useClients, useCreateClient, useUpdateClient, useDeleteClient } from '../../hooks/useClients'
 import { useCampaigns, useCreateCampaign, useUpdateCampaign, useDeleteCampaign } from '../../hooks/useCampaigns'
+import { useApplyCampaignTemplate } from '../../hooks/useCampaignTemplates'
 import { useAuth } from '../../hooks/useAuth'
 import {
   ASSIGNEE_COLORS, TEAM_ROLES, CAMPAIGN_TYPE_COLORS,
@@ -55,6 +56,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const createCampaign = useCreateCampaign()
   const updateCampaign = useUpdateCampaign()
   const deleteCampaign = useDeleteCampaign()
+  const applyTemplate = useApplyCampaignTemplate()
+  const [templatePickerFor, setTemplatePickerFor] = useState<{ clientId: string; category: CampaignCategory } | null>(null)
 
   const randomColor = () => {
     const palette = ['#ec4899', '#f97316', '#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#06b6d4', '#ef4444']
@@ -90,20 +93,40 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
     }
   }
 
-  const handleAddCampaign = async (clientId: string, category: CampaignCategory = 'meta_ads') => {
-    const name = window.prompt('Nombre de la nueva campaña:')
+  /**
+   * Create a campaign for a client, optionally applying a template (which seeds tasks).
+   * Position is set to a large negative timestamp so the new campaign appears at the TOP
+   * of its category folder; user can re-organize later.
+   */
+  const handleAddCampaign = async (
+    clientId: string,
+    category: CampaignCategory = 'meta_ads',
+    options: { template?: 'nueva_campana' | null; promptName?: boolean } = {},
+  ) => {
+    const useTemplate = options.template ?? null
+    const defaultName = useTemplate === 'nueva_campana' ? 'Campaña Nueva' : ''
+    const name = window.prompt('Nombre de la nueva campaña:', defaultName)
     if (!name || !name.trim()) return
     try {
-      await createCampaign.mutateAsync({
+      const created = await createCampaign.mutateAsync({
         name: name.trim(),
         client_id: clientId,
-        type: 'nueva_campana',
+        type: useTemplate ?? 'nueva_campana',
         status: 'activa',
         category,
         kind: 'group',
+        position: -Math.floor(Date.now() / 1000),
       } as Parameters<typeof createCampaign.mutateAsync>[0])
+      if (useTemplate && created?.id) {
+        try { await applyTemplate.mutateAsync({ campaignId: created.id }) }
+        catch (e) {
+          alert(`Campaña creada, pero no se pudo aplicar el template: ${(e as { message?: string })?.message ?? e}`)
+        }
+      }
     } catch (e) {
       alert(`No se pudo crear la campaña: ${(e as { message?: string })?.message ?? e}`)
+    } finally {
+      setTemplatePickerFor(null)
     }
   }
 
@@ -388,7 +411,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                           boxShadow: `0 1px 3px rgba(0,0,0,0.08)`,
                         }}>
                           <button
-                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleAddCampaign(client.id) }}
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setTemplatePickerFor({ clientId: client.id, category: 'meta_ads' }) }}
                             title="Agregar campaña"
                             style={{ background: 'none', border: 'none', cursor: 'pointer', color: S.muted, padding: 2, display: 'flex', borderRadius: 4 }}
                             onMouseEnter={e => { e.currentTarget.style.color = S.accent }}
@@ -501,7 +524,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                                   </NavLink>
                                   {cat !== 'archivado' && (
                                     <button
-                                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleAddCampaign(client.id, cat) }}
+                                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); setTemplatePickerFor({ clientId: client.id, category: cat }) }}
                                       title="Agregar campaña"
                                       style={{ background: 'none', border: 'none', cursor: 'pointer', color: S.muted, padding: 2, display: 'flex', borderRadius: 4, marginRight: 4 }}
                                       onMouseEnter={e => { e.currentTarget.style.color = S.accent }}
@@ -720,6 +743,83 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           {collapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
         </button>
       </div>
+
+      {/* ── Template picker modal ──────────────────── */}
+      {templatePickerFor && (
+        <div
+          onClick={() => setTemplatePickerFor(null)}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(15,18,32,0.45)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: '#FFFFFF', borderRadius: 14, padding: 20, width: 360,
+              boxShadow: '0 18px 50px rgba(15,18,32,0.25)',
+              border: `1px solid ${S.border}`,
+            }}
+          >
+            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: S.text }}>
+              Nueva campaña
+            </h3>
+            <p style={{ margin: '4px 0 14px', fontSize: 12, color: S.sub }}>
+              Elegí cómo querés crearla.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <button
+                onClick={() => {
+                  const target = templatePickerFor
+                  if (target) handleAddCampaign(target.clientId, target.category, { template: 'nueva_campana' })
+                }}
+                style={{
+                  textAlign: 'left', padding: '12px 14px', borderRadius: 10,
+                  border: `1px solid ${S.border}`, background: '#FAFBFE',
+                  cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 2,
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = S.accent; e.currentTarget.style.background = S.accentBg }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = S.border; e.currentTarget.style.background = '#FAFBFE' }}
+              >
+                <span style={{ fontSize: 13, fontWeight: 700, color: S.text }}>📦 Campaña Nueva (template)</span>
+                <span style={{ fontSize: 11, color: S.sub }}>
+                  Crea la campaña + 8 tareas (Scripts, Lead Magnet, Landing).
+                </span>
+              </button>
+              <button
+                onClick={() => {
+                  const target = templatePickerFor
+                  if (target) handleAddCampaign(target.clientId, target.category, { template: null })
+                }}
+                style={{
+                  textAlign: 'left', padding: '12px 14px', borderRadius: 10,
+                  border: `1px solid ${S.border}`, background: '#FAFBFE',
+                  cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 2,
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = S.accent; e.currentTarget.style.background = S.accentBg }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = S.border; e.currentTarget.style.background = '#FAFBFE' }}
+              >
+                <span style={{ fontSize: 13, fontWeight: 700, color: S.text }}>🗂 Vacía</span>
+                <span style={{ fontSize: 11, color: S.sub }}>Solo crea la campaña, sin tareas.</span>
+              </button>
+            </div>
+            <div style={{ marginTop: 14, display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setTemplatePickerFor(null)}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  fontSize: 12, color: S.sub, padding: '6px 10px',
+                }}
+              >
+                Cancelar
+              </button>
+            </div>
+            <p style={{ marginTop: 8, fontSize: 10.5, color: S.muted, lineHeight: 1.5 }}>
+              Podés editar los tasks de cada template desde Configuración → Templates.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

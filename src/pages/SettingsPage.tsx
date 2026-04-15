@@ -1,9 +1,14 @@
-import { Copy, CheckCircle2, Users, Building2, Webhook, Palette, Plus, X } from 'lucide-react'
-import { useState } from 'react'
+import { Copy, CheckCircle2, Users, Building2, Webhook, Palette, Plus, X, FileStack, Trash2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { useClients, useUpdateClient, useCreateClient } from '../hooks/useClients'
 import { useTeam } from '../hooks/useTeam'
 import { useTasks } from '../hooks/useTasks'
+import { useCampaignTemplates, useUpdateCampaignTemplate, type CampaignTemplateRow, type CampaignTemplateTask } from '../hooks/useCampaignTemplates'
 import { AREA_COLORS, AREA_LABELS, ASSIGNEE_COLORS, TEAM_ROLES } from '../lib/constants'
+import type { Area, Etapa } from '../types'
+
+const ETAPA_OPTIONS: Etapa[] = ['scripts', 'produccion', 'edicion', 'lead_magnet', 'landing_page', 'tracking', 'estructuracion']
+const AREA_OPTIONS: Area[] = ['copy', 'produccion', 'edicion', 'trafico', 'tech', 'admin']
 
 // ─── Tokens ───────────────────────────────────────────────────────────────────
 const C = {
@@ -194,6 +199,198 @@ function NewClientModal({ onClose, onCreate }: {
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
+// ── Campaign Templates Editor ────────────────────────────────────────
+function CampaignTemplatesEditor() {
+  const { data: templates = [], isLoading } = useCampaignTemplates()
+  const [activeId, setActiveId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!activeId && templates.length > 0) {
+      const preferred = templates.find(t => t.tipo === 'nueva_campana') ?? templates[0]
+      setActiveId(preferred.id)
+    }
+  }, [templates, activeId])
+
+  if (isLoading) {
+    return (
+      <div style={card({ padding: 24, display: 'flex', justifyContent: 'center' })}>
+        <div className="w-5 h-5 border-2 border-transparent border-t-current rounded-full animate-spin" style={{ color: C.accent }} />
+      </div>
+    )
+  }
+  const active = templates.find(t => t.id === activeId) ?? null
+
+  return (
+    <div style={card({ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 })}>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        {templates.map(t => {
+          const isActive = t.id === activeId
+          return (
+            <button
+              key={t.id}
+              onClick={() => setActiveId(t.id)}
+              style={{
+                padding: '6px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600,
+                border: `1px solid ${isActive ? C.accent : C.border}`,
+                background: isActive ? `${C.accent}12` : '#fff',
+                color: isActive ? C.accent : C.sub,
+                cursor: 'pointer',
+              }}
+            >
+              {t.name}
+            </button>
+          )
+        })}
+      </div>
+      {active && <TemplateForm key={active.id} template={active} />}
+    </div>
+  )
+}
+
+function TemplateForm({ template }: { template: CampaignTemplateRow }) {
+  const update = useUpdateCampaignTemplate()
+  const [tasks, setTasks] = useState<CampaignTemplateTask[]>(() =>
+    Array.isArray(template.default_tasks) ? template.default_tasks : []
+  )
+  const [name, setName] = useState(template.name)
+  const [savedAt, setSavedAt] = useState<number | null>(null)
+
+  useEffect(() => {
+    setTasks(Array.isArray(template.default_tasks) ? template.default_tasks : [])
+    setName(template.name)
+  }, [template.id])
+
+  const updateTask = (i: number, patch: Partial<CampaignTemplateTask>) => {
+    setTasks(curr => curr.map((t, idx) => idx === i ? { ...t, ...patch } : t))
+  }
+  const removeTask = (i: number) => setTasks(curr => curr.filter((_, idx) => idx !== i))
+  const addTask = () => setTasks(curr => [...curr, { title: 'Nueva tarea', etapa: 'scripts', area: 'copy' }])
+  const moveTask = (i: number, dir: -1 | 1) => {
+    setTasks(curr => {
+      const next = [...curr]
+      const j = i + dir
+      if (j < 0 || j >= next.length) return curr
+      ;[next[i], next[j]] = [next[j], next[i]]
+      return next
+    })
+  }
+
+  const handleSave = async () => {
+    try {
+      await update.mutateAsync({ id: template.id, default_tasks: tasks, name })
+      setSavedAt(Date.now())
+    } catch (e) {
+      alert(`No se pudo guardar: ${(e as { message?: string })?.message ?? e}`)
+    }
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+        <input
+          value={name}
+          onChange={e => setName(e.target.value)}
+          style={{
+            flex: 1, padding: '8px 10px', borderRadius: 8,
+            border: `1px solid ${C.border}`, fontSize: 13, fontWeight: 600, color: C.text,
+          }}
+        />
+        <span style={{ fontSize: 11, color: C.muted, fontFamily: 'monospace' }}>
+          tipo: {template.tipo}
+        </span>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {tasks.length === 0 && (
+          <span style={{ fontSize: 12, color: C.muted, fontStyle: 'italic' }}>Sin tareas — agregá la primera.</span>
+        )}
+        {tasks.map((t, i) => (
+          <div key={i} style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 130px 110px auto auto',
+            gap: 6, alignItems: 'center',
+            padding: 8, border: `1px solid ${C.border}`, borderRadius: 8, background: '#FAFBFE',
+          }}>
+            <input
+              value={t.title}
+              onChange={e => updateTask(i, { title: e.target.value })}
+              placeholder="Título"
+              style={{ padding: '6px 8px', borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, color: C.text }}
+            />
+            <select
+              value={t.etapa ?? ''}
+              onChange={e => updateTask(i, { etapa: (e.target.value || null) as Etapa | null })}
+              style={{ padding: '6px 8px', borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, color: C.text }}
+            >
+              <option value="">— sin etapa —</option>
+              {ETAPA_OPTIONS.map(et => <option key={et} value={et}>{et}</option>)}
+            </select>
+            <select
+              value={t.area ?? ''}
+              onChange={e => updateTask(i, { area: (e.target.value || null) as Area | null })}
+              style={{ padding: '6px 8px', borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 12, color: C.text }}
+            >
+              <option value="">— área —</option>
+              {AREA_OPTIONS.map(a => <option key={a} value={a}>{AREA_LABELS[a] ?? a}</option>)}
+            </select>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <button
+                onClick={() => moveTask(i, -1)}
+                disabled={i === 0}
+                style={{ background: 'none', border: 'none', cursor: i === 0 ? 'default' : 'pointer', color: i === 0 ? C.muted : C.sub, fontSize: 10, padding: 0 }}
+              >▲</button>
+              <button
+                onClick={() => moveTask(i, 1)}
+                disabled={i === tasks.length - 1}
+                style={{ background: 'none', border: 'none', cursor: i === tasks.length - 1 ? 'default' : 'pointer', color: i === tasks.length - 1 ? C.muted : C.sub, fontSize: 10, padding: 0 }}
+              >▼</button>
+            </div>
+            <button
+              onClick={() => removeTask(i)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.red, padding: 4, display: 'flex' }}
+              title="Eliminar tarea"
+            >
+              <Trash2 size={13} />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <button
+          onClick={addTask}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '6px 10px', borderRadius: 8, border: `1px dashed ${C.border}`,
+            background: '#fff', cursor: 'pointer', color: C.sub, fontSize: 12, fontWeight: 600,
+          }}
+        >
+          <Plus size={12} /> Agregar tarea
+        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {savedAt && (
+            <span style={{ fontSize: 11, color: C.green }}>Guardado ✓</span>
+          )}
+          <button
+            onClick={handleSave}
+            disabled={update.isPending}
+            style={{
+              padding: '7px 14px', borderRadius: 8, border: 'none',
+              background: C.accent, color: '#fff', fontSize: 12, fontWeight: 700,
+              cursor: update.isPending ? 'wait' : 'pointer', opacity: update.isPending ? 0.6 : 1,
+            }}
+          >
+            {update.isPending ? 'Guardando…' : 'Guardar template'}
+          </button>
+        </div>
+      </div>
+      <p style={{ fontSize: 11, color: C.muted, margin: 0 }}>
+        Estos cambios se aplicarán a las próximas campañas creadas con este template.
+      </p>
+    </div>
+  )
+}
+
 export function SettingsPage() {
   const { data: clients = [], isLoading: clientsLoading } = useClients(true) // include inactive
   const { data: team = [], isLoading: teamLoading } = useTeam()
@@ -484,6 +681,12 @@ export function SettingsPage() {
               </pre>
             </div>
           </div>
+        </section>
+
+        {/* ── Templates ── */}
+        <section>
+          <SectionTitle icon={FileStack}>Templates de Campaña</SectionTitle>
+          <CampaignTemplatesEditor />
         </section>
 
       </div>
