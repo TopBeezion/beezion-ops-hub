@@ -4,23 +4,21 @@ import { X, ChevronDown, AlertTriangle, Check } from 'lucide-react'
 import { useClients } from '../../hooks/useClients'
 import { useCampaignsByClient } from '../../hooks/useCampaigns'
 import { useCreateTask } from '../../hooks/useTasks'
-import type { Area, Priority, TaskStatus, TaskTipo, Etapa, MiniStatus, Deliverables, TaskAttachment } from '../../types'
+import type { Area, Priority, TaskStatus, TaskTipo, Etapa, Deliverables, TaskAttachment } from '../../types'
 import {
   AREA_COLORS, AREA_LABELS,
   STATUS_LABELS, STATUS_COLORS,
   PRIORITY_LABELS, PRIORITY_COLORS,
   ETAPA_LABELS, ETAPA_COLORS, ETAPA_ORDER, ETAPA_TO_AREA,
-  MINI_STATUS_LABELS, MINI_STATUS_COLORS, MINI_STATUS_ORDER,
   priorityFromDueDate,
 } from '../../lib/constants'
-import { getSprintDateRange } from '../../lib/dates'
 
 const ASSIGNEES = [
   { name: 'Alejandro', role: 'CEO · Copy · Estrategia',      color: '#8b5cf6', areas: ['copy','trafico','tech','admin'] },
   { name: 'Alec',      role: 'Head of Paid · Estrategia',    color: '#f5a623', areas: ['trafico','tech'] },
   { name: 'Jose',      role: 'Trafficker',                   color: '#3b82f6', areas: ['trafico'] },
   { name: 'Luisa',     role: 'Copywriter',                   color: '#ef4444', areas: ['copy'] },
-  { name: 'Paula',     role: 'Aux. Marketing · Grabaciones', color: '#ec4899', areas: ['copy','admin'] },
+  { name: 'Paula',     role: 'Project Manager',              color: '#ec4899', areas: ['copy','admin','trafico','tech','produccion','edicion'] },
   { name: 'David',     role: 'Editor',                       color: '#06b6d4', areas: ['edicion'] },
   { name: 'Johan',     role: 'Editor',                       color: '#10b981', areas: ['edicion'] },
   { name: 'Felipe',    role: 'Lead Editor',                  color: '#f97316', areas: ['edicion'] },
@@ -28,19 +26,10 @@ const ASSIGNEES = [
 
 const DELIVERABLE_DEFS: { key: keyof Deliverables; label: string; color: string; areas: Area[] }[] = [
   { key: 'hooks',               label: 'Hooks de video',       color: '#8b5cf6', areas: ['copy'] },
-  { key: 'scripts_video',       label: 'Scripts video',        color: '#ec4899', areas: ['copy'] },
   { key: 'body_copy',           label: 'Body copy / Ad copy',  color: '#3b82f6', areas: ['copy'] },
   { key: 'cta',                 label: 'CTAs',                 color: '#f5a623', areas: ['copy','trafico'] },
   { key: 'lead_magnet_pdf',     label: 'Lead magnets (PDF)',   color: '#22c55e', areas: ['copy','admin'] },
-  { key: 'vsl_script',          label: 'Scripts VSL',          color: '#06b6d4', areas: ['copy'] },
-  { key: 'landing_copy',        label: 'Landing page copy',    color: '#f97316', areas: ['copy','tech'] },
-  { key: 'thank_you_page_copy', label: 'Thank you page',       color: '#fbbf24', areas: ['copy','tech'] },
-  { key: 'carousel_slides',     label: 'Slides / Carrusel',    color: '#a78bfa', areas: ['copy','admin'] },
-  { key: 'headline_options',    label: 'Opciones de headline', color: '#f472b6', areas: ['copy'] },
-  { key: 'retargeting_scripts', label: 'Scripts retargeting',  color: '#34d399', areas: ['copy','trafico'] },
 ]
-
-const SPRINT_COLORS: Record<number, string> = { 1: '#8b5cf6', 2: '#ec4899', 3: '#3b82f6', 4: '#22c55e' }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 const lbl: React.CSSProperties = {
@@ -79,13 +68,14 @@ function usePopover() {
 
 // ── Custom dropdown ───────────────────────────────────────────────────────────
 function FieldSel({
-  label, value, onChange, options, accentColor,
+  label, value, onChange, options, accentColor, required,
 }: {
   label: string
   value: string
   onChange: (v: string) => void
   options: { value: string; label: string; color?: string }[]
   accentColor?: string
+  required?: boolean
 }) {
   const { open, setOpen, ref } = usePopover()
   const sel = options.find(o => o.value === value)
@@ -93,7 +83,7 @@ function FieldSel({
 
   return (
     <div style={{ flex: 1, position: 'relative' }} ref={ref}>
-      <label style={lbl}>{label}</label>
+      <label style={lbl}>{label}{required && <span style={{ color: '#EF4444' }}> *</span>}</label>
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
@@ -159,15 +149,11 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
   const [area,         setArea]         = useState<Area>('copy')
   const [assignee,     setAssignee]     = useState('Alejandro')
   const [priority,     setPriority]     = useState<Priority>('media')
-  const [status,       setStatus]       = useState<TaskStatus>('todo')
+  const [status,       setStatus]       = useState<TaskStatus>('pendiente')
   const [week,         setWeek]         = useState(1)
   const [tipo,         setTipo]         = useState<TaskTipo>('nuevo')
-  const [problema,     setProblema]     = useState('')
   const [etapa,        setEtapa]        = useState<Etapa | ''>('')
-  const [miniStatus,   setMiniStatus]   = useState<MiniStatus | ''>('')
   const [dueDate,      setDueDate]      = useState('')
-  const [durationDays, setDurationDays] = useState<number | ''>('')
-  const [cantidadHooks, setCantidadHooks] = useState<number | ''>('')
   const [attachments,  setAttachments]  = useState<TaskAttachment[]>([])
   const [newAttUrl,    setNewAttUrl]    = useState('')
   const [newAttName,   setNewAttName]   = useState('')
@@ -175,6 +161,19 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
   const [areaManual,   setAreaManual]   = useState(false)
   const [deliverables, setDeliverables] = useState<Deliverables>({})
   const [showDel,      setShowDel]      = useState(false)
+  const [justCreated,  setJustCreated]  = useState(false)
+  const [errorMsg,     setErrorMsg]     = useState('')
+
+  // Required validation: título, cliente, etapa, fecha de entrega
+  const isValid = title.trim() !== '' && clientId !== '' && etapa !== '' && dueDate !== ''
+  const missing: string[] = []
+  if (!title.trim()) missing.push('Título')
+  if (!clientId)     missing.push('Cliente')
+  if (!etapa)        missing.push('Etapa')
+  if (!dueDate)      missing.push('Fecha de entrega')
+
+  // Fecha de creación (hoy, read-only)
+  const todayISO = new Date().toISOString().slice(0, 10)
 
   // Auto-derive area from etapa (unless user manually overrode)
   useEffect(() => {
@@ -282,20 +281,35 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
-    await createTask.mutateAsync({
-      title, description: description || undefined,
-      client_id: clientId || undefined, campaign_id: campaignId || undefined,
-      area, assignee, priority, status, week, tipo,
-      problema: problema || undefined, etapa: etapa || undefined,
-      mini_status: miniStatus || undefined, due_date: dueDate || undefined,
-      duration_days: typeof durationDays === 'number' ? durationDays : undefined,
-      cantidad_hooks: typeof cantidadHooks === 'number' ? cantidadHooks : undefined,
-      priority_manual_override: priorityManual,
-      source: 'manual',
-      attachments: attachments.length > 0 ? attachments : undefined,
-      deliverables: Object.keys(deliverables).length > 0 ? deliverables : undefined,
-    })
-    onClose()
+    setErrorMsg('')
+    if (!isValid) {
+      setErrorMsg(`Faltan campos obligatorios: ${missing.join(', ')}`)
+      return
+    }
+    try {
+      await createTask.mutateAsync({
+        title, description: description || undefined,
+        client_id: clientId || undefined, campaign_id: campaignId || undefined,
+        area, assignee, priority, status, week, tipo,
+        etapa: etapa || undefined,
+        due_date: dueDate || undefined,
+        priority_manual_override: priorityManual,
+        source: 'manual',
+        attachments: attachments.length > 0 ? attachments : undefined,
+        deliverables: Object.keys(deliverables).length > 0 ? deliverables : undefined,
+      })
+      setJustCreated(true)
+      // Cerrar después de mostrar el éxito para que el usuario vea la confirmación
+      setTimeout(() => { onClose() }, 1200)
+    } catch (err) {
+      // Supabase PostgrestError tiene .message y .details; Error nativo tiene .message
+      const msg =
+        (err as { message?: string; details?: string })?.message ||
+        (err as { details?: string })?.details ||
+        (typeof err === 'string' ? err : JSON.stringify(err))
+      console.error('[TaskModal] createTask failed:', err)
+      setErrorMsg(`Error al crear la tarea: ${msg}`)
+    }
   }
 
   const statusOpts   = (Object.entries(STATUS_LABELS)   as [TaskStatus, string][]).map(([v, l]) => ({ value: v, label: l, color: STATUS_COLORS[v] }))
@@ -304,10 +318,6 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
   const etapaOpts = [
     { value: '', label: 'Sin etapa', color: '#9699A6' },
     ...ETAPA_ORDER.map(e => ({ value: e, label: ETAPA_LABELS[e as Etapa], color: ETAPA_COLORS[e as Etapa] })),
-  ]
-  const miniStatusOpts = [
-    { value: '', label: 'Sin mini status', color: '#9699A6' },
-    ...MINI_STATUS_ORDER.map(s => ({ value: s, label: MINI_STATUS_LABELS[s as MiniStatus], color: MINI_STATUS_COLORS[s as MiniStatus] })),
   ]
   const clienteOpts = [
     { value: '', label: 'Sin cliente', color: '#9699A6' },
@@ -320,10 +330,18 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
   const totalDel = Object.values(deliverables).reduce((s, v) => s + (v ?? 0), 0)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-end">
-      <div className="absolute inset-0" onClick={onClose} style={{ backgroundColor: 'rgba(15,17,22,0.25)', backdropFilter: 'blur(3px)' }} />
-      <div className="relative h-full w-full max-w-lg flex flex-col overflow-hidden"
-        style={{ backgroundColor: '#FFFFFF', borderLeft: '1px solid #DDE0EA', boxShadow: '-20px 0 60px rgba(0,0,0,0.14)' }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ padding: '24px' }}>
+      <div className="absolute inset-0" onClick={onClose} style={{ backgroundColor: 'rgba(15,17,22,0.45)', backdropFilter: 'blur(4px)' }} />
+      <div className="relative flex flex-col overflow-hidden"
+        style={{
+          width: '100%',
+          maxWidth: 980,
+          maxHeight: 'calc(100vh - 48px)',
+          backgroundColor: '#FFFFFF',
+          border: '1px solid #DDE0EA',
+          borderRadius: 16,
+          boxShadow: '0 24px 64px rgba(0,0,0,0.25)',
+        }}>
 
         {/* Header */}
         <div style={{
@@ -431,52 +449,35 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
           {/* ── Card 3: Cliente + Campaña + Etapa + Mini Status ──────────── */}
           <div style={formCard}>
             <div style={{ display: 'flex', gap: 10 }}>
-              <FieldSel label="Cliente" value={clientId}
+              <FieldSel label="Cliente" required value={clientId}
                 onChange={v => { setClientId(v); setCampaignId('') }}
                 options={clienteOpts}
                 accentColor={(clients ?? []).find(c => c.id === clientId)?.color ?? '#9699A6'} />
               <FieldSel label="Campaña" value={campaignId} onChange={setCampaignId} options={campanaOpts} />
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
-              <FieldSel label="Etapa" value={etapa} onChange={v => setEtapa(v as Etapa | '')} options={etapaOpts}
+              <FieldSel label="Etapa" required value={etapa} onChange={v => setEtapa(v as Etapa | '')} options={etapaOpts}
                 accentColor={etapa ? ETAPA_COLORS[etapa as Etapa] : '#9699A6'} />
-              <FieldSel label="Mini Status" value={miniStatus} onChange={v => setMiniStatus(v as MiniStatus | '')} options={miniStatusOpts}
-                accentColor={miniStatus ? MINI_STATUS_COLORS[miniStatus as MiniStatus] : '#9699A6'} />
             </div>
           </div>
 
-          {/* ── Card 4: Fecha límite + Sprint ─────────────────────────────── */}
+          {/* ── Card 4: Fecha de Creación (auto) + Fecha de entrega ─────── */}
           <div style={formCard}>
             <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-              <div style={{ flex: '0 0 140px' }}>
-                <label style={lbl}>Fecha límite</label>
-                <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
-                  style={{ ...fieldBase, padding: '7px 10px', fontSize: 12 }} />
+              <div style={{ flex: 1 }}>
+                <label style={lbl}>Fecha de Creación</label>
+                <input type="date" value={todayISO} readOnly disabled
+                  style={{ ...fieldBase, padding: '8px 11px', fontSize: 12, backgroundColor: '#EEF0F6', color: '#6B7280', cursor: 'not-allowed' }} />
               </div>
               <div style={{ flex: 1 }}>
-                <label style={lbl}>Sprint</label>
-                <div style={{ display: 'flex', gap: 4 }}>
-                  {[1, 2, 3, 4].map(w => {
-                    const sc = SPRINT_COLORS[w]
-                    const s  = getSprintDateRange(w)
-                    return (
-                      <button key={w} type="button" onClick={() => setWeek(w)} style={{
-                        flex: 1, borderRadius: 8, padding: '6px 2px', textAlign: 'center',
-                        backgroundColor: week === w ? `${sc}14` : '#F8F9FC',
-                        border: week === w ? `1.5px solid ${sc}50` : '1px solid #E8EAF2',
-                        cursor: 'pointer', transition: 'all 0.12s',
-                      }}>
-                        <p style={{ fontSize: 11, fontWeight: 700, color: week === w ? sc : '#9CA3AF', margin: 0 }}>S{w}</p>
-                        <p style={{ fontSize: 8, color: '#BFC3CF', margin: 0, whiteSpace: 'nowrap' }}>{s.startFmt}</p>
-                      </button>
-                    )
-                  })}
-                </div>
+                <label style={lbl}>Fecha de entrega <span style={{ color: '#EF4444' }}>*</span></label>
+                <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} required
+                  style={{ ...fieldBase, padding: '8px 11px', fontSize: 12 }} />
               </div>
             </div>
           </div>
 
-          {/* ── Card 5: Descripción + Problema ───────────────────────────── */}
+          {/* ── Card 5: Descripción ──────────────────────────────────────── */}
           <div style={formCard}>
             <div>
               <label style={lbl}>Descripción / Instrucciones</label>
@@ -484,30 +485,10 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
                 style={{ ...fieldBase, padding: '9px 11px', fontSize: 12, color: '#6B7280', resize: 'none', lineHeight: 1.5 }}
                 placeholder="Detalla qué hay que hacer, cómo, referencias, observaciones..." />
             </div>
-            <div>
-              <label style={lbl}>Problema que resuelve</label>
-              <input value={problema} onChange={e => setProblema(e.target.value)}
-                style={{ ...fieldBase, padding: '8px 11px', fontSize: 12 }}
-                placeholder="Ej: Show rate de Book Demos bajo" />
-            </div>
           </div>
 
-          {/* ── Card 5b: Extras (Duración + Cantidad Hooks + Attachments) ── */}
+          {/* ── Card 5b: Attachments ─────────────────────────────────────── */}
           <div style={formCard}>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <div style={{ flex: 1 }}>
-                <label style={lbl}>Duración (días)</label>
-                <input type="number" min={0} value={durationDays}
-                  onChange={e => setDurationDays(e.target.value === '' ? '' : Number(e.target.value))}
-                  style={{ ...fieldBase, padding: '8px 11px', fontSize: 12 }} placeholder="Ej: 3" />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label style={lbl}>Cantidad Hooks</label>
-                <input type="number" min={0} value={cantidadHooks}
-                  onChange={e => setCantidadHooks(e.target.value === '' ? '' : Number(e.target.value))}
-                  style={{ ...fieldBase, padding: '8px 11px', fontSize: 12 }} placeholder="Ej: 50" />
-              </div>
-            </div>
             <div>
               <label style={lbl}>Attachments (Drive URLs)</label>
               <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
@@ -580,24 +561,74 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
             )}
           </div>
 
+          {/* Error banner */}
+          {errorMsg && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '10px 12px', borderRadius: 10,
+              backgroundColor: '#FEF2F2', border: '1px solid #FCA5A5',
+              color: '#B91C1C', fontSize: 12, fontWeight: 600,
+            }}>
+              <AlertTriangle size={14} />
+              <span>{errorMsg}</span>
+            </div>
+          )}
+
+          {/* Missing-fields hint (solo si el usuario ya intentó o hay missing visible) */}
+          {!isValid && missing.length > 0 && !errorMsg && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '8px 12px', borderRadius: 10,
+              backgroundColor: '#FFFBEB', border: '1px solid #FDE68A',
+              color: '#92400E', fontSize: 11, fontWeight: 600,
+            }}>
+              <AlertTriangle size={12} />
+              <span>Obligatorios pendientes: {missing.join(', ')}</span>
+            </div>
+          )}
+
           {/* ── Footer ───────────────────────────────────────────────────── */}
           <div style={{ display: 'flex', gap: 10, paddingTop: 4, paddingBottom: 8 }}>
             <button type="button" onClick={onClose}
               style={{ flex: 1, padding: '11px', borderRadius: 10, fontSize: 13, border: '1.5px solid #E4E7F0', color: '#6B7280', backgroundColor: '#fff', cursor: 'pointer', fontWeight: 600 }}>
               Cancelar
             </button>
-            <button type="submit" disabled={createTask.isPending || !title.trim()}
+            <button type="submit" disabled={createTask.isPending || !isValid}
+              title={!isValid ? `Faltan: ${missing.join(', ')}` : undefined}
               style={{
                 flex: 2, padding: '11px', borderRadius: 10, fontSize: 13, fontWeight: 700,
-                border: 'none', cursor: 'pointer',
+                border: 'none', cursor: (createTask.isPending || !isValid) ? 'not-allowed' : 'pointer',
                 background: 'linear-gradient(135deg, #6366F1, #4F46E5)',
                 color: '#fff', boxShadow: '0 4px 16px rgba(99,102,241,0.3)',
-                opacity: (createTask.isPending || !title.trim()) ? 0.5 : 1,
+                opacity: (createTask.isPending || !isValid) ? 0.5 : 1,
               }}>
               {createTask.isPending ? 'Creando…' : '✦  Crear tarea'}
             </button>
           </div>
         </form>
+
+        {/* Success overlay — confirma visualmente antes de cerrar */}
+        {justCreated && (
+          <div style={{
+            position: 'absolute', inset: 0, zIndex: 700,
+            backgroundColor: 'rgba(255,255,255,0.96)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14,
+            animation: 'fadeIn 0.15s ease',
+          }}>
+            <div style={{
+              width: 64, height: 64, borderRadius: '50%',
+              background: 'linear-gradient(135deg, #10B981, #059669)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 10px 30px rgba(16,185,129,0.35)',
+            }}>
+              <Check size={32} color="#fff" strokeWidth={3} />
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <p style={{ fontSize: 16, fontWeight: 800, color: '#065F46', margin: 0 }}>¡Tarea creada!</p>
+              <p style={{ fontSize: 12, color: '#6B7280', margin: '4px 0 0' }}>Se notificó al responsable por Slack.</p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

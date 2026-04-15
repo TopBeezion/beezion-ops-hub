@@ -4,7 +4,9 @@ import { useClients } from '../hooks/useClients'
 import { useCampaigns } from '../hooks/useCampaigns'
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import type { Task, Client, Area } from '../types'
-import { AREA_LABELS, AREA_COLORS, ASSIGNEE_COLORS, STATUS_LABELS, STATUS_COLORS, TEAM_MEMBERS, TEAM_ROLES } from '../lib/constants'
+import { AREA_LABELS, AREA_COLORS, ASSIGNEE_COLORS, STATUS_LABELS, STATUS_COLORS, TEAM_MEMBERS, TEAM_ROLES, isAdminPlus } from '../lib/constants'
+import { TeamCapacityPanel } from '../components/widgets/TeamCapacityPanel'
+import { useAuth } from '../hooks/useAuth'
 import {
   Flame, Zap, CheckCircle2, Clock, TrendingUp,
   Users, BarChart3, ChevronRight, Circle, Layers, Activity,
@@ -105,7 +107,7 @@ function BomberoRow({ task, onClick, isLast }: { task: Task; onClick?: () => voi
   const clientColor = (task.client as Client & { color: string })?.color || C.red
   const statusColor = STATUS_COLORS[task.status] || C.muted
   const assigneeColor = ASSIGNEE_COLORS[task.assignee] || C.muted
-  const isInProgress = task.status === 'en_progreso'
+  const isInProgress = task.status === 'en_proceso'
 
   return (
     <div
@@ -302,6 +304,8 @@ export function DashboardPage() {
   const { data: clients = [] } = useClients()
   const { data: campaigns = [] } = useCampaigns()
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const canSeeTeamLoad = isAdminPlus(user)
   const ctx = useOutletContext<{ openNewTask?: () => void; openTaskDetail?: (t: Task) => void }>()
 
   // ── Mi Vista state ───────────────────────────────────────────────────────
@@ -322,27 +326,27 @@ export function DashboardPage() {
   // ── KPIs ─────────────────────────────────────────────────────────────────
   const stats = useMemo(() => {
     const total = visibleTasks.length
-    const completed = visibleTasks.filter(t => t.status === 'hecho').length
-    const inProgress = visibleTasks.filter(t => t.status === 'en_progreso').length
-    const pending = visibleTasks.filter(t => t.status === 'todo').length
+    const completed = visibleTasks.filter(t => t.status === 'done').length
+    const inProgress = visibleTasks.filter(t => t.status === 'en_proceso').length
+    const pending = visibleTasks.filter(t => t.status === 'pendiente').length
     const pct = total > 0 ? Math.round((completed / total) * 100) : 0
     return { total, completed, inProgress, pending, pct }
   }, [visibleTasks])
 
   const bomberos = useMemo(() => visibleTasks
-    .filter(t => t.priority === 'alta' && t.status !== 'hecho')
-    .sort((a, b) => (a.status === 'en_progreso' ? 0 : 1) - (b.status === 'en_progreso' ? 0 : 1))
+    .filter(t => t.priority === 'alta' && t.status !== 'done')
+    .sort((a, b) => (a.status === 'en_proceso' ? 0 : 1) - (b.status === 'en_proceso' ? 0 : 1))
     .slice(0, 7),
   [visibleTasks])
 
-  const inProgressTasks = useMemo(() => visibleTasks.filter(t => t.status === 'en_progreso').slice(0, 6), [visibleTasks])
+  const inProgressTasks = useMemo(() => visibleTasks.filter(t => t.status === 'en_proceso').slice(0, 6), [visibleTasks])
 
   const clientStats = useMemo(() => clients
     .map(client => {
       const ct = visibleTasks.filter(t => t.client_id === client.id)
-      const done = ct.filter(t => t.status === 'hecho').length
-      const inProg = ct.filter(t => t.status === 'en_progreso').length
-      const pending = ct.filter(t => t.status === 'todo').length
+      const done = ct.filter(t => t.status === 'done').length
+      const inProg = ct.filter(t => t.status === 'en_proceso').length
+      const pending = ct.filter(t => t.status === 'pendiente').length
       const pct = ct.length > 0 ? Math.round((done / ct.length) * 100) : 0
       const activeCampaigns = campaigns.filter(c => c.client_id === client.id && c.status === 'activa').length
       return { client, total: ct.length, done, inProg, pending, pct, activeCampaigns }
@@ -366,7 +370,7 @@ export function DashboardPage() {
 
   const areaStats = useMemo(() => (['copy', 'trafico', 'tech', 'admin', 'edicion'] as Area[]).map(area => {
     const at = visibleTasks.filter(t => t.area === area)
-    return { area, total: at.length, done: at.filter(t => t.status === 'hecho').length }
+    return { area, total: at.length, done: at.filter(t => t.status === 'done').length }
   }).filter(a => a.total > 0), [visibleTasks])
 
   const teamStats = useMemo(() => {
@@ -374,8 +378,8 @@ export function DashboardPage() {
     for (const t of tasks) {  // always use all tasks for team view
       if (!map[t.assignee]) map[t.assignee] = { total: 0, done: 0, inProg: 0 }
       map[t.assignee].total++
-      if (t.status === 'hecho') map[t.assignee].done++
-      if (t.status === 'en_progreso') map[t.assignee].inProg++
+      if (t.status === 'done') map[t.assignee].done++
+      if (t.status === 'en_proceso') map[t.assignee].inProg++
     }
     return Object.entries(map).map(([name, s]) => ({ name, ...s })).sort((a, b) => b.total - a.total)
   }, [tasks])
@@ -591,9 +595,10 @@ export function DashboardPage() {
           </div>
         </div>
 
-        {/* Equipo */}
+        {/* Equipo (admin+ only) */}
+        {canSeeTeamLoad && (
         <div style={card({ padding: 18 })}>
-          <SectionHeader icon={Users} title="Carga del equipo" sub="Tareas por persona" color={C.orange} />
+          <SectionHeader icon={Users} title="Carga del equipo" sub="Tareas por persona · solo admin+" color={C.orange} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
             {teamStats.slice(0, 7).map(({ name, total, done, inProg }) => {
               const pct = total > 0 ? Math.round((done / total) * 100) : 0
@@ -637,6 +642,12 @@ export function DashboardPage() {
               )
             })}
           </div>
+        </div>
+        )}
+
+        {/* Capacidad del equipo (admin+ only) */}
+        <div style={{ marginTop: 16 }}>
+          <TeamCapacityPanel />
         </div>
       </div>
     </div>

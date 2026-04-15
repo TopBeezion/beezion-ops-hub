@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams, Navigate, useOutletContext } from 'react-router-dom'
+import { useParams, Navigate, useOutletContext, useNavigate } from 'react-router-dom'
 import { useTasks, useUpdateTaskStatus } from '../hooks/useTasks'
 import { useClients } from '../hooks/useClients'
 import { useCampaigns } from '../hooks/useCampaigns'
@@ -8,7 +8,8 @@ import { AREA_LABELS, STATUS_LABELS, STATUS_COLORS, CAMPAIGN_TYPE_COLORS, CAMPAI
 import { AreaBadge } from '../components/ui/AreaBadge'
 import { AssigneeAvatar } from '../components/ui/AssigneeAvatar'
 import { PriorityDot } from '../components/ui/PriorityDot'
-import { ChevronRight, Target, AlertTriangle, CheckCircle2, Zap } from 'lucide-react'
+import { ChevronRight, Target, AlertTriangle, CheckCircle2, Zap, Plus, Trash2, Pencil, Check, X } from 'lucide-react'
+import { useClientStrategy, useUpsertClientStrategy } from '../hooks/useClientStrategy'
 
 const C = {
   bg: '#F0F2F8',
@@ -124,7 +125,131 @@ const CLIENT_STRATEGY: Record<string, { problems: string[]; strategies: string[]
   },
 }
 
-const STATUSES: TaskStatus[] = ['todo', 'en_progreso', 'revision', 'hecho']
+const STATUSES: TaskStatus[] = ['pendiente', 'en_proceso', 'aprobacion_interna', 'done']
+
+// ─── Editable list (problems / strategies / kpis) ────────────────────────────
+function EditableList({
+  items, accentColor, bgColor, renderBullet, onChange,
+  itemBg, itemBorder,
+}: {
+  items: string[]
+  accentColor: string
+  bgColor: string
+  renderBullet: (idx: number) => React.ReactNode
+  onChange: (next: string[]) => void
+  itemBg?: string
+  itemBorder?: string
+}) {
+  const [editingIdx, setEditingIdx] = useState<number | null>(null)
+  const [draft, setDraft] = useState('')
+  const [adding, setAdding] = useState(false)
+  const [newDraft, setNewDraft] = useState('')
+
+  const save = (idx: number) => {
+    const t = draft.trim()
+    if (!t) return
+    const next = [...items]
+    next[idx] = t
+    onChange(next)
+    setEditingIdx(null)
+  }
+  const remove = (idx: number) => {
+    const next = items.filter((_, i) => i !== idx)
+    onChange(next)
+  }
+  const add = () => {
+    const t = newDraft.trim()
+    if (!t) { setAdding(false); return }
+    onChange([...items, t])
+    setNewDraft('')
+    setAdding(false)
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {items.map((p, i) => (
+        <div key={i} style={{
+          display: 'flex', alignItems: 'flex-start', gap: 8,
+          padding: itemBg ? '8px 10px' : 0,
+          borderRadius: itemBg ? 8 : 0,
+          backgroundColor: itemBg, border: itemBorder,
+          group: 'item',
+        } as React.CSSProperties}>
+          {renderBullet(i)}
+          {editingIdx === i ? (
+            <>
+              <input
+                autoFocus value={draft} onChange={e => setDraft(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') save(i)
+                  if (e.key === 'Escape') setEditingIdx(null)
+                }}
+                style={{
+                  flex: 1, fontSize: 12, padding: '3px 6px', borderRadius: 5,
+                  border: `1px solid ${accentColor}`, outline: 'none', color: '#1A1D27', backgroundColor: '#fff',
+                }}
+              />
+              <button type="button" onClick={() => save(i)} title="Guardar"
+                style={{ background: accentColor, border: 'none', color: '#fff', borderRadius: 5, padding: 4, cursor: 'pointer', display: 'flex' }}>
+                <Check size={11} />
+              </button>
+              <button type="button" onClick={() => setEditingIdx(null)} title="Cancelar"
+                style={{ background: 'transparent', border: 'none', color: '#9699B0', cursor: 'pointer', display: 'flex', padding: 4 }}>
+                <X size={11} />
+              </button>
+            </>
+          ) : (
+            <>
+              <span style={{ flex: 1, fontSize: 12, color: bgColor, lineHeight: 1.5 }}>{p}</span>
+              <button type="button" onClick={() => { setDraft(p); setEditingIdx(i) }} title="Editar"
+                style={{ background: 'transparent', border: 'none', color: '#9699B0', cursor: 'pointer', display: 'flex', padding: 2, opacity: 0.6 }}
+                onMouseEnter={e => { e.currentTarget.style.opacity = '1' }}
+                onMouseLeave={e => { e.currentTarget.style.opacity = '0.6' }}>
+                <Pencil size={11} />
+              </button>
+              <button type="button" onClick={() => remove(i)} title="Eliminar"
+                style={{ background: 'transparent', border: 'none', color: '#9699B0', cursor: 'pointer', display: 'flex', padding: 2, opacity: 0.6 }}
+                onMouseEnter={e => { e.currentTarget.style.color = '#EF4444'; e.currentTarget.style.opacity = '1' }}
+                onMouseLeave={e => { e.currentTarget.style.color = '#9699B0'; e.currentTarget.style.opacity = '0.6' }}>
+                <Trash2 size={11} />
+              </button>
+            </>
+          )}
+        </div>
+      ))}
+      {adding ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <input
+            autoFocus value={newDraft} onChange={e => setNewDraft(e.target.value)}
+            placeholder="Nuevo item (Enter para guardar)"
+            onKeyDown={e => {
+              if (e.key === 'Enter') add()
+              if (e.key === 'Escape') { setNewDraft(''); setAdding(false) }
+            }}
+            onBlur={add}
+            style={{
+              flex: 1, fontSize: 12, padding: '5px 7px', borderRadius: 6,
+              border: `1px solid ${accentColor}`, outline: 'none', color: '#1A1D27', backgroundColor: '#fff',
+            }}
+          />
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setAdding(true)}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 5,
+            marginTop: 4, alignSelf: 'flex-start',
+            padding: '4px 9px', borderRadius: 6, fontSize: 10, fontWeight: 700,
+            backgroundColor: `${accentColor}12`, color: accentColor,
+            border: `1px dashed ${accentColor}50`, cursor: 'pointer',
+          }}>
+          <Plus size={10} /> Agregar
+        </button>
+      )}
+    </div>
+  )
+}
 
 export function ClientDetailPage() {
   const { clientId } = useParams<{ clientId: string }>()
@@ -132,19 +257,34 @@ export function ClientDetailPage() {
   const { data: tasks = [], isLoading } = useTasks({ client_id: clientId })
   const { data: allCampaigns = [] } = useCampaigns()
   const updateStatus = useUpdateTaskStatus()
+  const navigate = useNavigate()
   const ctx = useOutletContext<{ openNewTask?: () => void; openTaskDetail?: (t: Task) => void }>()
 
   const [areaFilter, setAreaFilter] = useState<Area | ''>('')
-  const [expandedCampaign, setExpandedCampaign] = useState<string | null>(null)
+  const [showArchived, setShowArchived] = useState(false)
 
   const client = clients.find(c => c.id === clientId)
   if (!isLoading && !client) return <Navigate to="/" replace />
 
   const clientCampaigns = allCampaigns.filter(c => c.client_id === clientId)
   const filteredTasks = areaFilter ? tasks.filter(t => t.area === areaFilter) : tasks
-  const completedCount = tasks.filter(t => t.status === 'hecho').length
+  const completedCount = tasks.filter(t => t.status === 'done').length
   const progress = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0
-  const strategy = client ? CLIENT_STRATEGY[client.name] : null
+  const fallbackStrategy = client ? CLIENT_STRATEGY[client.name] : null
+  const { data: dbStrategy } = useClientStrategy(clientId)
+  const upsertStrategy = useUpsertClientStrategy()
+  const strategy = dbStrategy ?? fallbackStrategy ?? null
+
+  const saveStrategyField = (field: 'problems' | 'strategies' | 'kpis', next: string[]) => {
+    if (!clientId) return
+    const base = dbStrategy ?? { problems: fallbackStrategy?.problems ?? [], strategies: fallbackStrategy?.strategies ?? [], kpis: fallbackStrategy?.kpis ?? [] }
+    upsertStrategy.mutate({
+      client_id: clientId,
+      problems: field === 'problems' ? next : base.problems,
+      strategies: field === 'strategies' ? next : base.strategies,
+      kpis: field === 'kpis' ? next : base.kpis,
+    })
+  }
   const tasksByStatus = STATUSES.map(s => ({ status: s, tasks: tasks.filter(t => t.status === s) }))
   const clientColor = client?.color || '#6366F1'
 
@@ -250,32 +390,45 @@ export function ClientDetailPage() {
         </div>
 
         {/* ── Campaigns ───────────────────────────────────────────────────────── */}
-        {clientCampaigns.length > 0 && (
-          <div>
-            <h2 style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.07em', margin: '0 0 10px' }}>
-              Campañas
-            </h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
-              {clientCampaigns.map(cam => {
+        {(() => {
+          const sortIteracionLast = (a: typeof clientCampaigns[number], b: typeof clientCampaigns[number]) => {
+            const aIt = a.type === 'iteracion' ? 1 : 0
+            const bIt = b.type === 'iteracion' ? 1 : 0
+            return aIt - bIt
+          }
+          const activeCamps = clientCampaigns.filter(c => c.status !== 'desactivada').slice().sort(sortIteracionLast)
+          const archivedCamps = clientCampaigns.filter(c => c.status === 'desactivada').slice().sort(sortIteracionLast)
+          const renderCampaignCard = (cam: typeof clientCampaigns[number]) => {
                 const camTasks = tasks.filter(t => t.campaign_id === cam.id)
-                const camDone = camTasks.filter(t => t.status === 'hecho').length
+                const camDone = camTasks.filter(t => t.status === 'done').length
                 const camPct = camTasks.length > 0 ? Math.round((camDone / camTasks.length) * 100) : 0
                 const camColor = CAMPAIGN_TYPE_COLORS[cam.type as keyof typeof CAMPAIGN_TYPE_COLORS] ?? clientColor
-                const isExpanded = expandedCampaign === cam.id
-                const statusCount = {
-                  pendiente: camTasks.filter(t => t.status === 'todo').length,
-                  en_progreso: camTasks.filter(t => t.status === 'en_progreso').length,
-                  revision: camTasks.filter(t => t.status === 'revision').length,
-                  completado: camDone,
+                const statusCount: Partial<Record<TaskStatus, number>> = {
+                  pendiente:          camTasks.filter(t => t.status === 'pendiente').length,
+                  en_proceso:         camTasks.filter(t => t.status === 'en_proceso').length,
+                  aprobacion_interna: camTasks.filter(t => t.status === 'aprobacion_interna').length,
+                  correcciones:       camTasks.filter(t => t.status === 'correcciones').length,
+                  enviado_cliente:    camTasks.filter(t => t.status === 'enviado_cliente').length,
+                  ajustes_cliente:    camTasks.filter(t => t.status === 'ajustes_cliente').length,
+                  blocker:            camTasks.filter(t => t.status === 'blocker').length,
+                  done:               camDone,
                 }
 
                 return (
-                  <div key={cam.id} style={{
-                    backgroundColor: C.card,
-                    border: `1px solid ${camColor}30`,
-                    borderRadius: 12, overflow: 'hidden',
-                    borderTop: `3px solid ${camColor}`,
-                  }}>
+                  <div
+                    key={cam.id}
+                    onClick={() => navigate(`/campaigns/${cam.id}`)}
+                    style={{
+                      backgroundColor: C.card,
+                      border: `1px solid ${camColor}30`,
+                      borderRadius: 12, overflow: 'hidden',
+                      borderTop: `3px solid ${camColor}`,
+                      cursor: 'pointer',
+                      transition: 'transform 0.1s, box-shadow 0.1s',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 4px 12px ${camColor}20` }}
+                    onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none' }}
+                  >
                     <div style={{ padding: '12px 14px' }}>
                       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
@@ -313,70 +466,79 @@ export function ClientDetailPage() {
                       </div>
 
                       {/* Status mini-counts */}
-                      <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                        {Object.entries(statusCount).filter(([, v]) => v > 0).map(([s, v]) => (
-                          <span key={s} style={{
-                            fontSize: 9, fontWeight: 700,
-                            color: STATUS_COLORS[s as TaskStatus],
-                          }}>
-                            {v} {STATUS_LABELS[s as TaskStatus].toLowerCase()}
-                          </span>
-                        ))}
+                      <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                        {(Object.entries(statusCount) as [TaskStatus, number][])
+                          .filter(([, v]) => v > 0)
+                          .map(([s, v]) => (
+                            <span key={s} style={{
+                              fontSize: 9, fontWeight: 700,
+                              color: STATUS_COLORS[s] ?? C.muted,
+                            }}>
+                              {v} {(STATUS_LABELS[s] ?? s).toLowerCase()}
+                            </span>
+                          ))}
                       </div>
                     </div>
 
-                    {/* Expand tasks */}
+                    {/* Open in Kanban */}
                     {camTasks.length > 0 && (
-                      <>
-                        <button
-                          onClick={() => setExpandedCampaign(isExpanded ? null : cam.id)}
-                          style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                            width: '100%', padding: '8px 14px',
-                            background: `${camColor}08`, border: 'none',
-                            borderTop: `1px solid ${camColor}20`, cursor: 'pointer',
-                            fontSize: 10, fontWeight: 600, color: camColor,
-                          }}
-                        >
-                          <span>{isExpanded ? 'Ocultar tareas' : `Ver ${camTasks.length} tareas`}</span>
-                          <ChevronRight size={12} style={{ transform: isExpanded ? 'rotate(90deg)' : 'none', transition: '0.15s' }} />
-                        </button>
-                        {isExpanded && (
-                          <div style={{ borderTop: `1px solid ${C.border}` }}>
-                            {camTasks.map((t, i) => (
-                              <div
-                                key={t.id}
-                                onClick={() => ctx?.openTaskDetail?.(t)}
-                                style={{
-                                  display: 'flex', alignItems: 'center', gap: 8,
-                                  padding: '8px 14px', cursor: 'pointer',
-                                  borderBottom: i < camTasks.length - 1 ? `1px solid ${C.border}` : 'none',
-                                  borderLeft: `3px solid ${STATUS_COLORS[t.status]}40`,
-                                }}
-                                onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#F8F9FC')}
-                                onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
-                              >
-                                <PriorityDot priority={t.priority} />
-                                <span style={{ flex: 1, fontSize: 11, color: C.text, fontWeight: 500 }}>{t.title}</span>
-                                <span style={{
-                                  fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 4,
-                                  backgroundColor: `${STATUS_COLORS[t.status]}15`,
-                                  color: STATUS_COLORS[t.status],
-                                }}>
-                                  {STATUS_LABELS[t.status]}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </>
+                      <button
+                        onClick={e => { e.stopPropagation(); navigate(`/kanban?campaign=${cam.id}`) }}
+                        style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                          width: '100%', padding: '8px 14px',
+                          background: `${camColor}08`, border: 'none',
+                          borderTop: `1px solid ${camColor}20`, cursor: 'pointer',
+                          fontSize: 10, fontWeight: 600, color: camColor,
+                        }}
+                      >
+                        <span>Ver {camTasks.length} tareas en Kanban</span>
+                        <ChevronRight size={12} />
+                      </button>
                     )}
                   </div>
                 )
-              })}
-            </div>
-          </div>
-        )}
+          }
+          return (
+            <>
+              {activeCamps.length > 0 && (
+                <div>
+                  <h2 style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.07em', margin: '0 0 10px' }}>
+                    Campañas
+                  </h2>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
+                    {activeCamps.map(renderCampaignCard)}
+                  </div>
+                </div>
+              )}
+              {archivedCamps.length > 0 && (
+                <div style={{ marginTop: 16 }}>
+                  <button
+                    onClick={() => setShowArchived(v => !v)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      background: 'transparent', border: 'none', cursor: 'pointer',
+                      fontSize: 11, fontWeight: 700, color: C.muted,
+                      textTransform: 'uppercase', letterSpacing: '0.07em',
+                      padding: 0, marginBottom: 10,
+                    }}
+                  >
+                    <ChevronRight
+                      size={12}
+                      style={{ transition: 'transform 0.15s', transform: showArchived ? 'rotate(90deg)' : 'rotate(0deg)' }}
+                    />
+                    Archivadas ({archivedCamps.length})
+                  </button>
+                  {showArchived && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10, opacity: 0.75 }}>
+                      {archivedCamps.map(renderCampaignCard)}
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )
+        })()}
 
         {/* ── Strategy ─────────────────────────────────────────────────────────── */}
         {strategy && (
@@ -390,19 +552,20 @@ export function ClientDetailPage() {
                     Problemas identificados
                   </p>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-                  {strategy.problems.map((p, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                      <span style={{
-                        fontSize: 9, fontWeight: 800, flexShrink: 0,
-                        width: 16, height: 16, borderRadius: 4, marginTop: 1,
-                        backgroundColor: '#FEF2F2', color: '#EF4444',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}>{i + 1}</span>
-                      <span style={{ fontSize: 12, color: C.sub, lineHeight: 1.5 }}>{p}</span>
-                    </div>
-                  ))}
-                </div>
+                <EditableList
+                  items={strategy.problems}
+                  accentColor="#EF4444"
+                  bgColor={C.sub}
+                  renderBullet={i => (
+                    <span style={{
+                      fontSize: 9, fontWeight: 800, flexShrink: 0,
+                      width: 16, height: 16, borderRadius: 4, marginTop: 1,
+                      backgroundColor: '#FEF2F2', color: '#EF4444',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>{i + 1}</span>
+                  )}
+                  onChange={next => saveStrategyField('problems', next)}
+                />
               </div>
 
               {/* KPIs */}
@@ -413,14 +576,17 @@ export function ClientDetailPage() {
                     KPIs objetivo
                   </p>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {strategy.kpis.map((k, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '8px 10px', borderRadius: 8, backgroundColor: '#EFF6FF', border: '1px solid #BFDBFE30' }}>
-                      <CheckCircle2 size={13} color="#3B82F6" style={{ flexShrink: 0, marginTop: 1 }} />
-                      <span style={{ fontSize: 12, fontWeight: 600, color: C.text, lineHeight: 1.5 }}>{k}</span>
-                    </div>
-                  ))}
-                </div>
+                <EditableList
+                  items={strategy.kpis}
+                  accentColor="#3B82F6"
+                  bgColor={C.text}
+                  itemBg="#EFF6FF"
+                  itemBorder="1px solid #BFDBFE30"
+                  renderBullet={() => (
+                    <CheckCircle2 size={13} color="#3B82F6" style={{ flexShrink: 0, marginTop: 1 }} />
+                  )}
+                  onChange={next => saveStrategyField('kpis', next)}
+                />
               </div>
             </div>
 
@@ -435,23 +601,22 @@ export function ClientDetailPage() {
                   {strategy.strategies.length} iniciativas
                 </span>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                {strategy.strategies.map((s, i) => (
-                  <div key={i} style={{
-                    display: 'flex', alignItems: 'flex-start', gap: 8,
-                    padding: '9px 11px', borderRadius: 8,
-                    backgroundColor: '#F0FDF4', border: '1px solid #86EFAC30',
-                  }}>
-                    <span style={{
-                      fontSize: 9, fontWeight: 800, flexShrink: 0,
-                      width: 16, height: 16, borderRadius: 4, marginTop: 1,
-                      backgroundColor: '#D1FAE5', color: '#10B981',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>{i + 1}</span>
-                    <span style={{ fontSize: 11, color: C.sub, lineHeight: 1.5 }}>{s}</span>
-                  </div>
-                ))}
-              </div>
+              <EditableList
+                items={strategy.strategies}
+                accentColor="#10B981"
+                bgColor={C.sub}
+                itemBg="#F0FDF4"
+                itemBorder="1px solid #86EFAC30"
+                renderBullet={i => (
+                  <span style={{
+                    fontSize: 9, fontWeight: 800, flexShrink: 0,
+                    width: 16, height: 16, borderRadius: 4, marginTop: 1,
+                    backgroundColor: '#D1FAE5', color: '#10B981',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>{i + 1}</span>
+                )}
+                onChange={next => saveStrategyField('strategies', next)}
+              />
             </div>
           </>
         )}
@@ -510,8 +675,8 @@ export function ClientDetailPage() {
               <PriorityDot priority={task.priority} />
               <span style={{
                 flex: 1, fontSize: 12, fontWeight: 500,
-                color: task.status === 'hecho' ? C.muted : C.text,
-                textDecoration: task.status === 'hecho' ? 'line-through' : 'none',
+                color: task.status === 'done' ? C.muted : C.text,
+                textDecoration: task.status === 'done' ? 'line-through' : 'none',
               }}>
                 {task.title}
               </span>

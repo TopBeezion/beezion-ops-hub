@@ -2,21 +2,22 @@ import { useState, useEffect, useRef } from 'react'
 import {
   X, Save, ChevronDown, AlertTriangle, Check,
   Paperclip, Upload, Trash2, Download, File, Image, FileVideo, FileAudio,
-  Bot, Hand,
+  Bot, Hand, Plus,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useUpdateTask, useDeleteTask } from '../../hooks/useTasks'
 import { getDaysOverdue } from '../../lib/dates'
 import { useClients } from '../../hooks/useClients'
-import { useCampaignsByClient } from '../../hooks/useCampaigns'
-import type { Task, Area, Priority, TaskStatus, TaskTipo, Etapa, MiniStatus, Deliverables, TaskAttachment } from '../../types'
+import { useCampaignsByClient, useCreateCampaign } from '../../hooks/useCampaigns'
+import type { Task, Area, Priority, TaskStatus, TaskTipo, Etapa, Deliverables, TaskAttachment, CampaignType } from '../../types'
 import {
   AREA_LABELS, AREA_COLORS, STATUS_LABELS, STATUS_COLORS,
   PRIORITY_LABELS, PRIORITY_COLORS,
   ETAPA_LABELS, ETAPA_COLORS, ETAPA_ORDER,
-  MINI_STATUS_LABELS, MINI_STATUS_COLORS, MINI_STATUS_ORDER,
+  CAMPAIGN_TYPE_LABELS, CAMPAIGN_TYPE_COLORS,
 } from '../../lib/constants'
-import { getSprintDateRange } from '../../lib/dates'
+import { TaskActivityLogPanel } from '../widgets/TaskActivityLogPanel'
+import { SubtasksPanel } from './SubtasksPanel'
 
 // ── Team ─────────────────────────────────────────────────────────────────────
 const ASSIGNEES = [
@@ -24,7 +25,7 @@ const ASSIGNEES = [
   { name: 'Alec',      role: 'Head of Paid · Estrategia',    color: '#f5a623', areas: ['trafico','tech'] },
   { name: 'Jose',      role: 'Trafficker',                   color: '#3b82f6', areas: ['trafico'] },
   { name: 'Luisa',     role: 'Copywriter',                   color: '#ef4444', areas: ['copy'] },
-  { name: 'Paula',     role: 'Aux. Marketing · Grabaciones', color: '#ec4899', areas: ['copy','admin'] },
+  { name: 'Paula',     role: 'Project Manager',              color: '#ec4899', areas: ['copy','admin','trafico','tech','produccion','edicion'] },
   { name: 'David',     role: 'Editor',                       color: '#06b6d4', areas: ['edicion'] },
   { name: 'Johan',     role: 'Editor',                       color: '#10b981', areas: ['edicion'] },
   { name: 'Felipe',    role: 'Lead Editor',                  color: '#f97316', areas: ['edicion'] },
@@ -32,19 +33,10 @@ const ASSIGNEES = [
 
 const DELIVERABLE_DEFS: { key: keyof Deliverables; label: string; color: string }[] = [
   { key: 'hooks',               label: 'Hooks de video',       color: '#8b5cf6' },
-  { key: 'scripts_video',       label: 'Scripts video',        color: '#ec4899' },
   { key: 'body_copy',           label: 'Body copy',            color: '#3b82f6' },
   { key: 'cta',                 label: 'CTAs',                 color: '#f5a623' },
   { key: 'lead_magnet_pdf',     label: 'Lead magnets',         color: '#22c55e' },
-  { key: 'vsl_script',          label: 'Scripts VSL',          color: '#06b6d4' },
-  { key: 'landing_copy',        label: 'Landing copy',         color: '#f97316' },
-  { key: 'thank_you_page_copy', label: 'Thank you page',       color: '#fbbf24' },
-  { key: 'carousel_slides',     label: 'Slides / Carrusel',    color: '#a78bfa' },
-  { key: 'headline_options',    label: 'Headlines',            color: '#f472b6' },
-  { key: 'retargeting_scripts', label: 'Retargeting',          color: '#34d399' },
 ]
-
-const SPRINT_COLORS: Record<number, string> = { 1: '#8b5cf6', 2: '#ec4899', 3: '#3b82f6', 4: '#22c55e' }
 
 // ── usePopover ────────────────────────────────────────────────────────────────
 function usePopover() {
@@ -63,13 +55,14 @@ function usePopover() {
 
 // ── Custom dropdown ───────────────────────────────────────────────────────────
 function FieldSel({
-  label, value, onChange, options, accentColor,
+  label, value, onChange, options, accentColor, required,
 }: {
   label: string
   value: string
   onChange: (v: string) => void
   options: { value: string; label: string; color?: string }[]
   accentColor?: string
+  required?: boolean
 }) {
   const { open, setOpen, ref } = usePopover()
   const sel = options.find(o => o.value === value)
@@ -77,7 +70,11 @@ function FieldSel({
 
   return (
     <div style={{ flex: 1, position: 'relative' }} ref={ref}>
-      <p style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>{label}</p>
+      {label && (
+        <p style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>
+          {label}{required && <span style={{ color: '#EF4444' }}> *</span>}
+        </p>
+      )}
       <button type="button" onClick={() => setOpen(v => !v)} style={{
         width: '100%', display: 'flex', alignItems: 'center', gap: 6,
         padding: '8px 10px', borderRadius: 8, cursor: 'pointer', outline: 'none',
@@ -129,11 +126,11 @@ interface Props { task: Task; onClose: () => void }
 export function TaskDetailDrawer({ task, onClose }: Props) {
   const updateTask  = useUpdateTask()
   const deleteTask  = useDeleteTask()
+  const createCampaign = useCreateCampaign()
   const { data: clients = [] } = useClients()
 
   const [title,        setTitle]        = useState(task.title)
   const [description,  setDescription]  = useState(task.description ?? '')
-  const [problema,     setProblema]     = useState(task.problema ?? '')
   const [area,         setArea]         = useState<Area>(task.area)
   const [assignee,     setAssignee]     = useState(task.assignee)
   const [priority,     setPriority]     = useState<Priority>(task.priority)
@@ -143,7 +140,6 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
   const [clientId,     setClientId]     = useState(task.client_id ?? '')
   const [campaignId,   setCampaignId]   = useState(task.campaign_id ?? '')
   const [etapa,        setEtapa]        = useState<Etapa | ''>(task.etapa ?? '')
-  const [miniStatus,   setMiniStatus]   = useState<MiniStatus | ''>(task.mini_status ?? '')
   const [dueDate,      setDueDate]      = useState(task.due_date ?? '')
   const [deliverables, setDeliverables] = useState<Deliverables>(task.deliverables ?? {})
   const [attachments,  setAttachments]  = useState<TaskAttachment[]>(task.attachments ?? [])
@@ -152,13 +148,22 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
   const [saved,         setSaved]        = useState(false)
   const [showDel,       setShowDel]      = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [creatingCampaign, setCreatingCampaign] = useState(false)
+  const [newCampaignName, setNewCampaignName] = useState('')
+  const [newCampaignType, setNewCampaignType] = useState<CampaignType>('nueva_campana')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const { data: campaigns = [] } = useCampaignsByClient(clientId || undefined)
-  const sprint      = getSprintDateRange(week)
-  const sprintColor = SPRINT_COLORS[week] ?? '#6366F1'
   const assigneeInfo = ASSIGNEES.find(a => a.name === assignee)
   const clientColor  = clients.find(c => c.id === clientId)?.color
+
+  // Validación: obligatorios
+  const missing: string[] = []
+  if (!title.trim())   missing.push('Título')
+  if (!clientId)       missing.push('Cliente')
+  if (!etapa)          missing.push('Etapa')
+  if (!dueDate)        missing.push('Fecha de entrega')
+  const isValid = missing.length === 0
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -168,11 +173,11 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
 
   const isDirty =
     title !== task.title || description !== (task.description ?? '') ||
-    problema !== (task.problema ?? '') || area !== task.area ||
+    area !== task.area ||
     assignee !== task.assignee || priority !== task.priority ||
     status !== task.status || week !== task.week || tipo !== task.tipo ||
     clientId !== (task.client_id ?? '') || campaignId !== (task.campaign_id ?? '') ||
-    etapa !== (task.etapa ?? '') || miniStatus !== (task.mini_status ?? '') ||
+    etapa !== (task.etapa ?? '') ||
     dueDate !== (task.due_date ?? '') ||
     JSON.stringify(deliverables) !== JSON.stringify(task.deliverables ?? {}) ||
     JSON.stringify(attachments)  !== JSON.stringify(task.attachments ?? [])
@@ -182,15 +187,33 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
     try {
       await updateTask.mutateAsync({
         id: task.id, title, description: description || undefined,
-        problema: problema || undefined, area, assignee, priority, status,
+        area, assignee, priority, status,
         week, tipo, client_id: clientId || undefined,
         campaign_id: campaignId || undefined, etapa: etapa || undefined,
-        mini_status: miniStatus || undefined, due_date: dueDate || undefined,
+        due_date: dueDate || undefined,
         deliverables: Object.keys(deliverables).length > 0 ? deliverables : undefined,
         attachments:  attachments.length > 0 ? attachments : undefined,
       })
       setSaved(true); setTimeout(() => setSaved(false), 2000)
     } finally { setSaving(false) }
+  }
+
+  const handleCreateCampaign = async () => {
+    const name = newCampaignName.trim()
+    if (!name || !clientId) return
+    try {
+      const created = await createCampaign.mutateAsync({
+        client_id: clientId,
+        name,
+        type: newCampaignType,
+        status: 'activa',
+      } as Parameters<typeof createCampaign.mutateAsync>[0])
+      if (created?.id) setCampaignId(created.id)
+      setNewCampaignName('')
+      setCreatingCampaign(false)
+    } catch (err) {
+      console.error('Error creating campaign:', err)
+    }
   }
 
   const setDeliverable = (key: keyof Deliverables, value: number) => {
@@ -235,7 +258,6 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
   const priorityOpts   = (Object.entries(PRIORITY_LABELS) as [Priority,   string][]).map(([v, l]) => ({ value: v, label: l, color: PRIORITY_COLORS[v] }))
   // tipo kept in state for save compatibility but not shown in UI
   const etapaOpts      = [{ value: '', label: 'Sin etapa', color: '#D1D5DB' }, ...ETAPA_ORDER.map(e => ({ value: e, label: ETAPA_LABELS[e as Etapa], color: ETAPA_COLORS[e as Etapa] }))]
-  const miniStatusOpts = [{ value: '', label: 'Sin estado', color: '#D1D5DB' }, ...MINI_STATUS_ORDER.map(s => ({ value: s, label: MINI_STATUS_LABELS[s as MiniStatus], color: MINI_STATUS_COLORS[s as MiniStatus] }))]
   const clienteOpts    = [{ value: '', label: 'Sin cliente', color: '#D1D5DB' }, ...clients.map(c => ({ value: c.id, label: c.name, color: c.color }))]
   const campanaOpts    = [{ value: '', label: 'Sin campaña', color: '#D1D5DB' }, ...campaigns.map(c => ({ value: c.id, label: c.name, color: '#6366F1' }))]
 
@@ -244,14 +266,22 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
   )
 
   return (
-    <div className="fixed inset-0 z-50 flex items-stretch justify-end">
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ padding: '24px' }}>
       {/* Backdrop */}
       <div className="absolute inset-0" onClick={onClose}
-        style={{ backgroundColor: 'rgba(15,17,22,0.25)', backdropFilter: 'blur(3px)' }} />
+        style={{ backgroundColor: 'rgba(15,17,22,0.45)', backdropFilter: 'blur(4px)' }} />
 
-      {/* Drawer panel */}
-      <div className="relative flex flex-col h-full w-full overflow-hidden"
-        style={{ maxWidth: 520, backgroundColor: '#FFFFFF', borderLeft: '1px solid #E5E7EB', boxShadow: '-12px 0 40px rgba(0,0,0,0.15)' }}>
+      {/* Modal panel */}
+      <div className="relative flex flex-col overflow-hidden"
+        style={{
+          width: '100%',
+          maxWidth: 980,
+          maxHeight: 'calc(100vh - 48px)',
+          backgroundColor: '#FFFFFF',
+          border: '1px solid #E5E7EB',
+          borderRadius: 16,
+          boxShadow: '0 24px 64px rgba(0,0,0,0.25)',
+        }}>
 
         {/* Client color stripe */}
         <div style={{ height: 3, background: task.client?.color ? `linear-gradient(90deg,${task.client.color},${task.client.color}60)` : '#6366F1', flexShrink: 0 }} />
@@ -273,8 +303,9 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               {isDirty && (
-                <button onClick={handleSave} disabled={saving}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg,#6366F1,#8B5CF6)', color: '#fff', boxShadow: '0 2px 12px rgba(99,102,241,0.35)', opacity: saving ? 0.7 : 1 }}>
+                <button onClick={handleSave} disabled={saving || !isValid}
+                  title={!isValid ? `Faltan: ${missing.join(', ')}` : undefined}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, border: 'none', cursor: (saving || !isValid) ? 'not-allowed' : 'pointer', background: 'linear-gradient(135deg,#6366F1,#8B5CF6)', color: '#fff', boxShadow: '0 2px 12px rgba(99,102,241,0.35)', opacity: (saving || !isValid) ? 0.5 : 1 }}>
                   <Save size={12} />
                   {saving ? 'Guardando…' : saved ? '✓ Guardado' : 'Guardar'}
                 </button>
@@ -312,10 +343,15 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
             onChange={e => setTitle(e.target.value)}
             rows={2}
             style={{
-              width: '100%', border: 'none', outline: 'none', resize: 'none',
+              width: '100%', outline: 'none', resize: 'none',
               fontSize: 16, fontWeight: 600, color: '#111827', lineHeight: 1.4,
-              backgroundColor: 'transparent', fontFamily: 'inherit',
+              backgroundColor: '#FAFBFC', fontFamily: 'inherit',
+              padding: '8px 10px', borderRadius: 8,
+              border: '1px dashed #D1D5DB',
+              transition: 'all 0.15s',
             }}
+            onFocus={e => { e.currentTarget.style.border = '1px solid #6366F1'; e.currentTarget.style.backgroundColor = '#FAFBFF' }}
+            onBlur={e => { e.currentTarget.style.border = '1px dashed #D1D5DB'; e.currentTarget.style.backgroundColor = '#FAFBFC' }}
             placeholder="Título de la tarea..."
           />
 
@@ -416,50 +452,90 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
             </div>
 
             {/* Cliente · Campaña */}
-            <div style={{ display: 'flex', gap: 8 }}>
-              <FieldSel label="Cliente"  value={clientId}  onChange={v => { setClientId(v); setCampaignId('') }} options={clienteOpts}  accentColor={clientColor ?? '#D1D5DB'} />
-              <FieldSel label="Campaña"  value={campaignId} onChange={setCampaignId}                            options={campanaOpts} />
+            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+              <FieldSel label="Cliente" required value={clientId}  onChange={v => { setClientId(v); setCampaignId(''); setCreatingCampaign(false) }} options={clienteOpts}  accentColor={clientColor ?? '#D1D5DB'} />
+              <div style={{ flex: 1 }}>
+                {creatingCampaign ? (
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
+                      <p style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em', margin: 0 }}>
+                        Nueva Campaña
+                      </p>
+                      <button type="button" onClick={() => { setCreatingCampaign(false); setNewCampaignName('') }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 10, color: '#6B7280', fontWeight: 600 }}>
+                        Cancelar
+                      </button>
+                    </div>
+                    <input
+                      autoFocus
+                      value={newCampaignName}
+                      onChange={e => setNewCampaignName(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleCreateCampaign() } }}
+                      placeholder="Nombre de la campaña"
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: 8, outline: 'none', border: '1px solid #6366F1', fontSize: 12, fontWeight: 500, color: '#374151', backgroundColor: '#FAFBFF', marginBottom: 6 }}
+                    />
+                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 6 }}>
+                      {(Object.entries(CAMPAIGN_TYPE_LABELS) as [CampaignType, string][]).map(([v, l]) => {
+                        const active = newCampaignType === v
+                        const col = CAMPAIGN_TYPE_COLORS[v]
+                        return (
+                          <button key={v} type="button" onClick={() => setNewCampaignType(v)}
+                            style={{ padding: '4px 10px', borderRadius: 16, fontSize: 10, fontWeight: 700, cursor: 'pointer', border: 'none', backgroundColor: active ? col : `${col}15`, color: active ? '#fff' : col, transition: 'all 0.12s' }}>
+                            {l}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    <button type="button" onClick={handleCreateCampaign}
+                      disabled={!newCampaignName.trim() || createCampaign.isPending}
+                      style={{ width: '100%', padding: '7px 10px', borderRadius: 8, border: 'none', cursor: newCampaignName.trim() ? 'pointer' : 'not-allowed', fontSize: 11, fontWeight: 700, background: 'linear-gradient(135deg,#6366F1,#8B5CF6)', color: '#fff', opacity: (!newCampaignName.trim() || createCampaign.isPending) ? 0.5 : 1 }}>
+                      {createCampaign.isPending ? 'Creando…' : '✓ Crear campaña'}
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
+                      <p style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em', margin: 0 }}>
+                        Campaña
+                      </p>
+                      {clientId && (
+                        <button type="button" onClick={() => setCreatingCampaign(true)}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: 'none', border: 'none', cursor: 'pointer', fontSize: 10, color: '#6366F1', fontWeight: 700 }}>
+                          <Plus size={10} /> Nueva
+                        </button>
+                      )}
+                    </div>
+                    <FieldSel label="" value={campaignId} onChange={setCampaignId} options={campanaOpts} />
+                  </>
+                )}
+              </div>
             </div>
 
-            {/* Etapa · Mini Status */}
+            {/* Etapa */}
             <div style={{ display: 'flex', gap: 8 }}>
-              <FieldSel label="Etapa"      value={etapa}      onChange={v => setEtapa(v as Etapa | '')}           options={etapaOpts}      accentColor={etapa ? ETAPA_COLORS[etapa as Etapa] : '#D1D5DB'} />
-              <FieldSel label="Mini Status" value={miniStatus} onChange={v => setMiniStatus(v as MiniStatus | '')} options={miniStatusOpts} accentColor={miniStatus ? MINI_STATUS_COLORS[miniStatus as MiniStatus] : '#D1D5DB'} />
+              <FieldSel label="Etapa" required value={etapa} onChange={v => setEtapa(v as Etapa | '')} options={etapaOpts} accentColor={etapa ? ETAPA_COLORS[etapa as Etapa] : '#D1D5DB'} />
             </div>
 
-            {/* Fecha · Sprint */}
+            {/* Fecha de Creación (auto) · Fecha de entrega */}
             <div style={{ display: 'flex', gap: 8 }}>
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>Fecha límite</p>
-                <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} style={{
+                <p style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>Fecha de Creación</p>
+                <input type="date" value={task.created_at ? new Date(task.created_at).toISOString().slice(0,10) : ''} readOnly disabled style={{
                   width: '100%', padding: '8px 10px', borderRadius: 8, outline: 'none',
-                  border: '1px solid #E5E7EB', backgroundColor: '#FAFBFC',
-                  fontSize: 12, color: dueDate && new Date(dueDate) < new Date() ? '#DC2626' : '#374151',
+                  border: '1px solid #E5E7EB', backgroundColor: '#EEF0F6',
+                  fontSize: 12, color: '#6B7280', cursor: 'not-allowed',
                 }} />
               </div>
-              <div style={{ flex: 1.5 }}>
-                <p style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>Sprint</p>
-                <div style={{ display: 'flex', gap: 4 }}>
-                  {[1,2,3,4].map(w => {
-                    const sc = SPRINT_COLORS[w]
-                    const s  = getSprintDateRange(w)
-                    const on = week === w
-                    return (
-                      <button key={w} onClick={() => setWeek(w)} style={{
-                        flex: 1, borderRadius: 8, padding: '7px 2px', textAlign: 'center',
-                        backgroundColor: on ? `${sc}10` : '#FAFBFC',
-                        border: `1px solid ${on ? sc + '50' : '#E5E7EB'}`,
-                        cursor: 'pointer', transition: 'all 0.12s',
-                      }}>
-                        <p style={{ fontSize: 11, fontWeight: 700, color: on ? sc : '#9CA3AF', margin: 0 }}>S{w}</p>
-                        <p style={{ fontSize: 8, color: '#D1D5DB', margin: 0 }}>{s.startFmt}</p>
-                      </button>
-                    )
-                  })}
-                </div>
-                <p style={{ fontSize: 10, color: sprintColor, fontWeight: 600, marginTop: 5 }}>
-                  Sprint {week} · <span style={{ color: '#9CA3AF', fontWeight: 400 }}>{sprint.label}</span>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>
+                  Fecha de entrega <span style={{ color: '#EF4444' }}>*</span>
                 </p>
+                <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} required style={{
+                  width: '100%', padding: '8px 10px', borderRadius: 8, outline: 'none',
+                  border: `1px solid ${!dueDate ? '#FCA5A5' : '#E5E7EB'}`,
+                  backgroundColor: !dueDate ? '#FEF2F2' : '#FAFBFC',
+                  fontSize: 12, color: dueDate && new Date(dueDate) < new Date() ? '#DC2626' : '#374151',
+                }} />
               </div>
             </div>
 
@@ -476,15 +552,6 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
                   fontSize: 13, color: '#374151', lineHeight: 1.6,
                 }}
                 placeholder="Qué hay que hacer, cómo hacerlo, referencias, links..." />
-            </div>
-
-            {/* Problema */}
-            <div>
-              {sLbl('Problema que resuelve')}
-              <input value={problema} onChange={e => setProblema(e.target.value)} style={{
-                width: '100%', padding: '9px 12px', borderRadius: 9, outline: 'none',
-                border: '1px solid #E5E7EB', backgroundColor: '#FAFBFC', fontSize: 13, color: '#374151',
-              }} placeholder="Ej: Show rate de Book Demos bajo" />
             </div>
 
             {/* Entregables */}
@@ -526,6 +593,9 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
               )}
             </div>
 
+            {/* Subtareas */}
+            <SubtasksPanel taskId={task.id} />
+
             {/* Adjuntos */}
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -563,6 +633,11 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
                   })}
                 </div>
               )}
+            </div>
+
+            {/* Historial de actividad */}
+            <div style={{ marginTop: 8 }}>
+              <TaskActivityLogPanel taskId={task.id} />
             </div>
 
           </div>

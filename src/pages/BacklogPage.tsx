@@ -1,5 +1,8 @@
-import { useState, useRef, useEffect } from 'react'
-import { Search, Plus, X, ChevronDown, AlertTriangle } from 'lucide-react'
+import { useState, useRef, useEffect, useMemo } from 'react'
+import { useUserPreference } from '../hooks/useUserPreferences'
+import { Search, Plus, X, ChevronDown, AlertTriangle, Columns as ColumnsIcon } from 'lucide-react'
+import { SavedViewsMenu } from '../components/widgets/SavedViewsMenu'
+import type { ViewConfig } from '../types'
 import { getDaysOverdue } from '../lib/dates'
 import { useTasks, useUpdateTask, useUpdateTaskStatus } from '../hooks/useTasks'
 import { useClients } from '../hooks/useClients'
@@ -46,7 +49,7 @@ const C = {
   muted: '#9699B0', accent: '#6366F1',
 }
 
-const STATUS_ORDER: TaskStatus[] = ['todo', 'en_progreso', 'revision', 'bloqueado', 'hecho']
+const STATUS_ORDER: TaskStatus[] = ['pendiente', 'en_proceso', 'aprobacion_interna', 'blocker', 'done']
 const PRIORITY_ORDER: Priority[] = ['alerta_roja', 'alta', 'media', 'baja']
 const AREA_ORDER: Area[] = ['copy', 'produccion', 'edicion', 'trafico', 'tech', 'admin']
 const ASSIGNEES = [
@@ -54,7 +57,7 @@ const ASSIGNEES = [
   { name: 'Alec',      color: '#F59E0B', role: 'Head of Paid' },
   { name: 'Jose',      color: '#3B82F6', role: 'Trafficker' },
   { name: 'Luisa',     color: '#EF4444', role: 'Copywriter' },
-  { name: 'Paula',     color: '#EC4899', role: 'Aux. Marketing' },
+  { name: 'Paula',     color: '#EC4899', role: 'Project Manager' },
   { name: 'David',     color: '#06B6D4', role: 'Editor' },
   { name: 'Johan',     color: '#10B981', role: 'Editor' },
   { name: 'Felipe',    color: '#F97316', role: 'Editor' },
@@ -342,15 +345,70 @@ export function BacklogPage() {
   const updateStatus = useUpdateTaskStatus()
   const ctx = useOutletContext<{ openNewTask?: () => void; openTaskDetail?: (t: Task) => void }>()
 
-  const [search, setSearch]         = useState('')
-  const [activePersons, setPersons] = useState<string[]>([])
-  const [activeClients, setClients] = useState<string[]>([])
-  const [activeStatuses, setStats]  = useState<TaskStatus[]>([])
-  const [activeArea, setArea]       = useState<Area | ''>('')
-  const [activeEtapa, setEtapa]     = useState<Etapa | ''>('')
-  const [groupBy, setGroupBy]       = useState<GroupByOption>('campaign')
+  const ALL_COLS = ['num','title','campaign','client','status','priority','area','etapa','assignee','week'] as const
+  const { value: prefs, setValue: setPrefs, loaded: prefsLoaded } = useUserPreference<{
+    search: string
+    activePersons: string[]
+    activeClients: string[]
+    activeStatuses: TaskStatus[]
+    activeArea: Area | ''
+    activeEtapa: Etapa | ''
+    groupBy: GroupByOption
+    visibleCols: string[]
+  }>('backlog', {
+    search: '',
+    activePersons: [],
+    activeClients: [],
+    activeStatuses: [],
+    activeArea: '',
+    activeEtapa: '',
+    groupBy: 'campaign',
+    visibleCols: [...ALL_COLS],
+  })
+
+  const search = prefs.search
+  const setSearch = (v: string) => setPrefs({ ...prefs, search: v })
+  const activePersons = prefs.activePersons
+  const setPersons = (v: string[]) => setPrefs({ ...prefs, activePersons: v })
+  const activeClients = prefs.activeClients
+  const setClients = (v: string[]) => setPrefs({ ...prefs, activeClients: v })
+  const activeStatuses = prefs.activeStatuses
+  const setStats = (v: TaskStatus[]) => setPrefs({ ...prefs, activeStatuses: v })
+  const activeArea = prefs.activeArea
+  const setArea = (v: Area | '') => setPrefs({ ...prefs, activeArea: v })
+  const activeEtapa = prefs.activeEtapa
+  const setEtapa = (v: Etapa | '') => setPrefs({ ...prefs, activeEtapa: v })
+  const groupBy = prefs.groupBy
+  const setGroupBy = (v: GroupByOption) => setPrefs({ ...prefs, groupBy: v })
+  const visibleCols = useMemo(() => new Set(prefs.visibleCols), [prefs.visibleCols])
+  const setVisibleCols = (next: Set<string>) => setPrefs({ ...prefs, visibleCols: Array.from(next) })
+  void prefsLoaded
+
   const [collapsedGroups, setCollapsed] = useState<Set<string>>(new Set())
   const [hoveredRow, setHoveredRow] = useState<string | null>(null)
+  const toggleCol = (k: string) => { const n = new Set(visibleCols); if (n.has(k)) n.delete(k); else n.add(k); setVisibleCols(n) }
+  const [colsMenuOpen, setColsMenuOpen] = useState(false)
+  const colsMenuRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!colsMenuOpen) return
+    const h = (e: MouseEvent) => { if (colsMenuRef.current && !colsMenuRef.current.contains(e.target as Node)) setColsMenuOpen(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [colsMenuOpen])
+  const [activeViewId, setActiveViewId] = useState<string | undefined>()
+  const applyView = (v: ViewConfig) => {
+    setActiveViewId(v.id)
+    const cfg = v.config
+    if (cfg.filters) {
+      setSearch(cfg.filters.search ?? '')
+      setPersons(cfg.filters.assignee ? [cfg.filters.assignee] : [])
+      setClients(cfg.filters.client_id ? [cfg.filters.client_id] : [])
+      setStats(cfg.filters.status ? [cfg.filters.status] : [])
+      setArea(cfg.filters.area ?? '')
+      setEtapa(cfg.filters.etapa ?? '')
+    }
+    if (cfg.columns) setVisibleCols(new Set(cfg.columns as string[]))
+  }
 
   const [filters] = useState<TaskFilters>({})
   const { data: tasks = [], isLoading } = useTasks(filters)
@@ -461,6 +519,36 @@ export function BacklogPage() {
                 </button>
               ))}
             </div>
+            {/* Columns toggle */}
+            <div ref={colsMenuRef} style={{ position: 'relative' }}>
+              <button onClick={() => setColsMenuOpen(v => !v)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 10px', borderRadius: 8, border: `1px solid ${C.border}`, backgroundColor: '#fff', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: C.text }}>
+                <ColumnsIcon size={12} /> Columnas <ChevronDown size={10} />
+              </button>
+              {colsMenuOpen && (
+                <div style={{ position: 'absolute', top: 'calc(100% + 4px)', right: 0, zIndex: 50, backgroundColor: '#fff', border: `1px solid ${C.border}`, borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', padding: 6, minWidth: 180 }}>
+                  {ALL_COLS.map(k => {
+                    const labels: Record<string, string> = { num: '#', title: 'Tarea', campaign: 'Campaña', client: 'Cliente', status: 'Estado', priority: 'Prioridad', area: 'Área', etapa: 'Etapa', assignee: 'Responsable', week: 'Semana' }
+                    const on = visibleCols.has(k)
+                    return (
+                      <label key={k} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', borderRadius: 6, cursor: 'pointer', fontSize: 12, color: on ? C.text : C.muted }}>
+                        <input type="checkbox" checked={on} onChange={() => toggleCol(k)} />
+                        {labels[k]}
+                      </label>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+            {/* Saved views */}
+            <SavedViewsMenu
+              page="backlog"
+              currentConfig={{
+                filters: { search, status: activeStatuses[0], area: activeArea || undefined, etapa: activeEtapa || undefined, assignee: activePersons[0], client_id: activeClients[0] },
+                columns: Array.from(visibleCols),
+              }}
+              activeViewId={activeViewId}
+              onApply={applyView}
+            />
             {ctx?.openNewTask && (
               <button onClick={ctx.openNewTask} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 10, backgroundColor: C.accent, color: '#fff', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer', boxShadow: `0 2px 8px ${C.accent}35` }}>
                 <Plus size={13} strokeWidth={2.5} /> Nueva tarea
@@ -539,9 +627,10 @@ export function BacklogPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
             <thead style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: C.surface, borderBottom: `1px solid ${C.border}` }}>
               <tr>
-                {([['#', '3%'], ['TAREA', '21%'], ['CAMPAÑA', '13%'], ['CLIENTE', '8%'], ['ESTADO', '9%'], ['PRIORIDAD', '8%'], ['ÁREA', '7%'], ['ETAPA', '9%'], ['RESPONSABLE', '10%'], ['SEMANA', '6%'], ['', '4%']] as [string, string][]).map(([l, w]) => (
-                  <th key={l} style={{ padding: '8px 14px', textAlign: 'left', fontSize: 9, fontWeight: 800, letterSpacing: '0.09em', color: C.muted, width: w, whiteSpace: 'nowrap' }}>{l}</th>
+                {(([['num','#', '3%'], ['title','TAREA', '21%'], ['campaign','CAMPAÑA', '13%'], ['client','CLIENTE', '8%'], ['status','ESTADO', '9%'], ['priority','PRIORIDAD', '8%'], ['area','ÁREA', '7%'], ['etapa','ETAPA', '9%'], ['assignee','RESPONSABLE', '10%'], ['week','SEMANA', '6%']]) as [string, string, string][]).filter(([k]) => visibleCols.has(k)).map(([k,l,w]) => (
+                  <th key={k} style={{ padding: '8px 14px', textAlign: 'left', fontSize: 9, fontWeight: 800, letterSpacing: '0.09em', color: C.muted, width: w, whiteSpace: 'nowrap' }}>{l}</th>
                 ))}
+                <th style={{ width: '4%' }} />
               </tr>
             </thead>
             <tbody>
@@ -577,9 +666,9 @@ export function BacklogPage() {
                     style={{ backgroundColor: isHovered ? '#F4F5FF' : C.surface, borderBottom: `1px solid ${C.borderLight}`, cursor: 'pointer', transition: 'background 0.08s', borderLeft: clientColor ? `3px solid ${clientColor}` : 'none' }}
                   >
                     {/* # */}
-                    <td style={{ padding: '9px 14px', color: C.muted, fontSize: 11, fontWeight: 700, userSelect: 'none' }}>{rowNum}</td>
+                    {visibleCols.has('num') && <td style={{ padding: '9px 14px', color: C.muted, fontSize: 11, fontWeight: 700, userSelect: 'none' }}>{rowNum}</td>}
                     {/* Tarea */}
-                    <td style={{ padding: '9px 14px' }}>
+                    {visibleCols.has('title') && <td style={{ padding: '9px 14px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
                         <span style={{ color: C.text, fontWeight: 500, fontSize: 12, lineHeight: 1.35 }}>{task.title}</span>
                         {(() => {
@@ -592,19 +681,19 @@ export function BacklogPage() {
                           )
                         })()}
                       </div>
-                    </td>
+                    </td>}
                     {/* Campaña */}
-                    <td style={{ padding: '9px 14px', maxWidth: 0, overflow: 'hidden' }}>{renderCampaign(task.campaign)}</td>
+                    {visibleCols.has('campaign') && <td style={{ padding: '9px 14px', maxWidth: 0, overflow: 'hidden' }}>{renderCampaign(task.campaign)}</td>}
                     {/* Cliente */}
-                    <td style={{ padding: '9px 14px' }}>{renderClient(task.client_id)}</td>
+                    {visibleCols.has('client') && <td style={{ padding: '9px 14px' }}>{renderClient(task.client_id)}</td>}
                     {/* Estado */}
-                    <td style={{ padding: '9px 14px' }}><StatusPicker task={task} onUpdate={handleStatusUpdate} /></td>
+                    {visibleCols.has('status') && <td style={{ padding: '9px 14px' }}><StatusPicker task={task} onUpdate={handleStatusUpdate} /></td>}
                     {/* Prioridad */}
-                    <td style={{ padding: '9px 14px' }}><PriorityPicker task={task} onUpdate={handlePriorityUpdate} /></td>
+                    {visibleCols.has('priority') && <td style={{ padding: '9px 14px' }}><PriorityPicker task={task} onUpdate={handlePriorityUpdate} /></td>}
                     {/* Área */}
-                    <td style={{ padding: '9px 14px' }}><AreaPicker task={task} onUpdate={handleAreaUpdate} /></td>
+                    {visibleCols.has('area') && <td style={{ padding: '9px 14px' }}><AreaPicker task={task} onUpdate={handleAreaUpdate} /></td>}
                     {/* Etapa */}
-                    <td style={{ padding: '9px 14px' }}>
+                    {visibleCols.has('etapa') && <td style={{ padding: '9px 14px' }}>
                       {(task as any).etapa ? (() => {
                         const e = (task as any).etapa as Etapa
                         const ec = ETAPA_COLORS[e] ?? '#9699A6'
@@ -619,13 +708,13 @@ export function BacklogPage() {
                           </span>
                         )
                       })() : <span style={{ color: C.muted, fontSize: 11 }}>—</span>}
-                    </td>
+                    </td>}
                     {/* Responsable */}
-                    <td style={{ padding: '9px 14px' }}><AssigneePicker task={task} onUpdate={handleAssigneeUpdate} /></td>
+                    {visibleCols.has('assignee') && <td style={{ padding: '9px 14px' }}><AssigneePicker task={task} onUpdate={handleAssigneeUpdate} /></td>}
                     {/* Sprint */}
-                    <td style={{ padding: '9px 14px' }}>
+                    {visibleCols.has('week') && <td style={{ padding: '9px 14px' }}>
                       {task.week ? <span style={{ padding: '3px 9px', borderRadius: 8, fontSize: 10, fontWeight: 700, backgroundColor: '#EEF2FF', color: C.accent, border: `1px solid ${C.accent}20`, whiteSpace: 'nowrap' }}>Sem. {task.week}</span> : <span style={{ color: C.muted }}>—</span>}
-                    </td>
+                    </td>}
                     <td style={{ padding: '9px 14px' }} />
                   </tr>
                 )
