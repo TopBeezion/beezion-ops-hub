@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { useUserPreference } from '../hooks/useUserPreferences'
-import { Search, Plus, X, ChevronDown, AlertTriangle, Columns as ColumnsIcon } from 'lucide-react'
+import { Search, Plus, X, ChevronDown, AlertTriangle, Columns as ColumnsIcon, Trash2 } from 'lucide-react'
 import { SavedViewsMenu } from '../components/widgets/SavedViewsMenu'
 import type { ViewConfig } from '../types'
 import { getDaysOverdue } from '../lib/dates'
-import { useTasks, useUpdateTask, useUpdateTaskStatus } from '../hooks/useTasks'
+import { useTasks, useUpdateTask, useUpdateTaskStatus, useBulkDeleteTasks } from '../hooks/useTasks'
 import { useClients } from '../hooks/useClients'
 import { useCampaignsForSelector } from '../hooks/useCampaigns'
 import { useOutletContext } from 'react-router-dom'
@@ -386,6 +386,8 @@ export function BacklogPage() {
 
   const [collapsedGroups, setCollapsed] = useState<Set<string>>(new Set())
   const [hoveredRow, setHoveredRow] = useState<string | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const bulkDelete = useBulkDeleteTasks()
   const toggleCol = (k: string) => { const n = new Set(visibleCols); if (n.has(k)) n.delete(k); else n.add(k); setVisibleCols(n) }
   const [colsMenuOpen, setColsMenuOpen] = useState(false)
   const colsMenuRef = useRef<HTMLDivElement>(null)
@@ -462,6 +464,26 @@ export function BacklogPage() {
   ])
 
   const toggleGroup = (k: string) => { const n = new Set(collapsedGroups); n.has(k) ? n.delete(k) : n.add(k); setCollapsed(n) }
+
+  // ── Multi-select helpers ─────────────────────────────────────
+  const visibleTaskIds = useMemo(() => flatItems.filter(i => !i.isHeader).map(i => (i as any).task.id as string), [flatItems])
+  const allVisibleSelected = visibleTaskIds.length > 0 && visibleTaskIds.every(id => selectedIds.has(id))
+  const someVisibleSelected = visibleTaskIds.some(id => selectedIds.has(id))
+  const toggleRow = (id: string) => { const n = new Set(selectedIds); n.has(id) ? n.delete(id) : n.add(id); setSelectedIds(n) }
+  const toggleAllVisible = () => {
+    if (allVisibleSelected) {
+      const n = new Set(selectedIds); visibleTaskIds.forEach(id => n.delete(id)); setSelectedIds(n)
+    } else {
+      const n = new Set(selectedIds); visibleTaskIds.forEach(id => n.add(id)); setSelectedIds(n)
+    }
+  }
+  const clearSelection = () => setSelectedIds(new Set())
+  const handleBulkDelete = () => {
+    const ids = Array.from(selectedIds)
+    if (ids.length === 0) return
+    if (!confirm(`¿Eliminar ${ids.length} tarea${ids.length === 1 ? '' : 's'}? Esta acción no se puede deshacer.`)) return
+    bulkDelete.mutate(ids, { onSuccess: () => setSelectedIds(new Set()) })
+  }
 
   const handleStatusUpdate = (id: string, status: TaskStatus) => updateStatus.mutate({ id, status })
   const handlePriorityUpdate = (id: string, priority: Priority) => updateTask.mutate({ id, priority })
@@ -623,10 +645,40 @@ export function BacklogPage() {
           <button onClick={clearAll} style={{ color: C.accent, fontSize: 12, background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline' }}>Limpiar filtros</button>
         </div>
       ) : (
-        <div style={{ flex: 1, overflow: 'auto' }}>
+        <div style={{ flex: 1, overflow: 'auto', position: 'relative' }}>
+          {selectedIds.size > 0 && (
+            <div style={{ position: 'sticky', top: 0, zIndex: 20, display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', backgroundColor: '#EEF2FF', borderBottom: `1px solid #C7D2FE`, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: C.accent }}>
+                {selectedIds.size} tarea{selectedIds.size === 1 ? '' : 's'} seleccionada{selectedIds.size === 1 ? '' : 's'}
+              </span>
+              <button
+                onClick={handleBulkDelete}
+                disabled={bulkDelete.isPending}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, backgroundColor: '#DC2626', color: '#fff', border: 'none', fontSize: 11, fontWeight: 700, cursor: bulkDelete.isPending ? 'wait' : 'pointer', opacity: bulkDelete.isPending ? 0.6 : 1 }}
+              >
+                <Trash2 size={13} /> {bulkDelete.isPending ? 'Eliminando…' : 'Eliminar'}
+              </button>
+              <button
+                onClick={clearSelection}
+                style={{ padding: '6px 12px', borderRadius: 8, backgroundColor: '#fff', color: C.text, border: `1px solid ${C.border}`, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+              >
+                Cancelar
+              </button>
+            </div>
+          )}
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
             <thead style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: C.surface, borderBottom: `1px solid ${C.border}` }}>
               <tr>
+                <th style={{ width: 36, padding: '8px 10px', textAlign: 'center' }}>
+                  <input
+                    type="checkbox"
+                    checked={allVisibleSelected}
+                    ref={el => { if (el) el.indeterminate = !allVisibleSelected && someVisibleSelected }}
+                    onChange={toggleAllVisible}
+                    onClick={e => e.stopPropagation()}
+                    style={{ cursor: 'pointer', width: 14, height: 14 }}
+                  />
+                </th>
                 {(([['num','#', '3%'], ['title','TAREA', '21%'], ['campaign','CAMPAÑA', '13%'], ['client','CLIENTE', '8%'], ['status','ESTADO', '9%'], ['priority','PRIORIDAD', '8%'], ['area','ÁREA', '7%'], ['etapa','ETAPA', '9%'], ['assignee','RESPONSABLE', '10%'], ['week','SEMANA', '6%']]) as [string, string, string][]).filter(([k]) => visibleCols.has(k)).map(([k,l,w]) => (
                   <th key={k} style={{ padding: '8px 14px', textAlign: 'left', fontSize: 9, fontWeight: 800, letterSpacing: '0.09em', color: C.muted, width: w, whiteSpace: 'nowrap' }}>{l}</th>
                 ))}
@@ -642,7 +694,7 @@ export function BacklogPage() {
                   const isCollapsed = collapsedGroups.has(item.groupKey)
                   return (
                     <tr key={item.key}>
-                      <td colSpan={11} style={{ padding: 0 }}>
+                      <td colSpan={12} style={{ padding: 0 }}>
                         <button onClick={() => toggleGroup(item.groupKey)} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '7px 14px', background: `${item.color}08`, border: 'none', borderLeft: `3px solid ${item.color}`, borderBottom: `1px solid ${item.color}18`, cursor: 'pointer' }}>
                           <span style={{ fontSize: 13, color: item.color, transform: isCollapsed ? 'rotate(0deg)' : 'rotate(90deg)', transition: '0.15s', display: 'inline-block' }}>›</span>
                           <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{item.label}</span>
@@ -663,8 +715,17 @@ export function BacklogPage() {
                     onClick={() => ctx?.openTaskDetail?.(task)}
                     onMouseEnter={() => setHoveredRow(task.id)}
                     onMouseLeave={() => setHoveredRow(null)}
-                    style={{ backgroundColor: isHovered ? '#F4F5FF' : C.surface, borderBottom: `1px solid ${C.borderLight}`, cursor: 'pointer', transition: 'background 0.08s', borderLeft: clientColor ? `3px solid ${clientColor}` : 'none' }}
+                    style={{ backgroundColor: selectedIds.has(task.id) ? '#EEF2FF' : (isHovered ? '#F4F5FF' : C.surface), borderBottom: `1px solid ${C.borderLight}`, cursor: 'pointer', transition: 'background 0.08s', borderLeft: clientColor ? `3px solid ${clientColor}` : 'none' }}
                   >
+                    {/* Checkbox */}
+                    <td style={{ padding: '9px 10px', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(task.id)}
+                        onChange={() => toggleRow(task.id)}
+                        style={{ cursor: 'pointer', width: 14, height: 14 }}
+                      />
+                    </td>
                     {/* # */}
                     {visibleCols.has('num') && <td style={{ padding: '9px 14px', color: C.muted, fontSize: 11, fontWeight: 700, userSelect: 'none' }}>{rowNum}</td>}
                     {/* Tarea */}
