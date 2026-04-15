@@ -190,7 +190,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
   return (
     <div style={{
-      width: collapsed ? 58 : 220,
+      width: collapsed ? 58 : 280,
       backgroundColor: S.bg,
       borderRight: `1px solid ${S.border}`,
       display: 'flex',
@@ -359,8 +359,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                           to={`/clients/${client.id}`}
                           style={({ isActive }) => ({
                             display: 'flex', alignItems: 'center', gap: 8,
-                            padding: '5px 8px', borderRadius: 7, flex: 1,
-                            fontSize: 12, fontWeight: isActive ? 700 : 600,
+                            padding: '6px 8px', borderRadius: 7, flex: 1,
+                            fontSize: 13.5, fontWeight: isActive ? 700 : 600,
                             color: isActive ? S.text : S.text,
                             backgroundColor: isActive ? S.active : 'transparent',
                             textDecoration: 'none', transition: 'all 0.12s',
@@ -426,8 +426,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                               to={`/campaigns/${generalCamp.id}`}
                               style={({ isActive }) => ({
                                 display: 'flex', alignItems: 'center', gap: 6,
-                                padding: '4px 8px', borderRadius: 6,
-                                fontSize: 11, fontWeight: isActive ? 700 : 600,
+                                padding: '5px 8px', borderRadius: 6,
+                                fontSize: 12.5, fontWeight: isActive ? 700 : 600,
                                 color: isActive ? S.text : S.sub,
                                 backgroundColor: isActive ? S.active : 'transparent',
                                 textDecoration: 'none',
@@ -481,8 +481,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                                     to={`/clients/${client.id}/folder/${cat}`}
                                     style={({ isActive }) => ({
                                       display: 'flex', alignItems: 'center', gap: 6, flex: 1,
-                                      padding: '4px 6px', borderRadius: 6,
-                                      fontSize: 11, fontWeight: isActive ? 700 : 600,
+                                      padding: '5px 6px', borderRadius: 6,
+                                      fontSize: 12.5, fontWeight: isActive ? 700 : 600,
                                       color: isActive ? S.text : S.sub,
                                       backgroundColor: isActive ? S.active : 'transparent',
                                       textDecoration: 'none',
@@ -550,8 +550,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                                               to={`/campaigns/${camp.id}`}
                                               style={({ isActive }) => ({
                                                 display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0,
-                                                padding: '3px 6px', borderRadius: 6,
-                                                fontSize: 11, fontWeight: isActive ? 600 : 400,
+                                                padding: '4px 6px', borderRadius: 6,
+                                                fontSize: 12.5, fontWeight: isActive ? 600 : 500,
                                                 color: isActive ? S.text : S.sub,
                                                 backgroundColor: isActive ? S.active : 'transparent',
                                                 textDecoration: 'none',
@@ -605,8 +605,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                                                   to={`/campaigns/${kid.id}`}
                                                   style={({ isActive }) => ({
                                                     display: 'flex', alignItems: 'center', gap: 6,
-                                                    padding: '3px 8px', borderRadius: 5,
-                                                    fontSize: 10.5, fontWeight: isActive ? 600 : 400,
+                                                    padding: '4px 8px', borderRadius: 5,
+                                                    fontSize: 12, fontWeight: isActive ? 600 : 500,
                                                     color: isActive ? S.text : S.sub,
                                                     backgroundColor: isActive ? S.active : 'transparent',
                                                     textDecoration: 'none',
