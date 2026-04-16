@@ -323,10 +323,12 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
     { value: '', label: 'Sin cliente', color: '#9699A6' },
     ...(clients ?? []).map(c => ({ value: c.id, label: c.name, color: c.color })),
   ]
-  const campanaOpts = [
-    { value: '', label: 'Sin campaña', color: '#9699A6' },
-    ...(campaigns ?? []).map(c => ({ value: c.id, label: c.name, color: '#6366F1' })),
-  ]
+  const campanaOpts = clientId
+    ? [
+        { value: '', label: 'Sin campaña', color: '#9699A6' },
+        ...(campaigns ?? []).map(c => ({ value: c.id, label: c.name, color: '#6366F1' })),
+      ]
+    : [{ value: '', label: 'Selecciona cliente primero', color: '#9699A6' }]
   const totalDel = Object.values(deliverables).reduce((s, v) => s + (v ?? 0), 0)
 
   return (

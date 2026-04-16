@@ -165,6 +165,7 @@ export interface MeetingLog {
 export interface TaskFilters {
   client_id?: string
   campaign_id?: string
+  campaign_ids?: string[]
   area?: Area
   week?: number
   assignee?: string

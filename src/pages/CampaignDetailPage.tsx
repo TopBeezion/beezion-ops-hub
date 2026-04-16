@@ -325,7 +325,7 @@ function MultiBadgePicker({
 }
 
 // ── Inline editable task row ───────────────────────────────────────────────
-function InlineTaskRow({ task, onOpen }: { task: Task; onOpen: () => void }) {
+function InlineTaskRow({ task, onOpen, subCampaignLabel }: { task: Task; onOpen: () => void; subCampaignLabel?: string }) {
   const updateTask = useUpdateTask()
   const patch = (fields: Partial<Task>) =>
     updateTask.mutate({ id: task.id, ...fields } as Parameters<typeof updateTask.mutate>[0])
@@ -385,12 +385,26 @@ function InlineTaskRow({ task, onOpen }: { task: Task; onOpen: () => void }) {
         style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: statusColor, display: 'inline-block' }}
       />
 
-      {/* Title */}
+      {/* Title + sub-campaign badge */}
       <span style={{
-        fontSize: 12.5, color: C.text, fontWeight: 500,
-        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0,
+        display: 'flex', alignItems: 'center', gap: 6,
+        overflow: 'hidden', minWidth: 0,
       }}>
-        {task.title}
+        <span style={{
+          fontSize: 12.5, color: C.text, fontWeight: 500,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          {task.title}
+        </span>
+        {subCampaignLabel && (
+          <span style={{
+            flexShrink: 0, fontSize: 9.5, fontWeight: 700,
+            padding: '1px 6px', borderRadius: 4,
+            backgroundColor: '#EEF2FF', color: '#6366F1', border: '1px solid #C7D2FE',
+          }}>
+            {subCampaignLabel}
+          </span>
+        )}
       </span>
 
       {/* Etapa */}
@@ -591,7 +605,6 @@ export function CampaignDetailPage() {
   const ctx = useOutletContext<{ openTaskDetail?: (t: Task) => void }>()
   const { data: campaigns = [], isLoading } = useCampaigns()
   const { data: clients = [] } = useClients()
-  const { data: tasks = [] } = useTasks({ campaign_id: campaignId })
   const updateCampaign = useUpdateCampaign()
   const deleteCampaign = useDeleteCampaign()
   const ensureChildren = useEnsureGroupChildren()
@@ -602,6 +615,22 @@ export function CampaignDetailPage() {
   const children = campaign
     ? campaigns.filter(c => c.parent_campaign_id === campaign.id).sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
     : []
+
+  // Sub-campaign name lookup for group views
+  const childNameMap = useMemo(() => {
+    const m: Record<string, string> = {}
+    children.forEach(c => { m[c.id] = c.name })
+    return m
+  }, [children])
+
+  // For group campaigns: fetch tasks from all child campaigns + the group itself
+  const isGroup = campaign?.kind === 'group'
+  const allCampaignIds = isGroup && children.length > 0
+    ? [campaignId!, ...children.map(c => c.id)]
+    : undefined
+  const { data: tasks = [] } = useTasks(
+    allCampaignIds ? { campaign_ids: allCampaignIds } : { campaign_id: campaignId }
+  )
   const parentGroup = campaign?.parent_campaign_id
     ? campaigns.find(c => c.id === campaign.parent_campaign_id)
     : undefined
@@ -1005,7 +1034,7 @@ export function CampaignDetailPage() {
                           />
                         )}
                         {rows.map(t => (
-                          <InlineTaskRow key={t.id} task={t} onOpen={() => ctx?.openTaskDetail?.(t)} />
+                          <InlineTaskRow key={t.id} task={t} onOpen={() => ctx?.openTaskDetail?.(t)} subCampaignLabel={isGroup && t.campaign_id !== campaignId ? childNameMap[t.campaign_id!] : undefined} />
                         ))}
                       </div>
                     )

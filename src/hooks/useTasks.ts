@@ -13,7 +13,8 @@ export function useTasks(filters?: TaskFilters) {
         .order('created_at', { ascending: false })
 
       if (filters?.client_id) query = query.eq('client_id', filters.client_id)
-      if (filters?.campaign_id) query = query.eq('campaign_id', filters.campaign_id)
+      if (filters?.campaign_ids && filters.campaign_ids.length > 0) query = query.in('campaign_id', filters.campaign_ids)
+      else if (filters?.campaign_id) query = query.eq('campaign_id', filters.campaign_id)
       if (filters?.area) query = query.eq('area', filters.area)
       if (filters?.week) query = query.eq('week', filters.week)
       if (filters?.assignee) query = query.contains('assignees', [filters.assignee])

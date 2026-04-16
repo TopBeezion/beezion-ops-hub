@@ -438,7 +438,9 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
   const etapaOpts      = [{ value: '', label: 'Sin etapa', color: '#D1D5DB' }, ...ETAPA_ORDER.map(e => ({ value: e, label: ETAPA_LABELS[e as Etapa], color: ETAPA_COLORS[e as Etapa] }))]
   const areaOpts       = (Object.entries(AREA_LABELS) as [Area, string][]).map(([v, l]) => ({ value: v, label: l, color: AREA_COLORS[v] }))
   const clienteOpts    = [{ value: '', label: 'Sin cliente', color: '#D1D5DB' }, ...clients.map(c => ({ value: c.id, label: c.name, color: c.color }))]
-  const campanaOpts    = [{ value: '', label: 'Sin campaña', color: '#D1D5DB' }, ...campaigns.map(c => ({ value: c.id, label: c.name, color: '#6366F1' }))]
+  const campanaOpts    = clientId
+    ? [{ value: '', label: 'Sin campaña', color: '#D1D5DB' }, ...campaigns.map(c => ({ value: c.id, label: c.name, color: '#6366F1' }))]
+    : [{ value: '', label: 'Selecciona cliente primero', color: '#D1D5DB' }]
 
   const sLbl = (t: string) => (
     <p style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>{t}</p>
