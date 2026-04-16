@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Bell, AlertTriangle } from 'lucide-react'
-import { useNotifications, useMeetingTaskWatcher, useOverdueNotifier } from '../../hooks/useNotifications'
+import { useNotifications, useMeetingTaskWatcher, useTaskAssignedWatcher, useOverdueNotifier } from '../../hooks/useNotifications'
 import { AREA_COLORS } from '../../lib/constants'
 
 const ASSIGNEE_COLORS: Record<string, string> = {
@@ -22,6 +22,7 @@ const N = {
 
 export function NotificationBell({ onOpenTask }: { onOpenTask?: (taskId: string) => void }) {
   useMeetingTaskWatcher()
+  useTaskAssignedWatcher()
   // Temporalmente desactivado - activar cuando todas las tareas tengan fecha límite establecida
   // useOverdueNotifier()
 
@@ -119,8 +120,54 @@ export function NotificationBell({ onOpenTask }: { onOpenTask?: (taskId: string)
                     borderBottom: idx < notifications.length - 1 ? `1px solid ${N.headerBorder}` : 'none',
                   }}
                 >
-                  {/* Overdue notification */}
-                  {n.type === 'overdue_tasks' ? (
+                  {/* Task assigned notification */}
+                  {n.type === 'task_assigned' ? (
+                    <div style={{ padding: '14px 16px' }}>
+                      <div style={{
+                        backgroundColor: '#EEF2FF', border: '1px solid #C7D2FE',
+                        borderRadius: 10, padding: '10px 14px', marginBottom: 10,
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                          <div>
+                            <p style={{ fontSize: 13, fontWeight: 700, color: '#4338CA', margin: 0 }}>{n.title}</p>
+                            <p style={{ fontSize: 11, color: '#6366F1', fontWeight: 500, margin: '3px 0 0', lineHeight: 1.4 }}>{n.body}</p>
+                          </div>
+                          <span style={{ fontSize: 10, color: '#9CA3AF', fontWeight: 500, flexShrink: 0 }}>
+                            {new Date(n.timestamp).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        {n.tasks.map(t => {
+                          const areaColor = AREA_COLORS[t.area as keyof typeof AREA_COLORS] ?? '#6b7280'
+                          return (
+                            <button
+                              key={t.id}
+                              onClick={() => { onOpenTask?.(t.id); setOpen(false) }}
+                              style={{
+                                width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center',
+                                gap: 8, padding: '7px 10px', borderRadius: 8, border: `1px solid ${N.border}`,
+                                backgroundColor: 'transparent', cursor: 'pointer', transition: 'background 0.1s',
+                              }}
+                              onMouseEnter={e => (e.currentTarget.style.backgroundColor = N.hover)}
+                              onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                            >
+                              <span style={{
+                                fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 4,
+                                backgroundColor: `${areaColor}15`, color: areaColor, flexShrink: 0,
+                                textTransform: 'uppercase', letterSpacing: '0.03em',
+                              }}>
+                                {t.area}
+                              </span>
+                              <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: '#1F2937', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {t.title}
+                              </span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  ) : n.type === 'overdue_tasks' ? (
                     <div style={{ padding: '14px 16px' }}>
                       <div style={{
                         backgroundColor: '#FEF2F2', border: '1px solid #FECACA',

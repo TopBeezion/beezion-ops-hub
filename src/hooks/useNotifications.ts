@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 
 export interface AppNotification {
   id: string
-  type: 'meeting_tasks' | 'overdue_tasks'
+  type: 'meeting_tasks' | 'overdue_tasks' | 'task_assigned'
   title: string
   body: string
   tasks: {
@@ -12,6 +12,7 @@ export interface AppNotification {
     client_name?: string
     area: string
     assignee: string
+    assignees?: string[]
     days_overdue?: number
   }[]
   timestamp: string
@@ -126,6 +127,126 @@ export function useMeetingTaskWatcher() {
 
             delete (window as unknown as Record<string, unknown>)[timeoutKey]
           }, 2000)
+        }
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [])
+}
+
+// ── Notify current user when they are assigned to a task ─────────────────────
+export function useTaskAssignedWatcher() {
+  useEffect(() => {
+    const stored = localStorage.getItem('beezion_user')
+    if (!stored) return
+    let user: { name: string } | null = null
+    try { user = JSON.parse(stored) } catch { return }
+    if (!user?.name) return
+    const myName = user.name
+
+    // Track task IDs we've already notified about, so we don't dup on re-render
+    const seen = new Set<string>()
+
+    const channel = supabase
+      .channel('task-assigned-watcher')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'tasks' },
+        (payload) => {
+          const task = payload.new as {
+            id: string; title: string; area: string;
+            assignee: string; assignees?: string[];
+            created_by?: string
+          }
+          const names: string[] = task.assignees && task.assignees.length > 0
+            ? task.assignees : (task.assignee ? [task.assignee] : [])
+          // Only notify if I'm assigned AND I didn't create it myself
+          if (!names.includes(myName)) return
+          if (task.created_by === myName) return
+          if (seen.has(task.id)) return
+          seen.add(task.id)
+
+          // Small delay to let client:clients join data settle
+          setTimeout(async () => {
+            const { data } = await supabase
+              .from('tasks')
+              .select('id, title, area, assignee, assignees, client:clients(name), campaign:campaigns(name)')
+              .eq('id', task.id)
+              .maybeSingle()
+            if (!data) return
+
+            const clientName = (data.client as { name?: string } | null)?.name ?? ''
+            const campaignName = (data.campaign as { name?: string } | null)?.name ?? ''
+            const subtitle = [clientName, campaignName].filter(Boolean).join(' — ')
+
+            addNotification({
+              id: `assigned-${task.id}`,
+              type: 'task_assigned',
+              title: '📌 Nueva tarea asignada',
+              body: subtitle || 'Se te asignó una tarea nueva',
+              tasks: [{
+                id: data.id as string,
+                title: data.title as string,
+                area: data.area as string,
+                assignee: data.assignee as string,
+                assignees: data.assignees as string[] | undefined,
+              }],
+              timestamp: new Date().toISOString(),
+              read: false,
+            })
+          }, 500)
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'tasks' },
+        (payload) => {
+          const oldTask = payload.old as { id: string; assignees?: string[]; assignee?: string }
+          const newTask = payload.new as {
+            id: string; title: string; area: string;
+            assignee: string; assignees?: string[]
+          }
+
+          const oldNames: string[] = oldTask.assignees && oldTask.assignees.length > 0
+            ? oldTask.assignees : (oldTask.assignee ? [oldTask.assignee] : [])
+          const newNames: string[] = newTask.assignees && newTask.assignees.length > 0
+            ? newTask.assignees : (newTask.assignee ? [newTask.assignee] : [])
+
+          // Only notify if I was just ADDED (wasn't there before)
+          if (!newNames.includes(myName) || oldNames.includes(myName)) return
+          const notifKey = `assigned-${newTask.id}-${Date.now()}`
+          if (seen.has(notifKey)) return
+          seen.add(notifKey)
+
+          setTimeout(async () => {
+            const { data } = await supabase
+              .from('tasks')
+              .select('id, title, area, assignee, assignees, client:clients(name), campaign:campaigns(name)')
+              .eq('id', newTask.id)
+              .maybeSingle()
+            if (!data) return
+
+            const clientName = (data.client as { name?: string } | null)?.name ?? ''
+            const campaignName = (data.campaign as { name?: string } | null)?.name ?? ''
+            const subtitle = [clientName, campaignName].filter(Boolean).join(' — ')
+
+            addNotification({
+              id: `assigned-${newTask.id}-${Date.now()}`,
+              type: 'task_assigned',
+              title: '📌 Te asignaron a una tarea',
+              body: subtitle || 'Se te agregó como responsable',
+              tasks: [{
+                id: data.id as string,
+                title: data.title as string,
+                area: data.area as string,
+                assignee: data.assignee as string,
+                assignees: data.assignees as string[] | undefined,
+              }],
+              timestamp: new Date().toISOString(),
+              read: false,
+            })
+          }, 500)
         }
       )
       .subscribe()
