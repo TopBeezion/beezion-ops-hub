@@ -7,7 +7,7 @@ import type { Task, Client, TaskStatus } from '../types'
 import { STATUS_LABELS, STATUS_COLORS, ASSIGNEE_COLORS, PRIORITY_COLORS, TEAM_MEMBERS } from '../lib/constants'
 import {
   Flame, CheckCircle2, Clock, AlertTriangle,
-  ChevronDown, Circle, RefreshCw, XCircle, Zap,
+  ChevronDown, Circle, RefreshCw, XCircle, Zap, Plus,
 } from 'lucide-react'
 
 // ─── usePopover ──────────────────────────────────────────────────────────────
@@ -37,12 +37,12 @@ const C = {
   blue: '#3B82F6',
 }
 
-// Column config
+// Column config — Pendientes left, En Proceso center, Blocker right
 const COLUMNS: { status: TaskStatus; label: string; icon: React.ElementType; color: string; bg: string; border: string }[] = [
-  { status: 'en_proceso', label: 'EN PROCESO',  icon: Flame,        color: C.blue,   bg: '#EFF6FF', border: '#BFDBFE' },
-  { status: 'pendiente',   label: 'PENDIENTES',  icon: Clock,        color: C.orange, bg: '#FFFBEB', border: '#FDE68A' },
-  { status: 'aprobacion_interna',    label: 'BLOCKER',     icon: AlertTriangle,color: C.red,    bg: '#FEF2F2', border: '#FECACA' },
-  { status: 'done',  label: 'DONE',        icon: CheckCircle2, color: C.green,  bg: '#ECFDF5', border: '#A7F3D0' },
+  { status: 'pendiente',            label: 'PENDIENTES',  icon: Clock,         color: C.orange, bg: '#FFFBEB', border: '#FDE68A' },
+  { status: 'en_proceso',           label: 'EN PROCESO',  icon: Flame,         color: C.blue,   bg: '#EFF6FF', border: '#BFDBFE' },
+  { status: 'aprobacion_interna',   label: 'BLOCKER',     icon: AlertTriangle, color: C.red,    bg: '#FEF2F2', border: '#FECACA' },
+  { status: 'done',                 label: 'DONE',        icon: CheckCircle2,  color: C.green,  bg: '#ECFDF5', border: '#A7F3D0' },
 ]
 
 // ─── Filter Dropdown for Bomberos ────────────────────────────────────────────
@@ -330,7 +330,7 @@ export function BomberosPage() {
   const { data: tasks = [], isLoading } = useTasks()
   const { data: clients = [] } = useClients()
   const updateTask = useUpdateTask()
-  const ctx = useOutletContext<{ openTaskDetail?: (task: Task) => void }>()
+  const ctx = useOutletContext<{ openTaskDetail?: (task: Task) => void; openNewTask?: () => void }>()
 
   const [filterClient, setFilterClient] = useState('')
   const [filterAssignee, setFilterAssignee] = useState('')
@@ -392,17 +392,28 @@ export function BomberosPage() {
           <div>
             <h1 style={{ fontSize: 20, fontWeight: 800, color: '#FFFFFF', margin: 0 }}>🔥 Bomberos</h1>
             <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', margin: 0 }}>
-              Alta prioridad · revisión diaria del equipo
+              Todas las tareas con prioridad <strong style={{ color: 'rgba(255,255,255,0.9)' }}>Alta</strong> aparecen aquí automáticamente
             </p>
           </div>
-          <button onClick={() => window.location.reload()} style={{
-            marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5,
-            fontSize: 11, fontWeight: 600, cursor: 'pointer',
-            padding: '5px 12px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.3)',
-            backgroundColor: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)',
-          }}>
-            <RefreshCw size={11} /> Actualizar
-          </button>
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button onClick={() => ctx?.openNewTask?.()} style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              fontSize: 11, fontWeight: 700, cursor: 'pointer',
+              padding: '6px 14px', borderRadius: 20, border: 'none',
+              backgroundColor: '#fff', color: C.red,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            }}>
+              <Plus size={12} /> Nueva tarea
+            </button>
+            <button onClick={() => window.location.reload()} style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              fontSize: 11, fontWeight: 600, cursor: 'pointer',
+              padding: '5px 12px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.3)',
+              backgroundColor: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.9)',
+            }}>
+              <RefreshCw size={11} /> Actualizar
+            </button>
+          </div>
         </div>
 
         {/* Stats */}
