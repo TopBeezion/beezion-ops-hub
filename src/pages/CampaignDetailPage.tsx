@@ -663,7 +663,7 @@ export function CampaignDetailPage() {
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
             <div style={{ flex: 1, minWidth: 280 }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>
-                {client?.name ?? 'Sin cliente'} · Campaña
+                {client?.name ?? 'Sin cliente'} · Campaña{parentGroup ? ` · ${parentGroup.name}` : ''}
               </div>
               <input
                 value={campaign.name}
