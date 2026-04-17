@@ -147,7 +147,7 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
   const [clientId,     setClientId]     = useState(defaultClientId || '')
   const [campaignId,   setCampaignId]   = useState(defaultCampaignId || '')
   const [area,         setArea]         = useState<Area>('copy')
-  const [assignees,    setAssignees]    = useState<string[]>(['Alejandro'])
+  const [assignees,    setAssignees]    = useState<string[]>([])
   const [priority,     setPriority]     = useState<Priority>('media')
   const [status,       setStatus]       = useState<TaskStatus>('pendiente')
   const [week,         setWeek]         = useState(1)
