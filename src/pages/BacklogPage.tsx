@@ -6,7 +6,7 @@ import type { ViewConfig } from '../types'
 import { getDaysOverdue } from '../lib/dates'
 import { useTasks, useUpdateTask, useUpdateTaskStatus, useBulkDeleteTasks } from '../hooks/useTasks'
 import { useClients } from '../hooks/useClients'
-import { useCampaignsForSelector } from '../hooks/useCampaigns'
+import { useCampaigns } from '../hooks/useCampaigns'
 import { useOutletContext } from 'react-router-dom'
 import type { Task, Area, Priority, TaskStatus, TaskFilters, Etapa } from '../types'
 import {
@@ -393,7 +393,7 @@ function Chip({ label, active, color, onClick }: { label: string; active: boolea
 
 export function BacklogPage() {
   const { data: clients = [] } = useClients()
-  const { data: campaigns = [] } = useCampaignsForSelector()
+  const { data: campaigns = [] } = useCampaigns()
   const updateTask = useUpdateTask()
   const updateStatus = useUpdateTaskStatus()
   const ctx = useOutletContext<{ openNewTask?: () => void; openTaskDetail?: (t: Task) => void }>()
@@ -506,7 +506,9 @@ export function BacklogPage() {
     if (groupBy === 'campaign') {
       const cam = campaigns.find(c => c.id === key)
       const cl  = clients.find(c => c.id === cam?.client_id)
-      return { label: cam ? `${cl?.name ?? ''} — ${cam.name}` : 'Sin campaña', color: cam ? (CAMPAIGN_TYPE_COLORS[cam.type as keyof typeof CAMPAIGN_TYPE_COLORS] ?? C.accent) : C.muted }
+      const parent = cam?.parent_campaign_id ? campaigns.find(c => c.id === cam.parent_campaign_id) : undefined
+      const camLabel = parent ? `${parent.name} · ${cam!.name}` : cam?.name ?? ''
+      return { label: cam ? `${cl?.name ?? ''} — ${camLabel}` : 'Sin campaña', color: cam ? (CAMPAIGN_TYPE_COLORS[cam.type as keyof typeof CAMPAIGN_TYPE_COLORS] ?? C.accent) : C.muted }
     }
     if (groupBy === 'client') { const cl = clients.find(c => c.id === key); return { label: cl?.name ?? 'Sin cliente', color: cl?.color ?? C.muted } }
     if (groupBy === 'assignee') { const a = ASSIGNEES.find(a => a.name === key); return { label: key === 'unassigned' ? 'Sin asignar' : key, color: a?.color ?? C.muted } }

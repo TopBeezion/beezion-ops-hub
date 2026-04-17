@@ -3,7 +3,7 @@ import { useTasks, useUpdateTaskStatus } from '../hooks/useTasks'
 import { useUserPreference } from '../hooks/useUserPreferences'
 import { getDaysOverdue } from '../lib/dates'
 import { useClients } from '../hooks/useClients'
-import { useCampaignsForSelector } from '../hooks/useCampaigns'
+import { useCampaigns } from '../hooks/useCampaigns'
 import { useOutletContext, useSearchParams } from 'react-router-dom'
 import {
   DndContext,
@@ -495,7 +495,7 @@ function KanbanColumn({
 export function KanbanPage() {
   const { data: tasks = [] } = useTasks()
   const { data: clients = [] } = useClients()
-  const { data: campaigns = [] } = useCampaignsForSelector()
+  const { data: campaigns = [] } = useCampaigns()
   const { openTaskDetail, openNewTask } = useOutletContext<{
     openNewTask: () => void
     openTaskDetail: (task: Task) => void
