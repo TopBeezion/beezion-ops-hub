@@ -44,7 +44,7 @@ export function useCampaignsByClient(clientId?: string) {
 /**
  * Selector hook: returns ONLY top-level campaigns (kind='group' or 'general').
  * Hides Main/Iteración/Refresh children which are internal sub-components of each group.
- * Use this in: task forms, filter dropdowns, anywhere a user picks a campaign for a task.
+ * Use this in: filter dropdowns, dashboard counters, anywhere we need full campaign objects.
  */
 export function useCampaignsForSelector(clientId?: string) {
   return useQuery<Campaign[]>({
@@ -61,6 +61,57 @@ export function useCampaignsForSelector(clientId?: string) {
       if (error) throw error
       return data ?? []
     },
+  })
+}
+
+/**
+ * Campaign picker for task forms.
+ * Groups are expanded into their children with composite labels (e.g. "Awareness · Main").
+ * Only returns campaigns that can actually hold tasks (general + children of groups).
+ */
+export interface CampaignPickerOption {
+  id: string
+  label: string
+  color: string
+}
+
+export function useCampaignPicker(clientId?: string) {
+  return useQuery<CampaignPickerOption[]>({
+    queryKey: ['campaigns', 'picker', clientId ?? 'all'],
+    queryFn: async () => {
+      let query = supabase
+        .from('campaigns')
+        .select('id, name, kind, parent_campaign_id, client_id')
+        .is('deleted_at', null)
+        .order('name')
+      if (clientId) query = query.eq('client_id', clientId)
+      const { data, error } = await query
+      if (error) throw error
+      const all = data ?? []
+
+      // Build parent-name lookup (group campaigns)
+      const groupMap: Record<string, string> = {}
+      for (const c of all) {
+        if (c.kind === 'group') groupMap[c.id] = c.name
+      }
+
+      // Build selectable options: general campaigns + children of groups
+      const opts: CampaignPickerOption[] = []
+      for (const c of all) {
+        if (c.kind === 'general') {
+          opts.push({ id: c.id, label: c.name, color: '#6366F1' })
+        } else if (c.parent_campaign_id && groupMap[c.parent_campaign_id]) {
+          opts.push({
+            id: c.id,
+            label: `${groupMap[c.parent_campaign_id]} · ${c.name}`,
+            color: '#6366F1',
+          })
+        }
+      }
+      opts.sort((a, b) => a.label.localeCompare(b.label))
+      return opts
+    },
+    enabled: !!clientId,
   })
 }
 

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import type { FormEvent } from 'react'
 import { X, ChevronDown, AlertTriangle, Check } from 'lucide-react'
 import { useClients } from '../../hooks/useClients'
-import { useCampaignsForSelector } from '../../hooks/useCampaigns'
+import { useCampaignPicker } from '../../hooks/useCampaigns'
 import { useCreateTask } from '../../hooks/useTasks'
 import type { Area, Priority, TaskStatus, TaskTipo, Etapa, Deliverables, TaskAttachment } from '../../types'
 import {
@@ -188,7 +188,7 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
     if (dueDate) setPriority(priorityFromDueDate(dueDate))
   }, [dueDate, priorityManual])
 
-  const { data: campaigns } = useCampaignsForSelector(clientId || undefined)
+  const { data: campaigns } = useCampaignPicker(clientId || undefined)
   const primaryAssignee = assignees[0] ?? ''
   const assigneeInfo = ASSIGNEES.find(a => a.name === primaryAssignee)
   const relevantDel  = DELIVERABLE_DEFS.filter(d => d.areas.includes(area))
@@ -326,7 +326,7 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
   const campanaOpts = clientId
     ? [
         { value: '', label: 'Sin campaña', color: '#9699A6' },
-        ...(campaigns ?? []).map(c => ({ value: c.id, label: c.name, color: '#6366F1' })),
+        ...(campaigns ?? []).map(c => ({ value: c.id, label: c.label, color: c.color })),
       ]
     : [{ value: '', label: 'Selecciona cliente primero', color: '#9699A6' }]
   const totalDel = Object.values(deliverables).reduce((s, v) => s + (v ?? 0), 0)

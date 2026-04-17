@@ -8,7 +8,7 @@ import { supabase } from '../../lib/supabase'
 import { useUpdateTask, useDeleteTask } from '../../hooks/useTasks'
 import { getDaysOverdue } from '../../lib/dates'
 import { useClients } from '../../hooks/useClients'
-import { useCampaignsForSelector, useCreateCampaign } from '../../hooks/useCampaigns'
+import { useCampaignPicker, useCreateCampaign } from '../../hooks/useCampaigns'
 import type { Task, Area, Priority, TaskStatus, TaskTipo, Etapa, Deliverables, TaskAttachment, CampaignType } from '../../types'
 import {
   AREA_LABELS, AREA_COLORS, ETAPA_TO_AREA, STATUS_LABELS, STATUS_COLORS,
@@ -304,7 +304,7 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
   const [newCampaignType, setNewCampaignType] = useState<CampaignType>('nueva_campana')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const { data: campaigns = [] } = useCampaignsForSelector(clientId || undefined)
+  const { data: campaigns = [] } = useCampaignPicker(clientId || undefined)
   const primaryAssignee = assignees[0] ?? ''
   const assigneeInfo = ASSIGNEES.find(a => a.name === primaryAssignee)
   const clientColor  = clients.find(c => c.id === clientId)?.color
@@ -439,7 +439,7 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
   const areaOpts       = (Object.entries(AREA_LABELS) as [Area, string][]).map(([v, l]) => ({ value: v, label: l, color: AREA_COLORS[v] }))
   const clienteOpts    = [{ value: '', label: 'Sin cliente', color: '#D1D5DB' }, ...clients.map(c => ({ value: c.id, label: c.name, color: c.color }))]
   const campanaOpts    = clientId
-    ? [{ value: '', label: 'Sin campaña', color: '#D1D5DB' }, ...campaigns.map(c => ({ value: c.id, label: c.name, color: '#6366F1' }))]
+    ? [{ value: '', label: 'Sin campaña', color: '#D1D5DB' }, ...campaigns.map(c => ({ value: c.id, label: c.label, color: c.color }))]
     : [{ value: '', label: 'Selecciona cliente primero', color: '#D1D5DB' }]
 
   const sLbl = (t: string) => (
