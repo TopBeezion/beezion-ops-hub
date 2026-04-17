@@ -172,9 +172,25 @@ body {
 /* ── Text label ── */
 .text-label { font-size: 11px; font-weight: 600; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
 
-/* ── Responsive ── */
-@media (max-width: 768px) { .filter-toolbar { flex-wrap: wrap; } .kanban-column { min-width: 260px; } }
-
 /* ── Sidebar row hover actions ── */
 .sidebar-row:hover .sidebar-actions { display: flex !important; }
 .sidebar-row:hover .sidebar-count { display: none; }
+
+/* ══════════════════════════════════════════════════════════════
+   RESPONSIVE — iPhone / Mobile (< 768px)
+   ══════════════════════════════════════════════════════════════ */
+@media (max-width: 767px) {
+  /* Filter toolbar wraps */
+  .filter-toolbar { flex-wrap: wrap; gap: 6px; padding: 10px 12px; }
+  .filter-search { min-width: 100%; }
+
+  /* Kanban horizontal scroll */
+  .kanban-column { min-width: 260px; max-width: 280px; }
+
+  /* Safe-area for notched iPhones */
+  body { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+
+  /* Touch-friendly tap targets */
+  button, a, [role="button"] { min-height: 36px; }
+  input, select, textarea { font-size: 16px !important; } /* prevents iOS zoom on focus */
+}

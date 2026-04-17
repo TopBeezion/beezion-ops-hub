@@ -19,6 +19,7 @@ import type { Campaign, CampaignCategory } from '../../types'
 interface SidebarProps {
   collapsed: boolean
   onToggle: () => void
+  onNavClick?: () => void
 }
 
 const NAV = [
@@ -46,7 +47,7 @@ const S = {
   red:      '#EF4444',
 }
 
-export function Sidebar({ collapsed, onToggle }: SidebarProps) {
+export function Sidebar({ collapsed, onToggle, onNavClick }: SidebarProps) {
   const { data: clients } = useClients()
   const { data: campaigns = [] } = useCampaigns()
   const { user, signOut } = useAuth()
@@ -262,6 +263,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                 to={item.path}
                 end={item.id === 'dashboard'}
                 title={collapsed ? item.label : undefined}
+                onClick={onNavClick}
                 style={({ isActive }) => ({
                   display: 'flex', alignItems: 'center', gap: 9,
                   padding: collapsed ? '9px 0' : '8px 11px',

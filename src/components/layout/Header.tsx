@@ -1,4 +1,4 @@
-import { Plus, Search, X } from 'lucide-react'
+import { Plus, Search, X, Menu } from 'lucide-react'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { NotificationBell } from './NotificationBell'
 import { useTasks } from '../../hooks/useTasks'
@@ -201,9 +201,11 @@ interface HeaderProps {
   onNewTask?: () => void
   onOpenTaskById?: (id: string) => void
   onOpenTaskDetail?: (t: Task) => void
+  isMobile?: boolean
+  onMenuToggle?: () => void
 }
 
-export function Header({ title, onNewTask, onOpenTaskById, onOpenTaskDetail }: HeaderProps) {
+export function Header({ title, onNewTask, onOpenTaskById, onOpenTaskDetail, isMobile, onMenuToggle }: HeaderProps) {
   const [searchOpen, setSearchOpen] = useState(false)
 
   useEffect(() => {
@@ -226,85 +228,115 @@ export function Header({ title, onNewTask, onOpenTaskById, onOpenTaskDetail }: H
         backgroundColor: H.bg,
         borderBottom: `1px solid ${H.border}`,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        paddingLeft: 22, paddingRight: 22, gap: 16,
+        paddingLeft: isMobile ? 12 : 22, paddingRight: isMobile ? 12 : 22, gap: isMobile ? 8 : 16,
         flexShrink: 0,
       }}>
+        {/* Mobile hamburger */}
+        {isMobile && (
+          <button
+            onClick={onMenuToggle}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 36, height: 36, borderRadius: 8,
+              border: 'none', background: 'none', cursor: 'pointer',
+              color: H.text, flexShrink: 0,
+            }}
+          >
+            <Menu size={20} />
+          </button>
+        )}
+
         {/* Page title */}
-        <h1 style={{ fontSize: 15, fontWeight: 700, color: H.text, margin: 0, flexShrink: 0, letterSpacing: '-0.2px' }}>
+        <h1 style={{
+          fontSize: isMobile ? 14 : 15, fontWeight: 700, color: H.text, margin: 0,
+          flexShrink: isMobile ? 1 : 0, letterSpacing: '-0.2px',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
           {title}
         </h1>
 
-        {/* Search pill */}
-        <button
-          onClick={() => setSearchOpen(true)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 8,
-            flex: 1, maxWidth: 340,
-            padding: '7px 12px', borderRadius: 9,
-            cursor: 'pointer',
-            backgroundColor: H.input,
-            border: `1px solid ${H.inputBorder}`,
-            color: H.muted, fontSize: 12,
-            transition: 'all 0.15s',
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.backgroundColor = H.hover
-            e.currentTarget.style.borderColor = '#C4C9D4'
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.backgroundColor = H.input
-            e.currentTarget.style.borderColor = H.inputBorder
-          }}
-        >
-          <Search size={13} color={H.muted} />
-          <span style={{ flex: 1, textAlign: 'left' }}>Buscar tareas...</span>
-          <kbd style={{
-            fontSize: 9, fontWeight: 700, color: H.muted,
-            backgroundColor: '#FFFFFF',
-            border: `1px solid ${H.border}`,
-            borderRadius: 4, padding: '1px 5px', flexShrink: 0,
-          }}>⌘K</kbd>
-        </button>
+        {/* Search pill — icon only on mobile */}
+        {isMobile ? (
+          <button
+            onClick={() => setSearchOpen(true)}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 36, height: 36, borderRadius: 8,
+              backgroundColor: H.input, border: `1px solid ${H.inputBorder}`,
+              cursor: 'pointer', flexShrink: 0,
+            }}
+          >
+            <Search size={15} color={H.muted} />
+          </button>
+        ) : (
+          <button
+            onClick={() => setSearchOpen(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              flex: 1, maxWidth: 340,
+              padding: '7px 12px', borderRadius: 9,
+              cursor: 'pointer',
+              backgroundColor: H.input,
+              border: `1px solid ${H.inputBorder}`,
+              color: H.muted, fontSize: 12,
+              transition: 'all 0.15s',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.backgroundColor = H.hover
+              e.currentTarget.style.borderColor = '#C4C9D4'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.backgroundColor = H.input
+              e.currentTarget.style.borderColor = H.inputBorder
+            }}
+          >
+            <Search size={13} color={H.muted} />
+            <span style={{ flex: 1, textAlign: 'left' }}>Buscar tareas...</span>
+            <kbd style={{
+              fontSize: 9, fontWeight: 700, color: H.muted,
+              backgroundColor: '#FFFFFF',
+              border: `1px solid ${H.border}`,
+              borderRadius: 4, padding: '1px 5px', flexShrink: 0,
+            }}>⌘K</kbd>
+          </button>
+        )}
 
         {/* Right section */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0 }}>
-          {/* Live pulse */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{
-              width: 7, height: 7, borderRadius: '50%',
-              backgroundColor: '#10B981',
-              boxShadow: '0 0 6px rgba(16,185,129,0.5)',
-              animation: 'hdr-pulse 2s ease-in-out infinite',
-            }} />
-            <span style={{ fontSize: 9, color: '#10B981', fontWeight: 700, letterSpacing: '0.12em' }}>LIVE</span>
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 14, flexShrink: 0 }}>
+          {/* Live pulse — hide on mobile */}
+          {!isMobile && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{
+                width: 7, height: 7, borderRadius: '50%',
+                backgroundColor: '#10B981',
+                boxShadow: '0 0 6px rgba(16,185,129,0.5)',
+                animation: 'hdr-pulse 2s ease-in-out infinite',
+              }} />
+              <span style={{ fontSize: 9, color: '#10B981', fontWeight: 700, letterSpacing: '0.12em' }}>LIVE</span>
+            </div>
+          )}
 
           {/* Notification Bell */}
           <NotificationBell onOpenTask={onOpenTaskById} />
 
-          {/* New Task */}
+          {/* New Task — icon only on mobile */}
           <button
             onClick={onNewTask}
             style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              padding: '7px 14px', fontSize: 12, fontWeight: 700,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              padding: isMobile ? '7px' : '7px 14px',
+              fontSize: 12, fontWeight: 700,
               color: '#fff', border: 'none', borderRadius: 8,
               background: 'linear-gradient(135deg, #6366F1, #5B63F0)',
               cursor: 'pointer',
               boxShadow: '0 2px 10px rgba(99,102,241,0.30)',
               transition: 'all 0.15s',
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.boxShadow = '0 4px 16px rgba(99,102,241,0.45)'
-              e.currentTarget.style.transform = 'translateY(-1px)'
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.boxShadow = '0 2px 10px rgba(99,102,241,0.30)'
-              e.currentTarget.style.transform = 'translateY(0)'
+              width: isMobile ? 36 : 'auto',
+              height: isMobile ? 36 : 'auto',
             }}
           >
-            <Plus size={14} strokeWidth={2.5} />
-            Nueva tarea
+            <Plus size={isMobile ? 18 : 14} strokeWidth={2.5} />
+            {!isMobile && 'Nueva tarea'}
           </button>
         </div>
 

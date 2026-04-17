@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useTasks } from '../hooks/useTasks'
 import { useClients } from '../hooks/useClients'
+import { useIsMobile } from '../hooks/useIsMobile'
 import { useOutletContext } from 'react-router-dom'
 import { useUpdateTask } from '../hooks/useTasks'
 import type { Task, Client, TaskStatus } from '../types'
@@ -327,6 +328,7 @@ function KanbanColumn({ col, tasks, onTaskClick, onStatusChange, visible }: {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export function BomberosPage() {
+  const isMobile = useIsMobile()
   const { data: tasks = [], isLoading } = useTasks()
   const { data: clients = [] } = useClients()
   const updateTask = useUpdateTask()
@@ -379,7 +381,7 @@ export function BomberosPage() {
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: C.bg }}>
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div style={{ background: 'linear-gradient(135deg, #E2445C 0%, #B03050 100%)', padding: '20px 28px 16px', flexShrink: 0 }}>
+      <div style={{ background: 'linear-gradient(135deg, #E2445C 0%, #B03050 100%)', padding: isMobile ? '14px 12px 10px' : '20px 28px 16px', flexShrink: 0 }}>
         <div className="flex items-center gap-3 mb-4">
           <div style={{
             width: 42, height: 42, borderRadius: 12,
@@ -500,7 +502,7 @@ export function BomberosPage() {
       </div>
 
       {/* ── Kanban Board ────────────────────────────────────────────────────── */}
-      <div style={{ flex: 1, padding: '16px 24px', overflow: 'hidden' }}>
+      <div style={{ flex: 1, padding: isMobile ? '10px 8px' : '16px 24px', overflowX: 'auto', overflowY: 'hidden' }}>
         {isLoading ? (
           <div className="flex justify-center py-20">
             <div className="w-8 h-8 rounded-full border-2 border-transparent border-t-current animate-spin" style={{ color: C.red }} />
@@ -509,6 +511,7 @@ export function BomberosPage() {
           <div style={{
             display: 'flex', gap: 12, alignItems: 'flex-start',
             height: 'calc(100vh - 270px)',
+            minWidth: isMobile ? 'max-content' : 'auto',
           }}>
             {COLUMNS.map(col => (
               <KanbanColumn

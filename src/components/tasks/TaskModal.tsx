@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import type { FormEvent } from 'react'
 import { X, ChevronDown, AlertTriangle, Check } from 'lucide-react'
+import { useIsMobile } from '../../hooks/useIsMobile'
 import { useClients } from '../../hooks/useClients'
 import { useCampaignPicker } from '../../hooks/useCampaigns'
 import { useCreateTask } from '../../hooks/useTasks'
@@ -139,6 +140,7 @@ interface TaskModalProps {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskModalProps) {
+  const isMobile = useIsMobile()
   const { data: clients } = useClients()
   const createTask = useCreateTask()
 
@@ -332,17 +334,18 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
   const totalDel = Object.values(deliverables).reduce((s, v) => s + (v ?? 0), 0)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ padding: '24px' }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ padding: isMobile ? 0 : '24px' }}>
       <div className="absolute inset-0" onClick={onClose} style={{ backgroundColor: 'rgba(15,17,22,0.45)', backdropFilter: 'blur(4px)' }} />
       <div className="relative flex flex-col overflow-hidden"
         style={{
           width: '100%',
-          maxWidth: 980,
-          maxHeight: 'calc(100vh - 48px)',
+          maxWidth: isMobile ? '100%' : 980,
+          maxHeight: isMobile ? '100%' : 'calc(100vh - 48px)',
+          height: isMobile ? '100%' : 'auto',
           backgroundColor: '#FFFFFF',
-          border: '1px solid #DDE0EA',
-          borderRadius: 16,
-          boxShadow: '0 24px 64px rgba(0,0,0,0.25)',
+          border: isMobile ? 'none' : '1px solid #DDE0EA',
+          borderRadius: isMobile ? 0 : 16,
+          boxShadow: isMobile ? 'none' : '0 24px 64px rgba(0,0,0,0.25)',
         }}>
 
         {/* Header */}
@@ -453,12 +456,16 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
 
           {/* ── Card 3: Cliente + Campaña + Etapa + Mini Status ──────────── */}
           <div style={formCard}>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <FieldSel label="Cliente" required value={clientId}
-                onChange={v => { setClientId(v); setCampaignId('') }}
-                options={clienteOpts}
-                accentColor={(clients ?? []).find(c => c.id === clientId)?.color ?? '#9699A6'} />
-              <FieldSel label="Campaña" value={campaignId} onChange={setCampaignId} options={campanaOpts} />
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: isMobile ? '100%' : 160 }}>
+                <FieldSel label="Cliente" required value={clientId}
+                  onChange={v => { setClientId(v); setCampaignId('') }}
+                  options={clienteOpts}
+                  accentColor={(clients ?? []).find(c => c.id === clientId)?.color ?? '#9699A6'} />
+              </div>
+              <div style={{ flex: 1, minWidth: isMobile ? '100%' : 160 }}>
+                <FieldSel label="Campaña" value={campaignId} onChange={setCampaignId} options={campanaOpts} />
+              </div>
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
               <FieldSel label="Etapa" required value={etapa} onChange={v => setEtapa(v as Etapa | '')} options={etapaOpts}
@@ -468,7 +475,7 @@ export function TaskModal({ onClose, defaultClientId, defaultCampaignId }: TaskM
 
           {/* ── Card 4: Fecha de Creación (auto) + Fecha de entrega ─────── */}
           <div style={formCard}>
-            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', flexWrap: 'wrap' }}>
               <div style={{ flex: 1 }}>
                 <label style={lbl}>Fecha de Creación</label>
                 <input type="date" value={todayISO} readOnly disabled

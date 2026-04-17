@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
+import { useIsMobile } from '../hooks/useIsMobile'
 import { useParams, Navigate, useNavigate, useOutletContext } from 'react-router-dom'
 import { useCampaigns, useUpdateCampaign, useDeleteCampaign } from '../hooks/useCampaigns'
 import { useEnsureGroupChildren } from '../hooks/useCampaignTemplates'
@@ -370,6 +371,7 @@ function InlineTaskRow({ task, onOpen, subCampaignLabel }: { task: Task; onOpen:
       style={{
         display: 'grid',
         gridTemplateColumns: '14px minmax(0,1fr) 140px 170px 110px 130px 130px',
+        minWidth: 800,
         alignItems: 'center', gap: 8,
         padding: '8px 12px',
         borderTop: `1px solid ${C.border}`,
@@ -600,6 +602,7 @@ function AddTaskRow({
 }
 
 export function CampaignDetailPage() {
+  const isMobile = useIsMobile()
   const { campaignId } = useParams<{ campaignId: string }>()
   const navigate = useNavigate()
   const ctx = useOutletContext<{ openTaskDetail?: (t: Task) => void }>()
@@ -672,7 +675,7 @@ export function CampaignDetailPage() {
   const isArchived = campaign.status === 'desactivada'
 
   return (
-    <div style={{ backgroundColor: C.bg, minHeight: '100vh', padding: '24px 28px' }}>
+    <div style={{ backgroundColor: C.bg, minHeight: '100vh', padding: isMobile ? '12px 10px' : '24px 28px' }}>
       <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
         {/* Back */}
         <button onClick={() => navigate(-1)} style={{
@@ -997,7 +1000,7 @@ export function CampaignDetailPage() {
                     }
                     const ec = ETAPA_COLORS[etapa]
                     return (
-                      <div key={etapa} style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: isAddingHere ? 'visible' : 'hidden', position: 'relative' }}>
+                      <div key={etapa} style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: isAddingHere ? 'visible' : (isMobile ? 'auto' : 'hidden'), position: 'relative' }}>
                         <div style={{
                           padding: '7px 12px',
                           backgroundColor: `${ec}12`, borderBottom: `1px solid ${ec}25`,

@@ -7,6 +7,7 @@ import { getDaysOverdue } from '../lib/dates'
 import { useTasks, useUpdateTask, useUpdateTaskStatus, useBulkDeleteTasks } from '../hooks/useTasks'
 import { useClients } from '../hooks/useClients'
 import { useCampaigns } from '../hooks/useCampaigns'
+import { useIsMobile } from '../hooks/useIsMobile'
 import { useOutletContext } from 'react-router-dom'
 import type { Task, Area, Priority, TaskStatus, TaskFilters, Etapa } from '../types'
 import {
@@ -392,6 +393,7 @@ function Chip({ label, active, color, onClick }: { label: string; active: boolea
 }
 
 export function BacklogPage() {
+  const isMobile = useIsMobile()
   const { data: clients = [] } = useClients()
   const { data: campaigns = [] } = useCampaigns()
   const updateTask = useUpdateTask()
@@ -589,9 +591,9 @@ export function BacklogPage() {
 
       {/* ── HEADER ─────────────────────────────────────────────────────── */}
       <div style={{ backgroundColor: C.surface, borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px 10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? '10px 12px 8px' : '12px 20px 10px', flexWrap: 'wrap', gap: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <h1 style={{ fontSize: 17, fontWeight: 800, color: C.text, margin: 0 }}>Backlog</h1>
+            <h1 style={{ fontSize: isMobile ? 15 : 17, fontWeight: 800, color: C.text, margin: 0 }}>Backlog</h1>
             <span style={{ fontSize: 11, fontWeight: 700, backgroundColor: '#EEF2FF', color: C.accent, padding: '2px 9px', borderRadius: 20, border: `1px solid ${C.accent}20` }}>
               {filtered.length} tareas
             </span>
@@ -649,7 +651,7 @@ export function BacklogPage() {
         </div>
 
         {/* ── FILTER BAR ─────────────────────────────────────────────────── */}
-        <div style={{ borderTop: `1px solid ${C.border}`, padding: '8px 20px', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+        <div style={{ borderTop: `1px solid ${C.border}`, padding: isMobile ? '8px 12px' : '8px 20px', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
           {/* Search */}
           <div style={{ position: 'relative', flexShrink: 0 }}>
             <Search size={12} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: C.muted }} />
@@ -735,7 +737,7 @@ export function BacklogPage() {
               </button>
             </div>
           )}
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+          <table style={{ width: '100%', minWidth: isMobile ? 900 : 'auto', borderCollapse: 'collapse', fontSize: 12 }}>
             <thead style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: C.surface, borderBottom: `1px solid ${C.border}` }}>
               <tr>
                 <th style={{ width: 36, padding: '8px 10px', textAlign: 'center' }}>

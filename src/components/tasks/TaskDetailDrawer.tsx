@@ -4,6 +4,7 @@ import {
   Paperclip, Upload, Trash2, Download, File, Image, FileVideo, FileAudio,
   Bot, Hand, Plus,
 } from 'lucide-react'
+import { useIsMobile } from '../../hooks/useIsMobile'
 import { supabase } from '../../lib/supabase'
 import { useUpdateTask, useDeleteTask } from '../../hooks/useTasks'
 import { getDaysOverdue } from '../../lib/dates'
@@ -261,6 +262,7 @@ function FieldSel({
 interface Props { task: Task; onClose: () => void }
 
 export function TaskDetailDrawer({ task, onClose }: Props) {
+  const isMobile = useIsMobile()
   const updateTask  = useUpdateTask()
   const deleteTask  = useDeleteTask()
   const createCampaign = useCreateCampaign()
@@ -426,7 +428,7 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
   )
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ padding: '24px' }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ padding: isMobile ? 0 : '24px' }}>
       {/* Backdrop */}
       <div className="absolute inset-0" onClick={onClose}
         style={{ backgroundColor: 'rgba(15,17,22,0.45)', backdropFilter: 'blur(4px)' }} />
@@ -435,12 +437,13 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
       <div className="relative flex flex-col overflow-hidden"
         style={{
           width: '100%',
-          maxWidth: 980,
-          maxHeight: 'calc(100vh - 48px)',
+          maxWidth: isMobile ? '100%' : 980,
+          maxHeight: isMobile ? '100%' : 'calc(100vh - 48px)',
+          height: isMobile ? '100%' : 'auto',
           backgroundColor: '#FFFFFF',
-          border: '1px solid #E5E7EB',
-          borderRadius: 16,
-          boxShadow: '0 24px 64px rgba(0,0,0,0.25)',
+          border: isMobile ? 'none' : '1px solid #E5E7EB',
+          borderRadius: isMobile ? 0 : 16,
+          boxShadow: isMobile ? 'none' : '0 24px 64px rgba(0,0,0,0.25)',
         }}>
 
         {/* Client color stripe */}

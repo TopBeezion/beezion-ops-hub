@@ -4,6 +4,7 @@ import { useUserPreference } from '../hooks/useUserPreferences'
 import { getDaysOverdue } from '../lib/dates'
 import { useClients } from '../hooks/useClients'
 import { useCampaigns } from '../hooks/useCampaigns'
+import { useIsMobile } from '../hooks/useIsMobile'
 import { useOutletContext, useSearchParams } from 'react-router-dom'
 import {
   DndContext,
@@ -493,6 +494,7 @@ function KanbanColumn({
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export function KanbanPage() {
+  const isMobile = useIsMobile()
   const { data: tasks = [] } = useTasks()
   const { data: clients = [] } = useClients()
   const { data: campaigns = [] } = useCampaigns()
@@ -616,8 +618,8 @@ export function KanbanPage() {
       {(urlClient || urlCampaign) && (
         <div style={{
           backgroundColor: '#FAFBFF', borderBottom: `1px solid ${C.border}`,
-          padding: '8px 20px', display: 'flex', alignItems: 'center', gap: 8,
-          flexShrink: 0, fontSize: 12,
+          padding: isMobile ? '8px 12px' : '8px 20px', display: 'flex', alignItems: 'center', gap: 8,
+          flexShrink: 0, fontSize: 12, flexWrap: 'wrap',
         }}>
           <span style={{ color: C.muted, fontWeight: 600 }}>Viendo:</span>
           {urlClient && (
@@ -753,7 +755,7 @@ export function KanbanPage() {
       </div>
 
       {/* ── Kanban board ───────────────────────────────────────────────────── */}
-      <div style={{ flex: 1, overflowX: 'auto', overflowY: 'hidden', padding: '12px 14px' }}>
+      <div style={{ flex: 1, overflowX: 'auto', overflowY: 'hidden', padding: isMobile ? '8px 6px' : '12px 14px' }}>
         <DndContext
           collisionDetection={closestCenter}
           onDragStart={handleDragStart}

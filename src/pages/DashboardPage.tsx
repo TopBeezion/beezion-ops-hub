@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useTasks } from '../hooks/useTasks'
 import { useClients } from '../hooks/useClients'
+import { useIsMobile } from '../hooks/useIsMobile'
 import { useCampaignsForSelector } from '../hooks/useCampaigns'
 import { useOutletContext, useNavigate } from 'react-router-dom'
 import type { Task, Client, Area } from '../types'
@@ -300,6 +301,7 @@ function MemberChip({ name, active, onClick }: { name: string; active: boolean; 
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export function DashboardPage() {
+  const isMobile = useIsMobile()
   const { data: tasks = [], isLoading } = useTasks()
   const { data: clients = [] } = useClients()
   const { data: campaigns = [] } = useCampaignsForSelector()
@@ -395,7 +397,7 @@ export function DashboardPage() {
   }
 
   return (
-    <div style={{ backgroundColor: C.bg, minHeight: '100vh', padding: '20px 28px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+    <div style={{ backgroundColor: C.bg, minHeight: '100vh', padding: isMobile ? '12px 10px' : '20px 28px', display: 'flex', flexDirection: 'column', gap: isMobile ? 12 : 18 }}>
 
       {/* ── Mi Vista Filter ───────────────────────────────────────────────────── */}
       <div style={{
@@ -444,7 +446,7 @@ export function DashboardPage() {
       </div>
 
       {/* ── KPIs ─────────────────────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: isMobile ? 8 : 14 }}>
         <KpiCard icon={Layers}       label="Tareas totales"    value={stats.total}       sub={`${stats.pct}% completadas`}    color={C.accent}  />
         <KpiCard icon={Activity}     label="En progreso"       value={stats.inProgress}  sub="activas ahora"                  color={C.blue}    />
         <KpiCard icon={CheckCircle2} label="Completadas"       value={stats.completed}   sub={`de ${stats.total} total`}      color={C.green}   />
@@ -453,7 +455,7 @@ export function DashboardPage() {
       </div>
 
       {/* ── BOMBEROS + EN PROGRESO ────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.1fr 0.9fr', gap: 14 }}>
         {/* Bomberos */}
         <div style={card()}>
           <div style={{ padding: '16px 18px 12px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -529,7 +531,7 @@ export function DashboardPage() {
               <p style={{ fontSize: 11, color: C.muted, margin: 0 }}>{clientStats.length} clientes con tareas activas</p>
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? 8 : 14 }}>
             {clientStats.map(s => (
               <ClientCard key={s.client.id} {...s} onClick={() => navigate(`/clients/${s.client.id}`)} />
             ))}
@@ -538,7 +540,7 @@ export function DashboardPage() {
       )}
 
       {/* ── MÉTRICAS BOTTOM ROW ───────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 0.9fr 1.2fr', gap: 14, paddingBottom: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.3fr 0.9fr 1.2fr', gap: 14, paddingBottom: 16 }}>
 
         {/* Copy Production */}
         <div style={card({ padding: '18px 18px 16px' })}>
