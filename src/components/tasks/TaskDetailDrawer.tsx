@@ -352,29 +352,8 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
     } finally { setSaving(false) }
   }
 
-  // ── Autosave: debounced 700ms when dirty ──────────
   // Only hard requirement to save is a non-empty title (DB NOT NULL).
-  // Other "required" fields (cliente/etapa/fecha) are soft-required: we still
-  // save and just surface a "Faltan campos" indicator so the user can complete
-  // them later. Previously, autosave was blocked on any missing field, which
-  // silently dropped edits (e.g., Alec renaming a task without a due_date).
   const canSave = title.trim().length > 0
-  const saveRef = useRef(handleSave)
-  saveRef.current = handleSave
-  useEffect(() => {
-    if (!isDirty || !canSave || saving) return
-    const t = setTimeout(() => { saveRef.current() }, 700)
-    return () => clearTimeout(t)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, description, area, assignees, priority, status, week, tipo, clientId, campaignId, etapa, dueDate, deliverables, attachments, isDirty, canSave])
-
-  // Save on close if still dirty
-  useEffect(() => {
-    return () => {
-      if (isDirty && canSave) { saveRef.current() }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   const handleCreateCampaign = async () => {
     const name = newCampaignName.trim()
@@ -483,13 +462,31 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
               </span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              {/* Autosave indicator */}
-              {(saving || saved || (isDirty && !isValid)) && (
-                <span
-                  title={!isValid ? `Faltan: ${missing.join(', ')}` : undefined}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 7, fontSize: 11, fontWeight: 600, border: `1px solid ${!isValid ? '#FCA5A5' : saved ? '#BBF7D0' : '#E5E7EB'}`, backgroundColor: !isValid ? '#FEF2F2' : saved ? '#F0FDF4' : '#F9FAFB', color: !isValid ? '#DC2626' : saved ? '#16A34A' : '#6B7280' }}>
-                  {saving ? <><Save size={11} /> Guardando…</> : saved ? <><Check size={11} /> Guardado</> : <><AlertTriangle size={11} /> Faltan campos</>}
+              {/* Save button — manual save only */}
+              {saved && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 7, fontSize: 11, fontWeight: 600, border: '1px solid #BBF7D0', backgroundColor: '#F0FDF4', color: '#16A34A' }}>
+                  <Check size={11} /> Guardado
                 </span>
+              )}
+              {isDirty && !isValid && !saved && (
+                <span title={`Faltan: ${missing.join(', ')}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 7, fontSize: 11, fontWeight: 600, border: '1px solid #FCA5A5', backgroundColor: '#FEF2F2', color: '#DC2626' }}>
+                  <AlertTriangle size={11} /> Faltan campos
+                </span>
+              )}
+              {isDirty && canSave && !saved && (
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 700,
+                    border: 'none', cursor: saving ? 'not-allowed' : 'pointer',
+                    backgroundColor: '#6366F1', color: '#fff',
+                    opacity: saving ? 0.6 : 1,
+                  }}
+                >
+                  <Save size={12} /> {saving ? 'Guardando…' : 'Guardar'}
+                </button>
               )}
               {/* Delete */}
               {confirmDelete ? (
