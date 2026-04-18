@@ -284,7 +284,7 @@ export function useOverdueNotifier() {
 
           let days = 0
           if (due_date) {
-            const due = new Date(due_date)
+            const due = new Date(due_date + 'T12:00:00')
             due.setHours(0, 0, 0, 0)
             const diff = Math.floor((now.getTime() - due.getTime()) / 86_400_000)
             days = diff > 0 ? diff : 0

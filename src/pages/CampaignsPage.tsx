@@ -524,7 +524,7 @@ function CampaignCard({
                       <div className="flex items-center gap-2">
                         {task.due_date && (
                           <span style={{ fontSize: 11, color: '#9CA3AF' }}>
-                            {new Date(task.due_date).toLocaleDateString('es', { day: '2-digit', month: 'short' })}
+                            {new Date(task.due_date + 'T12:00:00').toLocaleDateString('es', { day: '2-digit', month: 'short' })}
                           </span>
                         )}
                         {task.assignee && (

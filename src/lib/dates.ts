@@ -71,7 +71,7 @@ export function getDaysOverdue(task: {
   now.setHours(0, 0, 0, 0)
 
   if (task.due_date) {
-    const due = new Date(task.due_date)
+    const due = new Date(task.due_date + 'T12:00:00')
     due.setHours(0, 0, 0, 0)
     const diff = Math.floor((now.getTime() - due.getTime()) / 86_400_000)
     return diff > 0 ? diff : 0

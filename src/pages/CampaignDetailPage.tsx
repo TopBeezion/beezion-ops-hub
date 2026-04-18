@@ -342,7 +342,7 @@ function InlineTaskRow({ task, onOpen, subCampaignLabel }: { task: Task; onOpen:
   let dateBorder = C.border
   if (task.due_date) {
     const today = new Date(); today.setHours(0,0,0,0)
-    const due = new Date(task.due_date); due.setHours(0,0,0,0)
+    const due = new Date(task.due_date + 'T12:00:00'); due.setHours(0,0,0,0)
     const diff = (due.getTime() - today.getTime()) / (24 * 60 * 60 * 1000)
     if (diff < 0) { dateColor = '#B91C1C'; dateBg = '#FEE2E2'; dateBorder = '#FCA5A5' }
     else if (diff <= 3) { dateColor = '#92400E'; dateBg = '#FEF3C7'; dateBorder = '#FCD34D' }

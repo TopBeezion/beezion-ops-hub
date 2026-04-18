@@ -345,7 +345,7 @@ function TaskCard({ task, onOpenDetail, visibleFields, campaignLabel }: { task: 
               padding: '2px 6px', borderRadius: 4,
               backgroundColor: '#F5F6FA', border: '1px solid #E5E7EB',
             }}>
-              📅 {new Date(task.due_date).toLocaleDateString('es', { day: '2-digit', month: 'short' })}
+              📅 {new Date(task.due_date + 'T12:00:00').toLocaleDateString('es', { day: '2-digit', month: 'short' })}
             </span>
           )}
           {visibleFields.has('campaign') && (task.campaign || campaignLabel) && (
