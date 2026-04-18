@@ -196,6 +196,7 @@ const CARD_FIELDS = [
   { key: 'client',      label: 'Cliente' },
   { key: 'area',        label: 'Área' },
   { key: 'priority',    label: 'Prioridad' },
+  { key: 'status',      label: 'Status' },
   { key: 'overdue',     label: 'Días de atraso' },
   { key: 'campaign',    label: 'Campaña' },
   { key: 'etapa',       label: 'Etapa' },
@@ -306,6 +307,17 @@ function TaskCard({ task, onOpenDetail, visibleFields, campaignLabel }: { task: 
               padding: '2px 6px', borderRadius: 4,
             }}>
               {task.priority === 'alerta_roja' ? '🚨 Alerta' : task.priority === 'alta' ? '↑ Alta' : task.priority === 'media' ? '→ Media' : '↓ Baja'}
+            </span>
+          )}
+          {visibleFields.has('status') && (
+            <span style={{
+              fontSize: 9, fontWeight: 700,
+              color: STATUS_COLORS[task.status],
+              backgroundColor: `${STATUS_COLORS[task.status]}15`,
+              padding: '2px 6px', borderRadius: 4,
+              border: `1px solid ${STATUS_COLORS[task.status]}30`,
+            }}>
+              {STATUS_LABELS[task.status]}
             </span>
           )}
           {visibleFields.has('overdue') && (() => {
