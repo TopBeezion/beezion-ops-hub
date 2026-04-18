@@ -19,7 +19,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical, Plus, ChevronDown, SlidersHorizontal, X } from 'lucide-react'
+import { GripVertical, Plus, ChevronDown, SlidersHorizontal, X, Eye, EyeOff } from 'lucide-react'
 import type { Task, TaskStatus, Area, Client, Priority, Etapa } from '../types'
 import {
   AREA_LABELS, AREA_COLORS,
@@ -527,12 +527,14 @@ export function KanbanPage() {
     filterAreas: string[]
     filterAssignees: string[]
     visibleFields: string[]
+    hideDone: boolean
   }>('kanban', {
     groupBy: 'status',
     filterClients: [],
     filterAreas: [],
     filterAssignees: [],
     visibleFields: DEFAULT_CARD_FIELDS,
+    hideDone: false,
   })
   const groupBy = prefs.groupBy
   const setGroupBy = (v: GroupByKey) => setPrefs({ ...prefs, groupBy: v })
@@ -545,6 +547,8 @@ export function KanbanPage() {
   const filterAssignees = prefs.filterAssignees
   const setFilterAssignees = (v: string[] | ((p: string[]) => string[])) =>
     setPrefs({ ...prefs, filterAssignees: typeof v === 'function' ? v(prefs.filterAssignees) : v })
+  const hideDone = prefs.hideDone ?? false
+  const setHideDone = (v: boolean) => setPrefs({ ...prefs, hideDone: v })
   const [draggedTask, setDraggedTask] = useState<Task | null>(null)
   const visibleFields = useMemo(() => new Set(prefs.visibleFields), [prefs.visibleFields])
   const setVisibleFields = (updater: (prev: Set<string>) => Set<string>) => {
@@ -592,6 +596,7 @@ export function KanbanPage() {
   }, [urlCampaignId, urlCampaign, campaigns])
 
   const filteredTasks = useMemo(() => tasks.filter(task => {
+    if (hideDone && task.status === 'done') return false
     if (urlCampaignIds.size > 0 && !urlCampaignIds.has(task.campaign_id ?? '')) return false
     if (urlClientId && task.client_id !== urlClientId) return false
     if (filterClients.length && !filterClients.includes(task.client_id ?? '')) return false
@@ -601,7 +606,7 @@ export function KanbanPage() {
       if (!names.some(n => filterAssignees.includes(n))) return false
     }
     return true
-  }), [tasks, filterClients, filterAreas, filterAssignees, urlCampaignIds, urlClientId])
+  }), [tasks, filterClients, filterAreas, filterAssignees, urlCampaignIds, urlClientId, hideDone])
 
   // Build campaign label map: child campaigns show "ParentName · ChildName"
   const campaignLabelMap = useMemo(() => {
@@ -780,6 +785,24 @@ export function KanbanPage() {
             </div>
           )}
         </div>
+        {/* Hide done toggle */}
+        <button
+          onClick={() => setHideDone(!hideDone)}
+          style={{
+            height: 32, padding: '0 10px', fontSize: 11, fontWeight: 700,
+            color: hideDone ? '#10B981' : C.sub,
+            backgroundColor: hideDone ? '#ECFDF5' : '#fff',
+            border: `1px solid ${hideDone ? '#6EE7B7' : C.border}`,
+            borderRadius: 8, cursor: 'pointer',
+            display: 'inline-flex', alignItems: 'center', gap: 5,
+            transition: 'all 0.12s',
+          }}
+          title={hideDone ? 'Mostrar tareas completadas' : 'Ocultar tareas completadas'}
+        >
+          {hideDone ? <EyeOff size={12} /> : <Eye size={12} />}
+          {hideDone ? 'Done oculto' : 'Ocultar done'}
+        </button>
+
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 10, color: C.muted }}>{filteredTasks.length} tareas · {columns.length} col.</span>
           {hasFilters && (
