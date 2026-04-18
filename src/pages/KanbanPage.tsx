@@ -568,8 +568,18 @@ export function KanbanPage() {
   const urlCampaign = useMemo(() => campaigns.find(c => c.id === urlCampaignId), [campaigns, urlCampaignId])
   const urlClient = useMemo(() => clients.find(c => c.id === (urlClientId || urlCampaign?.client_id)), [clients, urlClientId, urlCampaign])
 
+  // For group campaigns, include all child campaign IDs in the filter
+  const urlCampaignIds = useMemo(() => {
+    if (!urlCampaignId) return new Set<string>()
+    const ids = new Set<string>([urlCampaignId])
+    if (urlCampaign?.kind === 'group') {
+      campaigns.filter(c => c.parent_campaign_id === urlCampaignId).forEach(c => ids.add(c.id))
+    }
+    return ids
+  }, [urlCampaignId, urlCampaign, campaigns])
+
   const filteredTasks = useMemo(() => tasks.filter(task => {
-    if (urlCampaignId && task.campaign_id !== urlCampaignId) return false
+    if (urlCampaignIds.size > 0 && !urlCampaignIds.has(task.campaign_id ?? '')) return false
     if (urlClientId && task.client_id !== urlClientId) return false
     if (filterClients.length && !filterClients.includes(task.client_id ?? '')) return false
     if (filterAreas.length && !filterAreas.includes(task.area ?? '')) return false
@@ -578,7 +588,7 @@ export function KanbanPage() {
       if (!names.some(n => filterAssignees.includes(n))) return false
     }
     return true
-  }), [tasks, filterClients, filterAreas, filterAssignees, urlCampaignId, urlClientId])
+  }), [tasks, filterClients, filterAreas, filterAssignees, urlCampaignIds, urlClientId])
 
   const columns = useMemo(() => buildColumns(groupBy, clients, filteredTasks), [groupBy, clients, filteredTasks])
 
