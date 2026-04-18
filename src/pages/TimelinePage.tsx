@@ -6,8 +6,8 @@ import type { Task } from '../types'
 import { AREA_COLORS, AREA_LABELS, STATUS_COLORS, STATUS_LABELS, ASSIGNEE_COLORS } from '../lib/constants'
 import { X, ChevronDown, ChevronLeft, ChevronRight, Zap, Calendar } from 'lucide-react'
 import {
-  startOfWeek, endOfWeek, addWeeks, subWeeks, format, isWithinInterval,
-  parseISO, isSameMonth, getISOWeek, startOfDay,
+  startOfWeek, endOfWeek, addWeeks, subWeeks, addDays, format, isWithinInterval,
+  parseISO, isSameMonth, isSameDay, getISOWeek, startOfDay,
 } from 'date-fns'
 import { es } from 'date-fns/locale'
 
@@ -375,6 +375,30 @@ function WeekHeader({ start, end, isToday }: { start: Date; end: Date; isToday: 
   )
 }
 
+// ── Day header (daily view) ──────────────────────────────────────
+function DayHeader({ date, isToday }: { date: Date; isToday: boolean }) {
+  const dayLabel = format(date, 'EEEE', { locale: es })
+  const dateLabel = format(date, 'd MMM', { locale: es })
+  return (
+    <div style={{
+      padding: '10px 10px',
+      borderRight: `1px solid ${C.border}`,
+      borderBottom: `1px solid ${C.border}`,
+      background: isToday ? C.todayBg : 'transparent',
+      borderTop: isToday ? `3px solid ${C.todayBorder}` : '3px solid transparent',
+    }}>
+      <p style={{ fontSize: 9, fontWeight: 700, color: isToday ? C.todayBorder : C.muted, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+        {dayLabel}{isToday ? ' · HOY' : ''}
+      </p>
+      <p style={{ fontSize: 12, fontWeight: 700, color: C.text, marginTop: 2, textTransform: 'capitalize' }}>
+        {dateLabel}
+      </p>
+    </div>
+  )
+}
+
+type ViewMode = 'weeks' | 'days'
+
 // ── Main Page ─────────────────────────────────────────────────────
 export function TimelinePage() {
   const { openTaskDetail } = useOutletContext<{ openTaskDetail?: (t: Task) => void }>()
@@ -383,6 +407,9 @@ export function TimelinePage() {
   const [areaFilter,     setAreaFilter]     = useState('')
   const [assigneeFilter, setAssigneeFilter] = useState('')
   const [clientFilter,   setClientFilter]   = useState('')
+  const [viewMode, setViewMode] = useState<ViewMode>(() =>
+    (localStorage.getItem('timeline_view') as ViewMode) || 'weeks'
+  )
   const [numWeeks, setNumWeeks] = useState<number>(() => {
     const v = Number(localStorage.getItem('timeline_weeks'))
     return [6, 8, 12, 16].includes(v) ? v : 8
@@ -390,6 +417,7 @@ export function TimelinePage() {
   const [anchor, setAnchor] = useState<Date>(() => startOfWeek(new Date(), { weekStartsOn: 1 }))
 
   useEffect(() => { localStorage.setItem('timeline_weeks', String(numWeeks)) }, [numWeeks])
+  useEffect(() => { localStorage.setItem('timeline_view', viewMode) }, [viewMode])
 
   const weeks = useMemo(() => {
     return Array.from({ length: numWeeks }, (_, i) => {
@@ -399,8 +427,13 @@ export function TimelinePage() {
     })
   }, [anchor, numWeeks])
 
-  const rangeStart = weeks[0].start
-  const rangeEnd = weeks[weeks.length - 1].end
+  // Days for daily view (Mon–Fri of current anchor week)
+  const days = useMemo(() => {
+    return Array.from({ length: 5 }, (_, i) => addDays(anchor, i))
+  }, [anchor])
+
+  const rangeStart = viewMode === 'days' ? days[0] : weeks[0].start
+  const rangeEnd = viewMode === 'days' ? endOfWeek(anchor, { weekStartsOn: 1 }) : weeks[weeks.length - 1].end
   const today = startOfDay(new Date())
 
   // Group months across weeks for header band
@@ -455,6 +488,13 @@ export function TimelinePage() {
       return isWithinInterval(d, { start: weekStart, end: weekEnd })
     })
 
+  const getClientDayTasks = (clientId: string, day: Date) =>
+    tasksInRange.filter(t => {
+      if (t.client_id !== clientId) return false
+      const d = parseISO(t.due_date!)
+      return isSameDay(d, day)
+    })
+
   if (isLoading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200, backgroundColor: C.bg }}>
@@ -463,7 +503,8 @@ export function TimelinePage() {
     )
   }
 
-  const gridTemplate = `200px repeat(${numWeeks}, minmax(160px, 1fr))`
+  const numCols = viewMode === 'days' ? 5 : numWeeks
+  const gridTemplate = `200px repeat(${numCols}, minmax(160px, 1fr))`
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', backgroundColor: C.bg }}>
@@ -495,10 +536,25 @@ export function TimelinePage() {
 
         <div style={{ flex: 1 }} />
 
+        {/* View mode toggle */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 2, border: `1px solid ${C.border}`, borderRadius: 8, padding: 2, backgroundColor: '#F5F6FA' }}>
+          {([['weeks', 'Semanas'], ['days', 'Días']] as const).map(([mode, label]) => (
+            <button
+              key={mode}
+              onClick={() => setViewMode(mode)}
+              style={{
+                fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                backgroundColor: viewMode === mode ? C.accent : 'transparent',
+                color: viewMode === mode ? '#fff' : C.sub,
+              }}
+            >{label}</button>
+          ))}
+        </div>
+
         {/* Nav controls */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, border: `1px solid ${C.border}`, borderRadius: 8, padding: 2, backgroundColor: '#F5F6FA' }}>
           <button
-            onClick={() => setAnchor(a => subWeeks(a, numWeeks))}
+            onClick={() => setAnchor(a => viewMode === 'days' ? subWeeks(a, 1) : subWeeks(a, numWeeks))}
             title="Retroceder"
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, border: 'none', background: 'transparent', borderRadius: 6, cursor: 'pointer', color: C.sub }}
             onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#E4E7F0' }}
@@ -510,7 +566,7 @@ export function TimelinePage() {
             style={{ fontSize: 10, fontWeight: 700, color: C.accent, background: 'transparent', border: 'none', padding: '4px 8px', borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}
           ><Calendar size={11} /> Hoy</button>
           <button
-            onClick={() => setAnchor(a => addWeeks(a, numWeeks))}
+            onClick={() => setAnchor(a => viewMode === 'days' ? addWeeks(a, 1) : addWeeks(a, numWeeks))}
             title="Avanzar"
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, border: 'none', background: 'transparent', borderRadius: 6, cursor: 'pointer', color: C.sub }}
             onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#E4E7F0' }}
@@ -518,68 +574,77 @@ export function TimelinePage() {
           ><ChevronRight size={14} /></button>
         </div>
 
-        {/* Range picker */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 2, border: `1px solid ${C.border}`, borderRadius: 8, padding: 2, backgroundColor: '#F5F6FA' }}>
-          {[6, 8, 12, 16].map(n => (
-            <button
-              key={n}
-              onClick={() => setNumWeeks(n)}
-              style={{
-                fontSize: 10, fontWeight: 700, padding: '4px 8px', borderRadius: 6, border: 'none', cursor: 'pointer',
-                backgroundColor: numWeeks === n ? C.accent : 'transparent',
-                color: numWeeks === n ? '#fff' : C.sub,
-              }}
-            >{n}s</button>
-          ))}
-        </div>
+        {/* Range picker (weeks mode only) */}
+        {viewMode === 'weeks' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 2, border: `1px solid ${C.border}`, borderRadius: 8, padding: 2, backgroundColor: '#F5F6FA' }}>
+            {[6, 8, 12, 16].map(n => (
+              <button
+                key={n}
+                onClick={() => setNumWeeks(n)}
+                style={{
+                  fontSize: 10, fontWeight: 700, padding: '4px 8px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                  backgroundColor: numWeeks === n ? C.accent : 'transparent',
+                  color: numWeeks === n ? '#fff' : C.sub,
+                }}
+              >{n}s</button>
+            ))}
+          </div>
+        )}
+        {viewMode === 'days' && (
+          <span style={{ fontSize: 11, fontWeight: 600, color: C.sub }}>
+            Semana {getISOWeek(anchor)} · {format(anchor, 'd MMM', { locale: es })} – {format(addDays(anchor, 4), 'd MMM', { locale: es })}
+          </span>
+        )}
 
         <span style={{ fontSize: 11, color: C.muted, fontWeight: 500 }}>{tasksInRange.length} tareas · {tasksNoDate.length} sin fecha</span>
       </div>
 
       {/* ── Grid ──────────────────────────────────────────────────── */}
       <div style={{ flex: 1, overflow: 'auto' }}>
-        <div style={{ minWidth: 200 + numWeeks * 160 }}>
+        <div style={{ minWidth: 200 + numCols * 160 }}>
 
-          {/* Month bands */}
+          {/* Month bands (weeks mode only) */}
+          {viewMode === 'weeks' && (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: gridTemplate,
+              position: 'sticky', top: 0, zIndex: 11,
+              backgroundColor: C.headerBg,
+              borderBottom: `1px solid ${C.border}`,
+            }}>
+              <div style={{ padding: '6px 14px', borderRight: `1px solid ${C.border}` }} />
+              {(() => {
+                const cells: React.ReactNode[] = []
+                let offset = 0
+                for (const band of monthBands) {
+                  cells.push(
+                    <div
+                      key={`${band.label}-${offset}`}
+                      style={{
+                        gridColumn: `span ${band.span}`,
+                        padding: '6px 10px',
+                        borderRight: `1px solid ${C.border}`,
+                        background: `linear-gradient(180deg, ${band.color}10, transparent)`,
+                        borderTop: `3px solid ${band.color}`,
+                      }}
+                    >
+                      <span style={{ fontSize: 11, fontWeight: 800, color: band.color, textTransform: 'capitalize', letterSpacing: '0.02em' }}>
+                        {band.label}
+                      </span>
+                    </div>,
+                  )
+                  offset += band.span
+                }
+                return cells
+              })()}
+            </div>
+          )}
+
+          {/* Column headers */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: gridTemplate,
-            position: 'sticky', top: 0, zIndex: 11,
-            backgroundColor: C.headerBg,
-            borderBottom: `1px solid ${C.border}`,
-          }}>
-            <div style={{ padding: '6px 14px', borderRight: `1px solid ${C.border}` }} />
-            {(() => {
-              const cells: React.ReactNode[] = []
-              let offset = 0
-              for (const band of monthBands) {
-                cells.push(
-                  <div
-                    key={`${band.label}-${offset}`}
-                    style={{
-                      gridColumn: `span ${band.span}`,
-                      padding: '6px 10px',
-                      borderRight: `1px solid ${C.border}`,
-                      background: `linear-gradient(180deg, ${band.color}10, transparent)`,
-                      borderTop: `3px solid ${band.color}`,
-                    }}
-                  >
-                    <span style={{ fontSize: 11, fontWeight: 800, color: band.color, textTransform: 'capitalize', letterSpacing: '0.02em' }}>
-                      {band.label}
-                    </span>
-                  </div>,
-                )
-                offset += band.span
-              }
-              return cells
-            })()}
-          </div>
-
-          {/* Week headers */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: gridTemplate,
-            position: 'sticky', top: 38, zIndex: 10,
+            position: 'sticky', top: viewMode === 'weeks' ? 38 : 0, zIndex: 10,
             backgroundColor: C.headerBg,
             borderBottom: `1px solid ${C.border}`,
           }}>
@@ -594,9 +659,14 @@ export function TimelinePage() {
                 {activeClients.length} activos
               </p>
             </div>
-            {weeks.map(w => (
-              <WeekHeader key={w.start.toISOString()} start={w.start} end={w.end} isToday={isWithinInterval(today, { start: w.start, end: w.end })} />
-            ))}
+            {viewMode === 'weeks'
+              ? weeks.map(w => (
+                <WeekHeader key={w.start.toISOString()} start={w.start} end={w.end} isToday={isWithinInterval(today, { start: w.start, end: w.end })} />
+              ))
+              : days.map(d => (
+                <DayHeader key={d.toISOString()} date={d} isToday={isSameDay(d, today)} />
+              ))
+            }
           </div>
 
           {/* Client rows */}
@@ -612,14 +682,24 @@ export function TimelinePage() {
                 }}
               >
                 <ClientLabel client={client} tasks={clientTasks} />
-                {weeks.map(w => (
-                  <WeekCell
-                    key={w.start.toISOString()}
-                    tasks={getClientWeekTasks(client.id, w.start, w.end)}
-                    isToday={isWithinInterval(today, { start: w.start, end: w.end })}
-                    onOpen={openTaskDetail}
-                  />
-                ))}
+                {viewMode === 'weeks'
+                  ? weeks.map(w => (
+                    <WeekCell
+                      key={w.start.toISOString()}
+                      tasks={getClientWeekTasks(client.id, w.start, w.end)}
+                      isToday={isWithinInterval(today, { start: w.start, end: w.end })}
+                      onOpen={openTaskDetail}
+                    />
+                  ))
+                  : days.map(d => (
+                    <WeekCell
+                      key={d.toISOString()}
+                      tasks={getClientDayTasks(client.id, d)}
+                      isToday={isSameDay(d, today)}
+                      onOpen={openTaskDetail}
+                    />
+                  ))
+                }
               </div>
             )
           })}
