@@ -205,7 +205,7 @@ const CARD_FIELDS = [
 
 const DEFAULT_CARD_FIELDS: string[] = ['client', 'area', 'priority', 'overdue', 'campaign', 'assignee']
 
-function TaskCard({ task, onOpenDetail, visibleFields }: { task: Task; onOpenDetail: (t: Task) => void; visibleFields: Set<string> }) {
+function TaskCard({ task, onOpenDetail, visibleFields, campaignLabel }: { task: Task; onOpenDetail: (t: Task) => void; visibleFields: Set<string>; campaignLabel?: string }) {
   const {
     attributes, listeners, setNodeRef,
     transform, transition, isDragging,
@@ -336,14 +336,14 @@ function TaskCard({ task, onOpenDetail, visibleFields }: { task: Task; onOpenDet
               📅 {new Date(task.due_date).toLocaleDateString('es', { day: '2-digit', month: 'short' })}
             </span>
           )}
-          {visibleFields.has('campaign') && task.campaign && (
+          {visibleFields.has('campaign') && (task.campaign || campaignLabel) && (
             <span style={{
               fontSize: 9, color: C.muted,
               padding: '2px 5px', borderRadius: 4,
               backgroundColor: '#F5F6FA',
-              maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>
-              {task.campaign.name}
+              {campaignLabel || task.campaign?.name}
             </span>
           )}
         </div>
@@ -401,7 +401,7 @@ function TaskCard({ task, onOpenDetail, visibleFields }: { task: Task; onOpenDet
 
 // ─── Kanban column ────────────────────────────────────────────────────────────
 function KanbanColumn({
-  column, tasks, onOpenDetail, onNewTask, showNewButton, visibleFields,
+  column, tasks, onOpenDetail, onNewTask, showNewButton, visibleFields, campaignLabelMap,
 }: {
   column: Column
   tasks: Task[]
@@ -409,6 +409,7 @@ function KanbanColumn({
   onNewTask?: () => void
   showNewButton: boolean
   visibleFields: Set<string>
+  campaignLabelMap: Map<string, string>
 }) {
   const { setNodeRef } = useSortable({ id: column.id, data: { type: 'column' } })
 
@@ -483,7 +484,7 @@ function KanbanColumn({
         ) : (
           <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
             {tasks.map(task => (
-              <TaskCard key={task.id} task={task} onOpenDetail={onOpenDetail} visibleFields={visibleFields} />
+              <TaskCard key={task.id} task={task} onOpenDetail={onOpenDetail} visibleFields={visibleFields} campaignLabel={task.campaign_id ? campaignLabelMap.get(task.campaign_id) : undefined} />
             ))}
           </SortableContext>
         )}
@@ -589,6 +590,21 @@ export function KanbanPage() {
     }
     return true
   }), [tasks, filterClients, filterAreas, filterAssignees, urlCampaignIds, urlClientId])
+
+  // Build campaign label map: child campaigns show "ParentName · ChildName"
+  const campaignLabelMap = useMemo(() => {
+    const map = new Map<string, string>()
+    const parentMap = new Map<string, string>()
+    campaigns.forEach(c => { if (c.kind === 'group') parentMap.set(c.id, c.name) })
+    campaigns.forEach(c => {
+      if (c.parent_campaign_id && parentMap.has(c.parent_campaign_id)) {
+        map.set(c.id, `${parentMap.get(c.parent_campaign_id)} · ${c.name}`)
+      } else if (c.kind !== 'group') {
+        map.set(c.id, c.name)
+      }
+    })
+    return map
+  }, [campaigns])
 
   const columns = useMemo(() => buildColumns(groupBy, clients, filteredTasks), [groupBy, clients, filteredTasks])
 
@@ -781,6 +797,7 @@ export function KanbanPage() {
                 onNewTask={openNewTask}
                 showNewButton={groupBy === 'status' ? column.id === 'pendiente' : false}
                 visibleFields={visibleFields}
+                campaignLabelMap={campaignLabelMap}
               />
             ))}
           </div>
