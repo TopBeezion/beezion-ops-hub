@@ -606,7 +606,7 @@ export function BacklogPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 2, padding: 3, borderRadius: 10, border: `1px solid ${C.border}`, backgroundColor: C.bg }}>
               <span style={{ fontSize: 9, fontWeight: 700, color: C.muted, padding: '2px 6px', letterSpacing: '0.06em' }}>AGRUPAR</span>
-              {([['none', 'Sin agrupar'], ['campaign', 'Campaña'], ['client', 'Cliente'], ['assignee', 'Persona'], ['status', 'Estado']] as [GroupByOption, string][]).map(([opt, lbl]) => (
+              {([['campaign', 'Campaña'], ['client', 'Cliente'], ['assignee', 'Persona'], ['status', 'Estado']] as [GroupByOption, string][]).map(([opt, lbl]) => (
                 <button key={opt} onClick={() => setGroupBy(opt)} style={{ padding: '4px 9px', borderRadius: 7, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: 'none', transition: 'all 0.12s', backgroundColor: groupBy === opt ? C.accent : 'transparent', color: groupBy === opt ? '#fff' : C.muted }}>
                   {lbl}
                 </button>
