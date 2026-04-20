@@ -515,27 +515,26 @@ export function BacklogPage() {
     if (!sortColumn) return list
     const dir = sortDir === 'asc' ? 1 : -1
     return [...list].sort((a, b) => {
-      let cmp = 0
       switch (sortColumn) {
-        case 'title': cmp = a.title.localeCompare(b.title, 'es'); break
-        case 'client': cmp = (a.client?.name ?? '').localeCompare(b.client?.name ?? '', 'es'); break
-        case 'status': cmp = (STATUS_RANK[a.status] ?? 99) - (STATUS_RANK[b.status] ?? 99); break
-        case 'priority': cmp = (PRIORITY_RANK[a.priority] ?? 99) - (PRIORITY_RANK[b.priority] ?? 99); break
-        case 'area': cmp = (a.area ?? '').localeCompare(b.area ?? '', 'es'); break
-        case 'assignee': cmp = (a.assignee ?? '').localeCompare(b.assignee ?? '', 'es'); break
+        case 'title': return a.title.localeCompare(b.title, 'es') * dir
+        case 'client': return (a.client?.name ?? '').localeCompare(b.client?.name ?? '', 'es') * dir
+        case 'status': return ((STATUS_RANK[a.status] ?? 99) - (STATUS_RANK[b.status] ?? 99)) * dir
+        case 'priority': return ((PRIORITY_RANK[a.priority] ?? 99) - (PRIORITY_RANK[b.priority] ?? 99)) * dir
+        case 'area': return (a.area ?? '').localeCompare(b.area ?? '', 'es') * dir
+        case 'assignee': return (a.assignee ?? '').localeCompare(b.assignee ?? '', 'es') * dir
         case 'due_date': {
           const da = a.due_date ?? ''
           const db = b.due_date ?? ''
-          if (!da && !db) cmp = 0
-          else if (!da) cmp = 1
-          else if (!db) cmp = -1
-          else cmp = da.localeCompare(db)
-          break
+          // Tasks without date always go to the bottom, regardless of sort direction
+          if (!da && !db) return 0
+          if (!da) return 1
+          if (!db) return -1
+          return da.localeCompare(db) * dir
         }
-        case 'etapa': cmp = ((a as any).etapa ?? '').localeCompare((b as any).etapa ?? '', 'es'); break
-        case 'campaign': cmp = (a.campaign?.name ?? '').localeCompare(b.campaign?.name ?? '', 'es'); break
+        case 'etapa': return ((a as any).etapa ?? '').localeCompare((b as any).etapa ?? '', 'es') * dir
+        case 'campaign': return (a.campaign?.name ?? '').localeCompare(b.campaign?.name ?? '', 'es') * dir
+        default: return 0
       }
-      return cmp * dir
     })
   }
 
