@@ -410,6 +410,8 @@ export function BacklogPage() {
     activeEtapa: Etapa | ''
     groupBy: GroupByOption
     visibleCols: string[]
+    sortColumn: string
+    sortDir: 'asc' | 'desc'
   }>('backlog', {
     search: '',
     activePersons: [],
@@ -419,6 +421,8 @@ export function BacklogPage() {
     activeEtapa: '',
     groupBy: 'campaign',
     visibleCols: [...ALL_COLS],
+    sortColumn: '',
+    sortDir: 'asc',
   })
 
   const search = prefs.search
@@ -435,6 +439,16 @@ export function BacklogPage() {
   const setEtapa = (v: Etapa | '') => setPrefs({ ...prefs, activeEtapa: v })
   const groupBy = prefs.groupBy
   const setGroupBy = (v: GroupByOption) => setPrefs({ ...prefs, groupBy: v })
+  const sortColumn = prefs.sortColumn ?? ''
+  const sortDir = prefs.sortDir ?? 'asc'
+  const toggleSort = (col: string) => {
+    if (sortColumn === col) {
+      if (sortDir === 'asc') setPrefs({ ...prefs, sortDir: 'desc' })
+      else setPrefs({ ...prefs, sortColumn: '', sortDir: 'asc' }) // third click clears
+    } else {
+      setPrefs({ ...prefs, sortColumn: col, sortDir: 'asc' })
+    }
+  }
   // Migrate legacy 'week' → 'due_date' from saved preferences
   const visibleCols = useMemo(() => {
     const cols = (prefs.visibleCols ?? []).map(c => c === 'week' ? 'due_date' : c)
@@ -493,6 +507,40 @@ export function BacklogPage() {
     return true
   })
 
+  // ── Sorting ────────────────────────────────────────────────────
+  const PRIORITY_RANK: Record<string, number> = { alerta_roja: 0, alta: 1, media: 2, baja: 3 }
+  const STATUS_RANK: Record<string, number> = { pendiente: 0, en_proceso: 1, aprobacion_interna: 2, blocker: 3, done: 4 }
+
+  const sortTasks = (list: Task[]): Task[] => {
+    if (!sortColumn) return list
+    const dir = sortDir === 'asc' ? 1 : -1
+    return [...list].sort((a, b) => {
+      let cmp = 0
+      switch (sortColumn) {
+        case 'title': cmp = a.title.localeCompare(b.title, 'es'); break
+        case 'client': cmp = (a.client?.name ?? '').localeCompare(b.client?.name ?? '', 'es'); break
+        case 'status': cmp = (STATUS_RANK[a.status] ?? 99) - (STATUS_RANK[b.status] ?? 99); break
+        case 'priority': cmp = (PRIORITY_RANK[a.priority] ?? 99) - (PRIORITY_RANK[b.priority] ?? 99); break
+        case 'area': cmp = (a.area ?? '').localeCompare(b.area ?? '', 'es'); break
+        case 'assignee': cmp = (a.assignee ?? '').localeCompare(b.assignee ?? '', 'es'); break
+        case 'due_date': {
+          const da = a.due_date ?? ''
+          const db = b.due_date ?? ''
+          if (!da && !db) cmp = 0
+          else if (!da) cmp = 1
+          else if (!db) cmp = -1
+          else cmp = da.localeCompare(db)
+          break
+        }
+        case 'etapa': cmp = ((a as any).etapa ?? '').localeCompare((b as any).etapa ?? '', 'es'); break
+        case 'campaign': cmp = (a.campaign?.name ?? '').localeCompare(b.campaign?.name ?? '', 'es'); break
+      }
+      return cmp * dir
+    })
+  }
+
+  const sorted = sortTasks(filtered)
+
   const getKeys = (t: Task): string[] => {
     if (groupBy === 'campaign') return [t.campaign_id ?? 'unassigned']
     if (groupBy === 'client')   return [t.client_id ?? 'unassigned']
@@ -519,7 +567,7 @@ export function BacklogPage() {
   }
 
   const grouped = Object.entries(
-    filtered.reduce((acc, t) => {
+    sorted.reduce((acc, t) => {
       const keys = getKeys(t)
       keys.forEach(k => { if (!acc[k]) acc[k] = []; acc[k].push(t) })
       return acc
@@ -527,7 +575,7 @@ export function BacklogPage() {
   ).map(([key, ts]) => ({ key, tasks: ts, ...getGroupMeta(key) }))
 
   const flatItems = (groupBy === 'none'
-    ? [{ isHeader: false as const, key: 'ph', label: '', color: C.accent, tasks: filtered }]
+    ? [{ isHeader: false as const, key: 'ph', label: '', color: C.accent, tasks: sorted }]
     : grouped
   ).flatMap(({ key, label, color, tasks: gt }) => [
     ...(groupBy !== 'none' ? [{ isHeader: true as const, key: `h-${key}`, groupKey: key, label, color, count: gt.length }] : []),
@@ -751,7 +799,24 @@ export function BacklogPage() {
                   />
                 </th>
                 {(([['num','#', '3%'], ['title','TAREA', '19%'], ['campaign','CAMPAÑA', '12%'], ['client','CLIENTE', '8%'], ['status','ESTADO', '9%'], ['priority','PRIORIDAD', '8%'], ['area','ÁREA', '7%'], ['etapa','ETAPA', '9%'], ['assignee','RESPONSABLE', '10%'], ['due_date','FECHA ENTREGA', '10%']]) as [string, string, string][]).filter(([k]) => visibleCols.has(k)).map(([k,l,w]) => (
-                  <th key={k} style={{ padding: '8px 14px', textAlign: 'left', fontSize: 9, fontWeight: 800, letterSpacing: '0.09em', color: C.muted, width: w, whiteSpace: 'nowrap' }}>{l}</th>
+                  <th
+                    key={k}
+                    onClick={() => k !== 'num' && toggleSort(k)}
+                    style={{
+                      padding: '8px 14px', textAlign: 'left', fontSize: 9, fontWeight: 800,
+                      letterSpacing: '0.09em', color: sortColumn === k ? C.accent : C.muted,
+                      width: w, whiteSpace: 'nowrap',
+                      cursor: k !== 'num' ? 'pointer' : 'default', userSelect: 'none',
+                      transition: 'color 0.12s',
+                    }}
+                  >
+                    {l}
+                    {sortColumn === k && (
+                      <span style={{ marginLeft: 4, fontSize: 8 }}>
+                        {sortDir === 'asc' ? '▲' : '▼'}
+                      </span>
+                    )}
+                  </th>
                 ))}
                 <th style={{ width: '4%' }} />
               </tr>
