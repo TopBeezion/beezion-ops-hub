@@ -2,19 +2,24 @@ import { useState, useEffect, useRef } from 'react'
 import {
   X, Save, ChevronDown, AlertTriangle, Check,
   Paperclip, Upload, Trash2, Download, File, Image, FileVideo, FileAudio,
-  Bot, Hand,
+  Bot, Hand, MessageSquare, ClipboardList, Eye,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useUpdateTask, useDeleteTask } from '../../hooks/useTasks'
 import { getDaysOverdue } from '../../lib/dates'
 import { useClients } from '../../hooks/useClients'
 import { useCampaignsByClient } from '../../hooks/useCampaigns'
+import { useTaskComments } from '../../hooks/useTaskComments'
+import { TaskCommentsPanel } from './TaskCommentsPanel'
+import { addNotification } from '../../hooks/useNotifications'
+import { notifyStatusChange } from '../../lib/slackNotify'
 import type { Task, Area, Priority, TaskStatus, TaskTipo, Etapa, MiniStatus, Deliverables, TaskAttachment } from '../../types'
 import {
   AREA_LABELS, AREA_COLORS, STATUS_LABELS, STATUS_COLORS,
   PRIORITY_LABELS, PRIORITY_COLORS,
   ETAPA_LABELS, ETAPA_COLORS, ETAPA_ORDER,
   MINI_STATUS_LABELS, MINI_STATUS_COLORS, MINI_STATUS_ORDER,
+  ASSIGNEE_COLORS,
 } from '../../lib/constants'
 import { getSprintDateRange } from '../../lib/dates'
 
@@ -152,6 +157,9 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
   const [saved,         setSaved]        = useState(false)
   const [showDel,       setShowDel]      = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [supervisors, setSupervisors] = useState<string[]>(task.supervisors ?? [])
+  const [activeTab, setActiveTab] = useState<'detalles' | 'comentarios'>('detalles')
+  const { data: comments = [] } = useTaskComments(task.id)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const { data: campaigns = [] } = useCampaignsByClient(clientId || undefined)
@@ -175,10 +183,17 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
     etapa !== (task.etapa ?? '') || miniStatus !== (task.mini_status ?? '') ||
     dueDate !== (task.due_date ?? '') ||
     JSON.stringify(deliverables) !== JSON.stringify(task.deliverables ?? {}) ||
-    JSON.stringify(attachments)  !== JSON.stringify(task.attachments ?? [])
+    JSON.stringify(attachments)  !== JSON.stringify(task.attachments ?? []) ||
+    JSON.stringify(supervisors)  !== JSON.stringify(task.supervisors ?? [])
+
+  const currentUser = (() => {
+    try { const s = localStorage.getItem('beezion_user'); if (s) return JSON.parse(s)?.name || 'Usuario' } catch { /* */ }
+    return 'Usuario'
+  })()
 
   const handleSave = async () => {
     setSaving(true)
+    const oldStatus = task.status
     try {
       await updateTask.mutateAsync({
         id: task.id, title, description: description || undefined,
@@ -188,7 +203,33 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
         mini_status: miniStatus || undefined, due_date: dueDate || undefined,
         deliverables: Object.keys(deliverables).length > 0 ? deliverables : undefined,
         attachments:  attachments.length > 0 ? attachments : undefined,
+        supervisors,
       })
+
+      // Notify supervisors on status change
+      if (status !== oldStatus && supervisors.length > 0) {
+        const oldLabel = STATUS_LABELS[oldStatus] || oldStatus
+        const newLabel = STATUS_LABELS[status] || status
+        // In-app notifications
+        for (const sup of supervisors) {
+          addNotification({
+            id: `status-${task.id}-${Date.now()}-${sup}`,
+            type: 'status_change',
+            title: `🔄 Cambio de status`,
+            body: `"${title}" cambió de ${oldLabel} → ${newLabel} (por ${currentUser})`,
+            taskId: task.id,
+            taskTitle: title,
+            timestamp: new Date().toISOString(),
+            read: false,
+          })
+        }
+        // Slack DMs
+        notifyStatusChange({
+          supervisors, taskId: task.id, taskTitle: title,
+          oldStatus: oldLabel, newStatus: newLabel, changedBy: currentUser,
+        })
+      }
+
       setSaved(true); setTimeout(() => setSaved(false), 2000)
     } finally { setSaving(false) }
   }
@@ -346,7 +387,44 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
           </div>
         </div>
 
-        {/* ── Scrollable body ── */}
+        {/* ── Tab bar ── */}
+        <div style={{ display: 'flex', borderBottom: '1px solid #E5E7EB', flexShrink: 0, backgroundColor: '#FAFBFC', padding: '0 20px' }}>
+          {([
+            { key: 'detalles' as const, label: 'Detalles', icon: ClipboardList },
+            { key: 'comentarios' as const, label: 'Comentarios', icon: MessageSquare, badge: comments.length },
+          ]).map(tab => {
+            const active = activeTab === tab.key
+            return (
+              <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
+                display: 'flex', alignItems: 'center', gap: 5, padding: '10px 16px',
+                fontSize: 12, fontWeight: active ? 700 : 500, cursor: 'pointer', border: 'none',
+                backgroundColor: 'transparent', color: active ? '#6366F1' : '#9CA3AF',
+                borderBottom: active ? '2px solid #6366F1' : '2px solid transparent',
+                transition: 'all 0.15s', marginBottom: -1,
+              }}>
+                <tab.icon size={14} />
+                {tab.label}
+                {(tab.badge ?? 0) > 0 && (
+                  <span style={{
+                    fontSize: 9, fontWeight: 700, backgroundColor: active ? '#6366F1' : '#E5E7EB',
+                    color: active ? '#fff' : '#6B7280', padding: '1px 6px', borderRadius: 10,
+                  }}>
+                    {tab.badge}
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* ── Tab content ── */}
+        {activeTab === 'comentarios' ? (
+          <div className="flex-1 overflow-hidden" style={{ display: 'flex', flexDirection: 'column' }}>
+            <TaskCommentsPanel taskId={task.id} taskTitle={task.title} />
+          </div>
+        ) : (
+
+        /* ── Scrollable body (Detalles tab) ── */
         <div className="flex-1 overflow-auto" style={{ padding: '18px 20px 32px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
 
@@ -412,6 +490,46 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
                   <AlertTriangle size={11} color="#D97706" />
                   <span style={{ fontSize: 11, color: '#92400E' }}>{assignee} normalmente no trabaja en <strong>{AREA_LABELS[area]}</strong>.</span>
                 </div>
+              )}
+            </div>
+
+            {/* Supervisa */}
+            <div>
+              {sLbl('Supervisa')}
+              <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                {ASSIGNEES.map(a => {
+                  const active = supervisors.includes(a.name)
+                  return (
+                    <button key={a.name} onClick={() => {
+                      setSupervisors(prev => active ? prev.filter(n => n !== a.name) : [...prev, a.name])
+                    }} style={{
+                      display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px',
+                      borderRadius: 20, cursor: 'pointer', border: 'none',
+                      fontSize: 11, fontWeight: active ? 700 : 500,
+                      backgroundColor: active ? `${a.color}15` : '#FAFBFC',
+                      outline: active ? `1.5px solid ${a.color}50` : '1.5px solid #F0F0F0',
+                      color: active ? a.color : '#9CA3AF',
+                      transition: 'all 0.12s',
+                    }}>
+                      <Eye size={10} />
+                      <div style={{
+                        width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 7, fontWeight: 800,
+                        background: active ? a.color : `${a.color}25`,
+                        color: active ? '#fff' : a.color,
+                      }}>
+                        {a.name.slice(0, 2).toUpperCase()}
+                      </div>
+                      {a.name}
+                    </button>
+                  )
+                })}
+              </div>
+              {supervisors.length > 0 && (
+                <p style={{ fontSize: 10, color: '#9CA3AF', marginTop: 5 }}>
+                  {supervisors.join(', ')} {supervisors.length === 1 ? 'recibirá' : 'recibirán'} notificación en cada cambio de status.
+                </p>
               )}
             </div>
 
@@ -567,6 +685,7 @@ export function TaskDetailDrawer({ task, onClose }: Props) {
 
           </div>
         </div>
+        )}
       </div>
     </div>
   )

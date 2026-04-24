@@ -129,6 +129,17 @@ export interface Task {
   campaign?: Campaign
   deliverables?: Deliverables
   attachments?: TaskAttachment[]
+  supervisors?: string[]
+}
+
+export interface TaskComment {
+  id: string
+  task_id: string
+  author: string
+  body: string
+  mentions: string[]
+  created_at: string
+  updated_at: string
 }
 
 export interface Subtask {

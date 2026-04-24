@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Bell, AlertTriangle } from 'lucide-react'
+import { Bell, AlertTriangle, MessageSquare, RefreshCw } from 'lucide-react'
 import { useNotifications, useMeetingTaskWatcher, useOverdueNotifier } from '../../hooks/useNotifications'
 import { AREA_COLORS } from '../../lib/constants'
 
@@ -119,8 +119,66 @@ export function NotificationBell({ onOpenTask }: { onOpenTask?: (taskId: string)
                     borderBottom: idx < notifications.length - 1 ? `1px solid ${N.headerBorder}` : 'none',
                   }}
                 >
-                  {/* Overdue notification */}
-                  {n.type === 'overdue_tasks' ? (
+                  {/* Mention notification */}
+                  {n.type === 'mention' ? (
+                    <button
+                      onClick={() => { if (n.taskId) onOpenTask?.(n.taskId); setOpen(false) }}
+                      style={{
+                        width: '100%', textAlign: 'left', padding: '14px 16px',
+                        border: 'none', cursor: 'pointer', backgroundColor: 'transparent',
+                        transition: 'background 0.1s',
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = N.hover)}
+                      onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                        <div style={{
+                          width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+                          backgroundColor: '#EEF2FF', border: '1px solid #C7D2FE',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                          <MessageSquare size={14} color="#6366F1" />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: 13, fontWeight: 700, color: N.text, margin: 0 }}>{n.title}</p>
+                          <p style={{ fontSize: 11, color: '#4B5563', margin: '4px 0 0', lineHeight: 1.4 }}>{n.body}</p>
+                          <p style={{ fontSize: 10, color: '#9CA3AF', marginTop: 4 }}>
+                            {new Date(n.timestamp).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+
+                  ) : n.type === 'status_change' ? (
+                    <button
+                      onClick={() => { if (n.taskId) onOpenTask?.(n.taskId); setOpen(false) }}
+                      style={{
+                        width: '100%', textAlign: 'left', padding: '14px 16px',
+                        border: 'none', cursor: 'pointer', backgroundColor: 'transparent',
+                        transition: 'background 0.1s',
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = N.hover)}
+                      onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                        <div style={{
+                          width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+                          backgroundColor: '#FEF3C7', border: '1px solid #FDE68A',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                          <RefreshCw size={14} color="#D97706" />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: 13, fontWeight: 700, color: N.text, margin: 0 }}>{n.title}</p>
+                          <p style={{ fontSize: 11, color: '#4B5563', margin: '4px 0 0', lineHeight: 1.4 }}>{n.body}</p>
+                          <p style={{ fontSize: 10, color: '#9CA3AF', marginTop: 4 }}>
+                            {new Date(n.timestamp).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+
+                  ) : n.type === 'overdue_tasks' ? (
                     <div style={{ padding: '14px 16px' }}>
                       <div style={{
                         backgroundColor: '#FEF2F2', border: '1px solid #FECACA',
@@ -133,7 +191,7 @@ export function NotificationBell({ onOpenTask }: { onOpenTask?: (taskId: string)
                         <p style={{ fontSize: 11, color: '#991B1B', marginLeft: 21, fontWeight: 500, margin: 0, marginTop: 2, lineHeight: 1.4 }}>{n.body}</p>
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        {n.tasks.slice(0, 6).map(t => {
+                        {(n.tasks ?? []).slice(0, 6).map(t => {
                           const areaColor = AREA_COLORS[t.area as keyof typeof AREA_COLORS] ?? '#6b7280'
                           return (
                             <button
@@ -169,7 +227,7 @@ export function NotificationBell({ onOpenTask }: { onOpenTask?: (taskId: string)
                             </button>
                           )
                         })}
-                        {n.tasks.length > 6 && (
+                        {(n.tasks ?? []).length > 6 && (
                           <p style={{ fontSize: 11, textAlign: 'center', padding: '4px 0', color: '#9CA3AF', fontWeight: 500 }}>
                             +{n.tasks.length - 6} tareas más atrasadas
                           </p>
@@ -189,7 +247,7 @@ export function NotificationBell({ onOpenTask }: { onOpenTask?: (taskId: string)
                         </span>
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        {n.tasks.slice(0, 5).map(t => {
+                        {(n.tasks ?? []).slice(0, 5).map(t => {
                           const areaColor = AREA_COLORS[t.area as keyof typeof AREA_COLORS] ?? '#6b7280'
                           const assigneeColor = ASSIGNEE_COLORS[t.assignee] ?? '#6b7280'
                           return (
@@ -226,7 +284,7 @@ export function NotificationBell({ onOpenTask }: { onOpenTask?: (taskId: string)
                             </button>
                           )
                         })}
-                        {n.tasks.length > 5 && (
+                        {(n.tasks ?? []).length > 5 && (
                           <p style={{ fontSize: 11, textAlign: 'center', padding: '4px 0', color: '#9CA3AF', fontWeight: 500 }}>
                             +{n.tasks.length - 5} tareas más en el backlog
                           </p>

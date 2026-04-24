@@ -1,27 +1,25 @@
-import { useState, useMemo, useRef, useEffect } from 'react'
-import { useTasks, useUpdateTaskStatus } from '../hooks/useTasks'
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
+import { useTasks, useUpdateTask } from '../hooks/useTasks'
 import { getDaysOverdue } from '../lib/dates'
 import { useClients } from '../hooks/useClients'
 import { useOutletContext } from 'react-router-dom'
 import {
   DndContext,
   DragOverlay,
-  closestCenter,
+  useDroppable,
+  useDraggable,
+  rectIntersection,
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
-import {
-  SortableContext,
-  useSortable,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
-import { GripVertical, Plus, ChevronDown } from 'lucide-react'
-import type { Task, TaskStatus, Area, Client } from '../types'
+import { ChevronDown, Plus, GripVertical, Eye, EyeOff } from 'lucide-react'
+import type { Task, TaskStatus, Area, Etapa, Client } from '../types'
 import {
   AREA_LABELS, AREA_COLORS,
   PRIORITY_COLORS, ASSIGNEE_COLORS,
-  STATUS_LABELS,
+  STATUS_LABELS, STATUS_COLORS, STATUS_ORDER,
+  ETAPA_LABELS, ETAPA_COLORS, ETAPA_ORDER,
+  KANBAN_GROUP_BY_OPTIONS, DEFAULT_KANBAN_CARD_FIELDS,
 } from '../lib/constants'
 
 // ─── Tokens ───────────────────────────────────────────────────────────────────
@@ -35,23 +33,64 @@ const C = {
   accent: '#6366F1',
 }
 
-const COLUMNS: { id: TaskStatus; label: string; color: string; bg: string }[] = [
-  { id: 'todo',   label: 'Pendiente',  color: '#9699B0', bg: '#F4F5F7' },
-  { id: 'en_progreso', label: 'En Proceso', color: '#3B82F6', bg: '#EFF6FF' },
-  { id: 'revision',    label: 'Blocker',    color: '#EF4444', bg: '#FEF2F2' },
-  { id: 'hecho',  label: 'Done',       color: '#10B981', bg: '#F0FDF4' },
-]
+// ─── Column definitions per groupBy ──────────────────────────────────────────
+type GroupByKey = (typeof KANBAN_GROUP_BY_OPTIONS)[number]['key']
 
-const KANBAN_ASSIGNEES = [
-  { name: 'Alejandro', color: '#8B5CF6' },
-  { name: 'Alec',      color: '#F59E0B' },
-  { name: 'Jose',      color: '#3B82F6' },
-  { name: 'Luisa',     color: '#EF4444' },
-  { name: 'Paula',     color: '#EC4899' },
-  { name: 'David',     color: '#06B6D4' },
-  { name: 'Johan',     color: '#10B981' },
-  { name: 'Felipe',    color: '#F97316' },
-]
+interface ColumnDef {
+  id: string
+  label: string
+  color: string
+}
+
+function getColumnsForGroupBy(groupBy: GroupByKey, clients: Client[]): ColumnDef[] {
+  switch (groupBy) {
+    case 'etapa':
+      return ETAPA_ORDER.map(e => ({ id: e, label: ETAPA_LABELS[e], color: ETAPA_COLORS[e] }))
+    case 'status':
+      return STATUS_ORDER.map(s => ({ id: s, label: STATUS_LABELS[s], color: STATUS_COLORS[s] }))
+    case 'assignee':
+      return Object.entries(ASSIGNEE_COLORS).map(([name, color]) => ({ id: name, label: name, color }))
+    case 'priority':
+      return [
+        { id: 'alerta_roja', label: '🚨 Alerta Roja', color: '#DC2626' },
+        { id: 'alta', label: 'Alta', color: '#EF4444' },
+        { id: 'media', label: 'Media', color: '#F59E0B' },
+        { id: 'baja', label: 'Baja', color: '#9CA3AF' },
+      ]
+    case 'area':
+      return (Object.entries(AREA_LABELS) as [Area, string][]).map(([k, label]) => ({
+        id: k, label, color: AREA_COLORS[k],
+      }))
+    case 'client':
+      return clients.map(c => ({ id: c.id, label: c.name, color: c.color || '#6366F1' }))
+    default:
+      return ETAPA_ORDER.map(e => ({ id: e, label: ETAPA_LABELS[e], color: ETAPA_COLORS[e] }))
+  }
+}
+
+function getTaskGroupValue(task: Task, groupBy: GroupByKey): string {
+  switch (groupBy) {
+    case 'etapa': return task.etapa || ''
+    case 'status': return task.status
+    case 'assignee': return task.assignee || ''
+    case 'priority': return task.priority
+    case 'area': return task.area || ''
+    case 'client': return task.client_id || ''
+    default: return ''
+  }
+}
+
+function getUpdateField(groupBy: GroupByKey): string {
+  switch (groupBy) {
+    case 'etapa': return 'etapa'
+    case 'status': return 'status'
+    case 'assignee': return 'assignee'
+    case 'priority': return 'priority'
+    case 'area': return 'area'
+    case 'client': return 'client_id'
+    default: return 'etapa'
+  }
+}
 
 // ─── usePopover ───────────────────────────────────────────────────────────────
 function useKanbanPopover() {
@@ -101,7 +140,7 @@ function KFDrop({ label, options, multiValues, onMultiChange, showAvatar }: {
           position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 400,
           backgroundColor: '#fff', border: `1px solid ${C.border}`,
           borderRadius: 10, boxShadow: '0 8px 28px rgba(0,0,0,0.13)',
-          padding: 4, minWidth: 190,
+          padding: 4, minWidth: 190, maxHeight: 300, overflowY: 'auto',
         }}>
           {options.map(o => {
             const isSel = multiValues.includes(o.value)
@@ -129,30 +168,129 @@ function KFDrop({ label, options, multiValues, onMultiChange, showAvatar }: {
   )
 }
 
-// ─── Task card ────────────────────────────────────────────────────────────────
-function TaskCard({ task, onOpenDetail }: { task: Task; onOpenDetail: (t: Task) => void }) {
-  const {
-    attributes, listeners, setNodeRef,
-    transform, transition, isDragging,
-  } = useSortable({ id: task.id })
-
-  const clientColor = (task.client as Client & { color: string })?.color
-  const assigneeColor = ASSIGNEE_COLORS[task.assignee] || C.muted
-  const areaColor = AREA_COLORS[task.area] || C.muted
-  const priorityColor = PRIORITY_COLORS[task.priority] || C.muted
-  const isUrgent = task.tipo === 'urgente'
+// ─── GroupBy Select ───────────────────────────────────────────────────────────
+function GroupBySelect({ value, onChange }: { value: GroupByKey; onChange: (v: GroupByKey) => void }) {
+  const { open, setOpen, ref } = useKanbanPopover()
+  const current = KANBAN_GROUP_BY_OPTIONS.find(o => o.key === value)
 
   return (
-    <div
-      ref={setNodeRef}
-      style={{
-        transform: CSS.Transform.toString(transform),
-        transition,
-        opacity: isDragging ? 0.4 : 1,
-      }}
-      className="group"
-      {...attributes}
-    >
+    <div ref={ref} style={{ position: 'relative', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+      <span style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: '0.04em' }}>AGRUPAR</span>
+      <button onClick={() => setOpen(o => !o)} style={{
+        display: 'inline-flex', alignItems: 'center', gap: 5, height: 32, padding: '0 12px',
+        borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+        border: 'none', backgroundColor: `${C.accent}12`,
+        outline: `1.5px solid ${C.accent}40`, color: C.accent,
+      }}>
+        {current?.label ?? 'Etapa'}
+        <ChevronDown size={10} style={{ transform: open ? 'rotate(180deg)' : 'none', transition: '0.15s' }} />
+      </button>
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 400,
+          backgroundColor: '#fff', border: `1px solid ${C.border}`,
+          borderRadius: 10, boxShadow: '0 8px 28px rgba(0,0,0,0.13)',
+          padding: 4, minWidth: 170,
+        }}>
+          {KANBAN_GROUP_BY_OPTIONS.map(o => {
+            const isSel = o.key === value
+            return (
+              <button key={o.key} onClick={() => { onChange(o.key); setOpen(false) }} style={{
+                display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+                padding: '8px 12px', borderRadius: 7, border: 'none', cursor: 'pointer',
+                backgroundColor: isSel ? `${C.accent}12` : 'transparent', textAlign: 'left',
+              }}
+              onMouseEnter={e => { if (!isSel) (e.currentTarget as HTMLElement).style.backgroundColor = '#F5F6FA' }}
+              onMouseLeave={e => { if (!isSel) (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent' }}>
+                <span style={{ fontSize: 12, fontWeight: isSel ? 700 : 500, color: isSel ? C.accent : C.text }}>{o.label}</span>
+                {isSel && <span style={{ fontSize: 11, color: C.accent }}>✓</span>}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── FieldsToggle ─────────────────────────────────────────────────────────────
+const ALL_CARD_FIELDS = [
+  { key: 'client', label: 'Cliente' },
+  { key: 'etapa', label: 'Etapa' },
+  { key: 'status', label: 'Status' },
+  { key: 'priority', label: 'Prioridad' },
+  { key: 'assignee', label: 'Responsable' },
+  { key: 'due_date', label: 'Fecha' },
+  { key: 'campaign', label: 'Campaña' },
+  { key: 'area', label: 'Área' },
+]
+
+function FieldsToggle({ visible, onChange }: { visible: string[]; onChange: (v: string[]) => void }) {
+  const { open, setOpen, ref } = useKanbanPopover()
+  const toggle = (k: string) =>
+    onChange(visible.includes(k) ? visible.filter(x => x !== k) : [...visible, k])
+
+  return (
+    <div ref={ref} style={{ position: 'relative', flexShrink: 0 }}>
+      <button onClick={() => setOpen(o => !o)} style={{
+        display: 'inline-flex', alignItems: 'center', gap: 5, height: 32, padding: '0 10px',
+        borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: 'none',
+        backgroundColor: '#F5F6FA', outline: `1px solid ${C.border}`, color: C.sub,
+      }}>
+        <Eye size={12} /> Campos {visible.length}
+      </button>
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 4px)', right: 0, zIndex: 400,
+          backgroundColor: '#fff', border: `1px solid ${C.border}`,
+          borderRadius: 10, boxShadow: '0 8px 28px rgba(0,0,0,0.13)',
+          padding: 4, minWidth: 170,
+        }}>
+          {ALL_CARD_FIELDS.map(f => {
+            const on = visible.includes(f.key)
+            return (
+              <button key={f.key} onClick={() => toggle(f.key)} style={{
+                display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+                padding: '7px 10px', borderRadius: 7, border: 'none', cursor: 'pointer',
+                backgroundColor: on ? `${C.accent}10` : 'transparent', textAlign: 'left',
+              }}
+              onMouseEnter={e => { if (!on) (e.currentTarget as HTMLElement).style.backgroundColor = '#F5F6FA' }}
+              onMouseLeave={e => { if (!on) (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent' }}>
+                {on ? <Eye size={12} color={C.accent} /> : <EyeOff size={12} color={C.muted} />}
+                <span style={{ fontSize: 12, fontWeight: on ? 600 : 400, color: on ? C.text : C.muted }}>{f.label}</span>
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Draggable Task Card ─────────────────────────────────────────────────────
+const KANBAN_ASSIGNEES_MAP: Record<string, string> = ASSIGNEE_COLORS
+
+function DraggableCard({ task, onOpenDetail, visibleFields }: {
+  task: Task; onOpenDetail: (t: Task) => void; visibleFields: string[]
+}) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: task.id })
+
+  const clientColor = (task.client as Client & { color: string })?.color
+  const assigneeColor = KANBAN_ASSIGNEES_MAP[task.assignee] || C.muted
+  const areaColor = AREA_COLORS[task.area] || C.muted
+  const priorityColor = PRIORITY_COLORS[task.priority] || C.muted
+  const etapaColor = task.etapa ? ETAPA_COLORS[task.etapa] : C.muted
+  const statusColor = STATUS_COLORS[task.status] || C.muted
+  const isUrgent = task.tipo === 'urgente'
+
+  const style: React.CSSProperties = {
+    transform: transform ? `translate(${transform.x}px, ${transform.y}px)` : undefined,
+    opacity: isDragging ? 0.35 : 1,
+    zIndex: isDragging ? 999 : 'auto',
+  }
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} className="group">
       <div
         onClick={() => onOpenDetail(task)}
         style={{
@@ -162,18 +300,12 @@ function TaskCard({ task, onOpenDetail }: { task: Task; onOpenDetail: (t: Task) 
           borderLeft: clientColor ? `3px solid ${clientColor}` : `1px solid ${C.border}`,
           boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
           cursor: 'pointer',
-          transition: 'all 0.15s',
+          transition: 'box-shadow 0.15s, transform 0.15s',
           padding: '10px 12px',
           position: 'relative',
         }}
-        onMouseEnter={e => {
-          e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.12)'
-          e.currentTarget.style.transform = 'translateY(-1px)'
-        }}
-        onMouseLeave={e => {
-          e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)'
-          e.currentTarget.style.transform = 'translateY(0)'
-        }}
+        onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.12)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+        onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)'; e.currentTarget.style.transform = 'translateY(0)' }}
       >
         {/* Urgent badge */}
         {isUrgent && (
@@ -188,7 +320,7 @@ function TaskCard({ task, onOpenDetail }: { task: Task; onOpenDetail: (t: Task) 
         )}
 
         {/* Client */}
-        {task.client && (
+        {visibleFields.includes('client') && task.client && (
           <div style={{ marginBottom: 6 }}>
             <span style={{
               fontSize: 10, fontWeight: 700,
@@ -213,33 +345,59 @@ function TaskCard({ task, onOpenDetail }: { task: Task; onOpenDetail: (t: Task) 
 
         {/* Chips row */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 8, flexWrap: 'wrap' }}>
-          <span style={{
-            fontSize: 9, fontWeight: 700,
-            color: areaColor, backgroundColor: `${areaColor}18`,
-            padding: '2px 6px', borderRadius: 4,
-          }}>
-            {AREA_LABELS[task.area]}
-          </span>
-          <span style={{
-            fontSize: 9, fontWeight: 700,
-            color: priorityColor, backgroundColor: `${priorityColor}18`,
-            padding: '2px 6px', borderRadius: 4,
-          }}>
-            {task.priority === 'alerta_roja' ? '🚨 Alerta' : task.priority === 'alta' ? '↑ Alta' : task.priority === 'media' ? '→ Media' : '↓ Baja'}
-          </span>
+          {visibleFields.includes('etapa') && task.etapa && (
+            <span style={{
+              fontSize: 9, fontWeight: 700,
+              color: etapaColor, backgroundColor: `${etapaColor}18`,
+              padding: '2px 6px', borderRadius: 4,
+            }}>
+              {ETAPA_LABELS[task.etapa]}
+            </span>
+          )}
+          {visibleFields.includes('status') && (
+            <span style={{
+              fontSize: 9, fontWeight: 700,
+              color: statusColor, backgroundColor: `${statusColor}18`,
+              padding: '2px 6px', borderRadius: 4,
+            }}>
+              {STATUS_LABELS[task.status]}
+            </span>
+          )}
+          {visibleFields.includes('priority') && (
+            <span style={{
+              fontSize: 9, fontWeight: 700,
+              color: priorityColor, backgroundColor: `${priorityColor}18`,
+              padding: '2px 6px', borderRadius: 4,
+            }}>
+              {task.priority === 'alerta_roja' ? '🚨 Alerta' : task.priority === 'alta' ? '↑ Alta' : task.priority === 'media' ? '→ Media' : '↓ Baja'}
+            </span>
+          )}
+          {visibleFields.includes('area') && (
+            <span style={{
+              fontSize: 9, fontWeight: 700,
+              color: areaColor, backgroundColor: `${areaColor}18`,
+              padding: '2px 6px', borderRadius: 4,
+            }}>
+              {AREA_LABELS[task.area]}
+            </span>
+          )}
           {(() => {
             const days = getDaysOverdue(task)
             if (days === 0) return null
             return (
               <span style={{ fontSize: 9, fontWeight: 700, color: '#EF4444', backgroundColor: '#FEF2F2', padding: '2px 6px', borderRadius: 4, border: '1px solid #FECACA' }}>
-                ⚠️ {days}d atraso
+                ⚠️ {days}d
               </span>
             )
           })()}
-          {task.campaign && (
+          {visibleFields.includes('due_date') && task.due_date && (
+            <span style={{ fontSize: 9, fontWeight: 600, color: C.muted, backgroundColor: '#F5F6FA', padding: '2px 6px', borderRadius: 4 }}>
+              📅 {new Date(task.due_date).toLocaleDateString('es', { day: 'numeric', month: 'short' })}
+            </span>
+          )}
+          {visibleFields.includes('campaign') && task.campaign && (
             <span style={{
-              fontSize: 9, color: C.muted,
-              padding: '2px 5px', borderRadius: 4,
+              fontSize: 9, color: C.muted, padding: '2px 5px', borderRadius: 4,
               backgroundColor: '#F5F6FA',
               maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>
@@ -249,48 +407,64 @@ function TaskCard({ task, onOpenDetail }: { task: Task; onOpenDetail: (t: Task) 
         </div>
 
         {/* Footer */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <div style={{
-              width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
-              backgroundColor: assigneeColor,
-              color: '#fff', fontSize: 8, fontWeight: 800,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              {task.assignee.slice(0, 2).toUpperCase()}
+        {visibleFields.includes('assignee') && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: -4 }}>
+              <div style={{
+                width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+                backgroundColor: assigneeColor, color: '#fff', fontSize: 8, fontWeight: 800,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                {task.assignee.slice(0, 2).toUpperCase()}
+              </div>
+              <span style={{ fontSize: 10, fontWeight: 500, color: C.sub, marginLeft: 5 }}>{task.assignee}</span>
             </div>
-            <span style={{ fontSize: 10, fontWeight: 500, color: C.sub }}>{task.assignee}</span>
-          </div>
 
-          <button
-            {...listeners}
-            onClick={e => e.stopPropagation()}
-            className="opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
-            style={{ background: 'none', border: 'none', padding: '2px', color: C.muted }}
-          >
-            <GripVertical size={13} />
-          </button>
-        </div>
+            <button
+              {...listeners}
+              onClick={e => e.stopPropagation()}
+              className="opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
+              style={{ background: 'none', border: 'none', padding: '2px', color: C.muted }}
+            >
+              <GripVertical size={13} />
+            </button>
+          </div>
+        )}
+
+        {/* Drag handle if no assignee visible */}
+        {!visibleFields.includes('assignee') && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <button
+              {...listeners}
+              onClick={e => e.stopPropagation()}
+              className="opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
+              style={{ background: 'none', border: 'none', padding: '2px', color: C.muted }}
+            >
+              <GripVertical size={13} />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
 }
 
-// ─── Kanban column ────────────────────────────────────────────────────────────
-function KanbanColumn({
-  column, tasks, onOpenDetail, onNewTask,
+// ─── Droppable Kanban Column ─────────────────────────────────────────────────
+function DroppableColumn({
+  column, tasks, onOpenDetail, onNewTask, visibleFields,
 }: {
-  column: typeof COLUMNS[0]
+  column: ColumnDef
   tasks: Task[]
   onOpenDetail: (t: Task) => void
   onNewTask?: () => void
+  visibleFields: string[]
 }) {
-  const { setNodeRef } = useSortable({ id: column.id, data: { type: 'column' } })
+  const { setNodeRef, isOver } = useDroppable({ id: column.id })
 
   return (
     <div style={{
       display: 'flex', flexDirection: 'column',
-      minWidth: 280, flex: 1,
+      minWidth: 240, width: 240, flexShrink: 0,
       maxHeight: 'calc(100vh - 160px)',
     }}>
       {/* Column header */}
@@ -315,7 +489,7 @@ function KanbanColumn({
             {tasks.length}
           </span>
         </div>
-        {onNewTask && column.id === 'todo' && (
+        {onNewTask && (
           <button
             onClick={onNewTask}
             style={{
@@ -330,39 +504,63 @@ function KanbanColumn({
         )}
       </div>
 
-      {/* Column body */}
+      {/* Column body (droppable) */}
       <div
         ref={setNodeRef}
         style={{
           flex: 1, overflowY: 'auto',
-          backgroundColor: column.bg,
-          border: `1px solid ${C.border}`,
+          backgroundColor: isOver ? `${column.color}12` : `${column.color}06`,
+          border: `1px solid ${isOver ? column.color + '50' : C.border}`,
           borderTop: 'none',
           borderRadius: '0 0 10px 10px',
           padding: 8,
           display: 'flex', flexDirection: 'column', gap: 6,
+          transition: 'background-color 0.2s, border-color 0.2s',
+          minHeight: 80,
         }}
       >
         {tasks.length === 0 ? (
           <div style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            height: 120, borderRadius: 8,
-            border: `2px dashed ${column.color}30`,
+            height: 100, borderRadius: 8,
+            border: `2px dashed ${isOver ? column.color + '60' : column.color + '30'}`,
             color: C.muted, fontSize: 11, fontWeight: 500, gap: 4,
+            transition: 'border-color 0.2s',
           }}>
-            <span style={{ fontSize: 18 }}>
-              {column.id === 'hecho' ? '🎉' : column.id === 'revision' ? '🚫' : '📋'}
-            </span>
-            Sin tareas aquí
+            <span style={{ fontSize: 18 }}>📋</span>
+            {isOver ? 'Soltar aquí' : 'Sin tareas aquí'}
           </div>
         ) : (
-          <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
-            {tasks.map(task => (
-              <TaskCard key={task.id} task={task} onOpenDetail={onOpenDetail} />
-            ))}
-          </SortableContext>
+          tasks.map(task => (
+            <DraggableCard key={task.id} task={task} onOpenDetail={onOpenDetail} visibleFields={visibleFields} />
+          ))
         )}
       </div>
+    </div>
+  )
+}
+
+// ─── DragOverlay Card (ghost) ────────────────────────────────────────────────
+function OverlayCard({ task }: { task: Task }) {
+  const clientColor = (task.client as Client & { color: string })?.color
+  return (
+    <div style={{
+      backgroundColor: C.card, borderRadius: 10,
+      border: `1px solid ${C.border}`,
+      borderLeft: clientColor ? `3px solid ${clientColor}` : `1px solid ${C.border}`,
+      padding: '10px 12px',
+      boxShadow: '0 12px 32px rgba(0,0,0,0.18)',
+      transform: 'rotate(2deg)',
+      maxWidth: 240, width: 240,
+    }}>
+      {task.client && (
+        <span style={{ fontSize: 10, fontWeight: 700, display: 'block', marginBottom: 5, color: clientColor }}>
+          {task.client.name}
+        </span>
+      )}
+      <p style={{ fontSize: 12, fontWeight: 600, color: C.text, margin: 0 }}>
+        {task.title}
+      </p>
     </div>
   )
 }
@@ -376,47 +574,72 @@ export function KanbanPage() {
     openTaskDetail: (task: Task) => void
   }>()
 
-  const updateTaskStatus = useUpdateTaskStatus()
+  const updateTask = useUpdateTask()
 
+  // State
+  const [groupBy, setGroupBy] = useState<GroupByKey>('etapa')
   const [filterClients, setFilterClients] = useState<string[]>([])
   const [filterAreas, setFilterAreas] = useState<string[]>([])
   const [filterAssignees, setFilterAssignees] = useState<string[]>([])
+  const [hideDone, setHideDone] = useState(true)
+  const [visibleFields, setVisibleFields] = useState<string[]>(DEFAULT_KANBAN_CARD_FIELDS)
   const [draggedTask, setDraggedTask] = useState<Task | null>(null)
-
-  const toggle = <T,>(arr: T[], val: T) =>
-    arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val]
 
   const hasFilters = filterClients.length > 0 || filterAreas.length > 0 || filterAssignees.length > 0
   const clearFilters = () => { setFilterClients([]); setFilterAreas([]); setFilterAssignees([]) }
 
+  // Columns
+  const columns = useMemo(() => getColumnsForGroupBy(groupBy, clients), [groupBy, clients])
+
+  // Filtered tasks
   const filteredTasks = useMemo(() => tasks.filter(task => {
     if (filterClients.length && !filterClients.includes(task.client_id ?? '')) return false
     if (filterAreas.length && !filterAreas.includes(task.area ?? '')) return false
     if (filterAssignees.length && !filterAssignees.includes(task.assignee ?? '')) return false
+    if (hideDone && task.status === 'done') return false
     return true
-  }), [tasks, filterClients, filterAreas, filterAssignees])
+  }), [tasks, filterClients, filterAreas, filterAssignees, hideDone])
 
-  const tasksByStatus = useMemo(() => {
-    const grouped: Record<TaskStatus, Task[]> = {
-      todo: [], en_progreso: [], revision: [], bloqueado: [], hecho: [],
-    }
-    filteredTasks.forEach(task => { grouped[task.status].push(task) })
+  // Group tasks by column
+  const tasksByColumn = useMemo(() => {
+    const grouped: Record<string, Task[]> = {}
+    columns.forEach(col => { grouped[col.id] = [] })
+    filteredTasks.forEach(task => {
+      const val = getTaskGroupValue(task, groupBy)
+      if (grouped[val]) grouped[val].push(task)
+    })
     return grouped
-  }, [filteredTasks])
+  }, [filteredTasks, columns, groupBy])
 
-  const handleDragStart = ({ active }: DragStartEvent) => {
+  // Assignee options
+  const assigneeOptions = useMemo(() =>
+    Object.entries(ASSIGNEE_COLORS).filter(([n]) => n !== 'TBD').map(([name, color]) => ({ value: name, label: name, color })),
+  [])
+
+  // DnD handlers
+  const handleDragStart = useCallback(({ active }: DragStartEvent) => {
     const task = filteredTasks.find(t => t.id === active.id)
     if (task) setDraggedTask(task)
-  }
+  }, [filteredTasks])
 
-  const handleDragEnd = ({ active, over }: DragEndEvent) => {
+  const handleDragEnd = useCallback(({ active, over }: DragEndEvent) => {
     setDraggedTask(null)
-    if (!over) return
-    const newStatus = over.id as TaskStatus
-    if (COLUMNS.map(c => c.id).includes(newStatus) && draggedTask) {
-      updateTaskStatus.mutate({ id: draggedTask.id, status: newStatus })
-    }
-  }
+    if (!over || !draggedTask) return
+
+    const targetColumnId = over.id as string
+    const isColumn = columns.some(c => c.id === targetColumnId)
+    if (!isColumn) return
+
+    const currentValue = getTaskGroupValue(draggedTask, groupBy)
+    if (currentValue === targetColumnId) return
+
+    const field = getUpdateField(groupBy)
+    updateTask.mutate({ id: draggedTask.id, [field]: targetColumnId })
+  }, [draggedTask, columns, groupBy, updateTask])
+
+  // Count total
+  const totalTasks = filteredTasks.length
+  const totalCols = columns.length
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', backgroundColor: C.bg }}>
@@ -435,7 +658,7 @@ export function KanbanPage() {
         />
         <KFDrop
           label="Responsable"
-          options={KANBAN_ASSIGNEES.map(({ name, color }) => ({ value: name, label: name, color }))}
+          options={assigneeOptions}
           multiValues={filterAssignees}
           onMultiChange={setFilterAssignees}
           showAvatar
@@ -446,14 +669,27 @@ export function KanbanPage() {
           multiValues={filterAreas}
           onMultiChange={v => setFilterAreas(v as Area[])}
         />
+
+        <div style={{ width: 1, height: 20, backgroundColor: C.border, margin: '0 4px' }} />
+
+        <GroupBySelect value={groupBy} onChange={setGroupBy} />
+
+        <FieldsToggle visible={visibleFields} onChange={setVisibleFields} />
+
+        {/* Hide done toggle */}
+        <button onClick={() => setHideDone(h => !h)} style={{
+          display: 'inline-flex', alignItems: 'center', gap: 5, height: 32, padding: '0 10px',
+          borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: 'none',
+          backgroundColor: hideDone ? '#F0FDF4' : '#F5F6FA',
+          outline: hideDone ? '1.5px solid #86EFAC' : `1px solid ${C.border}`,
+          color: hideDone ? '#16A34A' : C.sub,
+        }}>
+          {hideDone ? <EyeOff size={12} /> : <Eye size={12} />}
+          Ocultar done
+        </button>
+
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
-          {COLUMNS.map(col => (
-            <div key={col.id} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: col.color }} />
-              <span style={{ fontSize: 11, fontWeight: 600, color: C.sub }}>{tasksByStatus[col.id].length}</span>
-            </div>
-          ))}
-          <span style={{ fontSize: 10, color: C.muted, marginLeft: 4 }}>{filteredTasks.length} tareas</span>
+          <span style={{ fontSize: 10, color: C.muted }}>{totalTasks} tareas · {totalCols} col.</span>
           {hasFilters && (
             <button onClick={clearFilters} style={{
               fontSize: 10, fontWeight: 700, cursor: 'pointer',
@@ -467,46 +703,25 @@ export function KanbanPage() {
       {/* ── Kanban board ───────────────────────────────────────────────────── */}
       <div style={{ flex: 1, overflowX: 'auto', overflowY: 'hidden', padding: '16px 20px' }}>
         <DndContext
-          collisionDetection={closestCenter}
+          collisionDetection={rectIntersection}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
           <div style={{ display: 'flex', gap: 14, height: '100%', minWidth: 'max-content' }}>
-            {COLUMNS.map(column => (
-              <KanbanColumn
+            {columns.map((column, idx) => (
+              <DroppableColumn
                 key={column.id}
                 column={column}
-                tasks={tasksByStatus[column.id]}
+                tasks={tasksByColumn[column.id] || []}
                 onOpenDetail={openTaskDetail}
-                onNewTask={openNewTask}
+                onNewTask={idx === 0 ? openNewTask : undefined}
+                visibleFields={visibleFields}
               />
             ))}
           </div>
 
-          <DragOverlay>
-            {draggedTask && (
-              <div style={{
-                backgroundColor: C.card, borderRadius: 10,
-                border: `1px solid ${C.border}`,
-                borderLeft: draggedTask.client?.color ? `3px solid ${draggedTask.client.color}` : `1px solid ${C.border}`,
-                padding: '10px 12px',
-                boxShadow: '0 12px 32px rgba(0,0,0,0.18)',
-                transform: 'rotate(2deg)',
-                maxWidth: 280,
-              }}>
-                {draggedTask.client && (
-                  <span style={{
-                    fontSize: 10, fontWeight: 700, display: 'block', marginBottom: 5,
-                    color: draggedTask.client.color,
-                  }}>
-                    {draggedTask.client.name}
-                  </span>
-                )}
-                <p style={{ fontSize: 12, fontWeight: 600, color: C.text, margin: 0 }}>
-                  {draggedTask.title}
-                </p>
-              </div>
-            )}
+          <DragOverlay dropAnimation={null}>
+            {draggedTask && <OverlayCard task={draggedTask} />}
           </DragOverlay>
         </DndContext>
       </div>

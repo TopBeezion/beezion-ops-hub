@@ -3,10 +3,10 @@ import { supabase } from '../lib/supabase'
 
 export interface AppNotification {
   id: string
-  type: 'meeting_tasks' | 'overdue_tasks'
+  type: 'meeting_tasks' | 'overdue_tasks' | 'mention' | 'status_change'
   title: string
   body: string
-  tasks: {
+  tasks?: {
     id: string
     title: string
     client_name?: string
@@ -14,6 +14,8 @@ export interface AppNotification {
     assignee: string
     days_overdue?: number
   }[]
+  taskId?: string
+  taskTitle?: string
   timestamp: string
   read: boolean
 }
