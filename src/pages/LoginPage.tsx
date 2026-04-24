@@ -8,7 +8,7 @@ const TEAM = [
   { name: 'Alec',      color: '#F59E0B', role: 'Head of Paid' },
   { name: 'Jose',      color: '#3B82F6', role: 'Trafficker' },
   { name: 'Luisa',     color: '#EF4444', role: 'Copywriter' },
-  { name: 'Paula',     color: '#EC4899', role: 'Aux. Marketing' },
+  { name: 'Paula',     color: '#EC4899', role: 'Project Manager' },
   { name: 'David',     color: '#06B6D4', role: 'Editor' },
   { name: 'Johan',     color: '#10B981', role: 'Editor' },
   { name: 'Felipe',    color: '#F97316', role: 'Editor' },

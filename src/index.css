@@ -174,3 +174,7 @@ body {
 
 /* ── Responsive ── */
 @media (max-width: 768px) { .filter-toolbar { flex-wrap: wrap; } .kanban-column { min-width: 260px; } }
+
+/* ── Sidebar row hover actions ── */
+.sidebar-row:hover .sidebar-actions { display: flex !important; }
+.sidebar-row:hover .sidebar-count { display: none; }
